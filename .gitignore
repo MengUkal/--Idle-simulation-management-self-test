@@ -4,3 +4,4 @@
 tests/capture.png
 tests/*.uid
 tests/cap_*.png
+tests/capture_market.png

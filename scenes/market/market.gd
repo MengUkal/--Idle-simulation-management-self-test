@@ -76,6 +76,19 @@ func _ready() -> void:
 	Market.prices_changed.connect(_refresh_quotes)
 	Market.candle_closed.connect(_refresh_quotes)
 	_refresh_all()
+	if OS.get_cmdline_user_args().has("--capture-debug"):
+		_debug_capture.call_deferred()
+
+
+## 【诊断工具】截屏（-- --capture-debug 触发）
+func _debug_capture() -> void:
+	await get_tree().process_frame
+	await get_tree().create_timer(0.5).timeout
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("F:/放置测试/挂机放置增量rpg/tests/capture_market.png")
+	print("[capture] saved")
+	get_tree().quit()
 
 
 # ---------- UI 构建 ----------
@@ -150,14 +163,18 @@ func _build_target_list() -> void:
 
 
 func _build_chart() -> void:
+	# 居中偏移摆放（PRESET_CENTER 会把控件左上角钉在屏幕中心导致右下坠，需手动配平偏移）
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -445
+	panel.offset_right = 445
+	panel.offset_top = -310
+	panel.offset_bottom = 150
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = COL_PANEL
 	sb.set_corner_radius_all(16)
 	sb.set_content_margin_all(16)
 	panel.add_theme_stylebox_override("panel", sb)
-	panel.custom_minimum_size = Vector2(680, 480)
 	add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -165,7 +182,9 @@ func _build_chart() -> void:
 	_price_label = _make_label(box, "", 24, COL_GOLD)
 	_chart = MarketChart.new()
 	_chart.source = Market
-	_chart.custom_minimum_size = Vector2(640, 380)
+	_chart.custom_minimum_size = Vector2(0, 380)
+	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chart.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_chart)
 
 
