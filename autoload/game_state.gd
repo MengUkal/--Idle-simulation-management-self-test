@@ -48,3 +48,15 @@ func upgrade_level() -> bool:
 func go_to_floor(index: int) -> void:
 	floor_index = index
 	EventBus.floor_changed.emit(index)
+
+
+func reset() -> void:
+	## 清空进度回到全新开局（只重置内存数据；删档由 SaveManager 负责）。
+	money = Balance.START_MONEY
+	level = Balance.START_LEVEL
+	floor_index = 1
+	total_earned = 0.0
+	EventBus.money_changed.emit(money)
+	EventBus.income_changed.emit(income_per_sec())
+	EventBus.level_changed.emit(level)
+	EventBus.floor_changed.emit(floor_index)

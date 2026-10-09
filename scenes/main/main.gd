@@ -18,6 +18,8 @@ var _floor2_button: Button
 var _save_label: Label
 var _toast: Label
 var _toast_tween: Tween
+var _reset_button: Button
+var _reset_confirm: Control
 
 
 func _ready() -> void:
@@ -27,6 +29,8 @@ func _ready() -> void:
 	_build_right_panel()
 	_build_toast()
 	_build_save_label()
+	_build_reset_button()
+	_build_reset_confirm()
 	_connect_signals()
 	_refresh_all()
 
@@ -118,6 +122,58 @@ func _build_save_label() -> void:
 	_save_label.offset_bottom = -16
 
 
+func _build_reset_button() -> void:
+	_reset_button = Button.new()
+	_reset_button.text = "重置存档"
+	_reset_button.flat = true
+	_reset_button.add_theme_font_size_override("font_size", 15)
+	_reset_button.add_theme_color_override("font_color", COL_DIM)
+	_reset_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_reset_button.offset_left = 16
+	_reset_button.offset_right = 120
+	_reset_button.offset_top = -40
+	_reset_button.offset_bottom = -12
+	_reset_button.pressed.connect(_on_reset_pressed)
+	add_child(_reset_button)
+
+
+func _build_reset_confirm() -> void:
+	_reset_confirm = CenterContainer.new()
+	_reset_confirm.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_reset_confirm.visible = false
+	add_child(_reset_confirm)
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COL_PANEL
+	sb.set_corner_radius_all(16)
+	sb.set_content_margin_all(28)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.custom_minimum_size = Vector2(520, 0)
+	_reset_confirm.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	panel.add_child(box)
+	_make_label(box, "重置存档", 28, COL_GOLD)
+	_make_label(box, "确定要清空所有进度吗？\n此操作无法撤销。", 20)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 16)
+	box.add_child(buttons)
+	var cancel := Button.new()
+	cancel.text = "取消"
+	cancel.custom_minimum_size = Vector2(140, 48)
+	cancel.add_theme_font_size_override("font_size", 20)
+	cancel.pressed.connect(_on_reset_cancelled)
+	buttons.add_child(cancel)
+	var confirm := Button.new()
+	confirm.text = "确定重置"
+	confirm.custom_minimum_size = Vector2(140, 48)
+	confirm.add_theme_font_size_override("font_size", 20)
+	confirm.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+	confirm.pressed.connect(_on_reset_confirmed)
+	buttons.add_child(confirm)
+
+
 func _make_label(parent: Node, text: String, font_size: int, color: Color = COL_TEXT) -> Label:
 	var label := Label.new()
 	label.text = text
@@ -177,6 +233,22 @@ func _on_upgrade_pressed() -> void:
 
 func _on_floor2_pressed() -> void:
 	GameState.go_to_floor(2)
+
+
+func _on_reset_pressed() -> void:
+	_reset_confirm.visible = true
+
+
+func _on_reset_cancelled() -> void:
+	_reset_confirm.visible = false
+
+
+func _on_reset_confirmed() -> void:
+	_reset_confirm.visible = false
+	SaveManager.delete_save()
+	GameState.reset()
+	_refresh_all()
+	_show_toast("存档已重置，重新开始你的登树之旅")
 
 
 # ---------- 刷新 ----------

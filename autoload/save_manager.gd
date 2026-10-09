@@ -55,3 +55,10 @@ func _load() -> void:
 	GameState.level = int(data.get("level", Balance.START_LEVEL))
 	GameState.floor_index = int(data.get("floor", 1))
 	GameState.total_earned = float(data.get("total_earned", 0.0))
+
+
+func delete_save() -> void:
+	## 删除磁盘存档（配合"重置存档"按钮）。之后由下一次自动保存写入全新数据。
+	var abs_path := ProjectSettings.globalize_path(SAVE_PATH)
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(abs_path)
