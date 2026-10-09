@@ -1,7 +1,7 @@
 extends Control
-## M2 冒险界面：三消核心（7×7 / 6 元素 / 相邻交换 / 三连消除 / 连锁 / 步数倒数）。
-## 战斗包装（正式怪物表与赏金）待数值审定，当前用"训练木桩"占位：
-##   伤害 = 消除方块数（占位公式，属性克制未启用）。
+## M2 冒险界面：三消战斗（一场一只怪）。
+## 规则【已拍板】：每次消除 = 一次攻击；命中弱点属性 ×2；连锁第 n 波伤害 ×(1+0.2×(n-1))；
+## 步数内击杀 → 获得赏金；步数耗尽未击杀 → 无赏金。
 
 const COL_BG := Color("191322")
 const COL_GOLD := Color("ffd75e")
@@ -11,26 +11,29 @@ const COL_PANEL := Color("241d33")
 const TILE := 84.0
 
 var board: Match3Board
+var monster: Dictionary = {}
+var monster_hp := 0.0
+var monster_hp_max := 1
+var defeated := false
 var steps_left := 0
 var selected := Vector2i(-1, -1)
-var tiles: Array = []            # tiles[行][列] = Button
-var _tile_styles: Array = []     # 每种元素一枚 StyleBoxFlat 缓存
+var tiles: Array = []
+var _tile_styles: Array = []
 
 # 本局统计
 var total_cleared := 0
 var max_chain := 0
 var total_damage := 0
-var kills := 0
-var dummy_hp := Balance.DUMMY_HP
 
 var _steps_label: Label
 var _stat_cleared: Label
 var _stat_chain: Label
 var _stat_damage: Label
-var _stat_kills: Label
 var _hp_bar: ProgressBar
 var _hp_label: Label
+var _enemy_name: Label
 var _result_panel: Control
+var _result_title: Label
 var _result_stats: Label
 var _toast: Label
 var _toast_tween: Tween
@@ -41,6 +44,7 @@ func _ready() -> void:
 	board.setup()
 	board.ensure_playable()
 	steps_left = Balance.battle_steps(GameState.level)
+	_roll_monster()
 	_build_background()
 	_build_enemy_panel()
 	_build_board()
@@ -49,6 +53,19 @@ func _ready() -> void:
 	_build_toast()
 	_refresh_board()
 	_refresh_hud()
+	if monster.get("elite", false):
+		_show_toast("遭遇精英：%s！" % monster["name"])
+
+
+func _roll_monster() -> void:
+	if randf() < Balance.ELITE_CHANCE:
+		monster = Balance.MONSTER_ELITE_FLOOR1.duplicate()
+		monster["elite"] = true
+	else:
+		var pool: Array = Balance.MONSTERS_FLOOR1
+		monster = pool[randi() % pool.size()].duplicate()
+	monster_hp_max = int(monster["hp"])
+	monster_hp = float(monster_hp_max)
 
 
 # ---------- UI 构建 ----------
@@ -76,7 +93,7 @@ func _build_enemy_panel() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	panel.add_child(box)
-	_make_label(box, "训练木桩（占位）", 24, COL_GOLD)
+	_enemy_name = _make_label(box, "", 24, COL_GOLD)
 	var portrait := ColorRect.new()
 	portrait.custom_minimum_size = Vector2(0, 170)
 	portrait.color = Color("3a3350")
@@ -94,7 +111,7 @@ func _build_enemy_panel() -> void:
 	_hp_bar.add_theme_stylebox_override("fill", bar_fg)
 	box.add_child(_hp_bar)
 	_hp_label = _make_label(box, "", 16, COL_DIM)
-	_make_label(box, "正式怪物与赏金\n待数值表审定（M2 第二步）", 14, COL_DIM)
+	_make_label(box, "在步数内击倒它即可获得赏金\n打不过也可以直接撤退", 14, COL_DIM)
 
 
 func _build_board() -> void:
@@ -134,8 +151,7 @@ func _build_side_panel() -> void:
 	_stat_cleared = _make_label(box, "", 20)
 	_stat_chain = _make_label(box, "", 20)
 	_stat_damage = _make_label(box, "", 20)
-	_stat_kills = _make_label(box, "", 20)
-	var hint := _make_label(box, "点选相邻两块交换；三连即消除并造成攻击", 15, COL_DIM)
+	var hint := _make_label(box, "消除怪物弱属性颜色的方块可造成双倍伤害\n连锁越高伤害加成越高", 15, COL_DIM)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var retreat := Button.new()
 	retreat.text = "撤退（返回主界面）"
@@ -156,14 +172,13 @@ func _build_result_panel() -> void:
 	sb.set_corner_radius_all(16)
 	sb.set_content_margin_all(32)
 	panel.add_theme_stylebox_override("panel", sb)
-	panel.custom_minimum_size = Vector2(600, 0)
+	panel.custom_minimum_size = Vector2(620, 0)
 	_result_panel.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	panel.add_child(box)
-	_make_label(box, "本场冒险结束", 32, COL_GOLD)
+	_result_title = _make_label(box, "", 34, COL_GOLD)
 	_result_stats = _make_label(box, "", 20)
-	_make_label(box, "赏金结算将在怪物表审定后加入", 15, COL_DIM)
 	var back := Button.new()
 	back.text = "返回主界面"
 	back.custom_minimum_size = Vector2(220, 52)
@@ -195,7 +210,7 @@ func _make_label(parent: Node, text: String, font_size: int, color: Color = COL_
 # ---------- 交互 ----------
 
 func _on_tile_pressed(cell: Vector2i) -> void:
-	if steps_left <= 0:
+	if steps_left <= 0 or defeated:
 		return
 	if selected == Vector2i(-1, -1):
 		selected = cell
@@ -214,31 +229,48 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	if not report.get("ok", false):
 		return  # 无效交换：棋盘已自动还原，静默忽略
 	steps_left -= 1
-	var cleared: Array = report["cleared"]
-	var chains: int = report["chains"]
-	total_cleared += cleared.size()
-	max_chain = maxi(max_chain, chains)
-	var damage := cleared.size()  # [占位] 伤害 = 消除数；属性克制随怪物表启用
-	total_damage += damage
-	dummy_hp -= damage
-	while dummy_hp <= 0:
-		kills += 1
-		dummy_hp += Balance.DUMMY_HP
-	if kills > 0:
-		_show_toast("已击倒 %d 个训练木桩" % kills)
-	if steps_left <= 0:
-		_show_result()
+	total_cleared += (report["cleared"] as Array).size()
+	max_chain = maxi(max_chain, int(report["chains"]))
+	_apply_damage(report["waves"])
 	if board.ensure_playable():
 		_show_toast("无可行交换，棋盘已重洗")
+	if steps_left <= 0 and not defeated:
+		_show_result(false)
 	_refresh_board()
 	_refresh_hud()
+
+
+func _apply_damage(waves: Array) -> void:
+	var dmg_f := 0.0
+	var any_weak := false
+	for i in waves.size():
+		var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
+		for entry in waves[i]:
+			var m := Balance.damage_multiplier(int(entry["element"]), monster)
+			if m > 1.0:
+				any_weak = true
+			dmg_f += wave_mult * m
+	var dmg := int(ceil(dmg_f))
+	total_damage += dmg
+	monster_hp -= dmg
+	_spawn_damage_number(dmg, any_weak)
+	if monster_hp <= 0:
+		_victory()
+
+
+func _victory() -> void:
+	if defeated:
+		return
+	defeated = true
+	GameState.add_money(float(int(monster["bounty"])))
+	_show_result(true)
 
 
 func _on_retreat_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 
-# ---------- 刷新 ----------
+# ---------- 刷新与反馈 ----------
 
 func _refresh_board() -> void:
 	for r in Balance.BOARD_SIZE:
@@ -256,10 +288,12 @@ func _refresh_hud() -> void:
 	_stat_cleared.text = "消除方块：%d" % total_cleared
 	_stat_chain.text = "最大连锁：%d" % max_chain
 	_stat_damage.text = "总输出：%d" % total_damage
-	_stat_kills.text = "击倒木桩：%d" % kills
-	_hp_bar.max_value = Balance.DUMMY_HP
-	_hp_bar.value = dummy_hp
-	_hp_label.text = "HP %d / %d" % [dummy_hp, Balance.DUMMY_HP]
+	var weak_name: String = Balance.ELEMENT_NAMES[int(monster.get("weak", 0))]
+	var elite_tag: String = "★精英 " if monster.get("elite", false) else ""
+	_enemy_name.text = "%s%s（弱点：%s）" % [elite_tag, monster["name"], weak_name]
+	_hp_bar.max_value = monster_hp_max
+	_hp_bar.value = maxf(monster_hp, 0.0)
+	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
 
 
 func _tile_style(element: int) -> StyleBoxFlat:
@@ -272,10 +306,32 @@ func _tile_style(element: int) -> StyleBoxFlat:
 	return _tile_styles[element]
 
 
-func _show_result() -> void:
-	_result_stats.text = "总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d ｜ 击倒木桩 %d" % [
-		total_damage, total_cleared, max_chain, kills,
-	]
+func _spawn_damage_number(amount: int, weak: bool) -> void:
+	var label := Label.new()
+	label.text = "-%d" % amount
+	label.add_theme_font_size_override("font_size", 36)
+	label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4) if weak else Color(1.0, 0.85, 0.5))
+	label.position = Vector2(250, 470)
+	add_child(label)
+	var tw := create_tween()
+	tw.tween_property(label, "position:y", 400.0, 0.8)
+	tw.parallel().tween_property(label, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(label.queue_free)
+
+
+func _show_result(victory: bool) -> void:
+	if victory:
+		_result_title.text = "战斗胜利！"
+		_result_stats.text = "获得赏金 %d %s\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d" % [
+			int(monster["bounty"]), Balance.CURRENCY_SHORT,
+			total_damage, total_cleared, max_chain,
+		]
+	else:
+		_result_title.text = "步数耗尽……"
+		_result_stats.text = "%s 逃走了（剩余 HP %d）\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d" % [
+			monster["name"], ceili(maxf(monster_hp, 0.0)),
+			total_damage, total_cleared, max_chain,
+		]
 	_result_panel.visible = true
 
 

@@ -33,7 +33,20 @@ const BOARD_SIZE := 7               # 【已拍板】棋盘 7×7
 const ELEMENT_KINDS := 6            # 【已拍板】6 种元素
 const BATTLE_STEPS_BASE := 10       # 【已拍板】Lv.1 步数 = 10
 const BATTLE_STEPS_PER_LEVEL := 0.5 # 【已拍板】每级 +0.5 步（即每 2 级 +1）
-const DUMMY_HP := 100               # [占位] 训练木桩血量，正式怪物表待审定
+# 第一层怪物表（2026-10-09 草案落地；数值直接改这里，不用动代码）
+# 元素索引：0火 1水 2風 3土 4光 5闇；克制：火克風、風克土、土克水、水克火、光闇互克
+const MONSTERS_FLOOR1 := [
+	{"name": "树精史莱姆", "hp": 30, "bounty": 5, "weak": 0},
+	{"name": "風狼", "hp": 45, "bounty": 8, "weak": 3},
+	{"name": "岩甲龟", "hp": 70, "bounty": 12, "weak": 1},
+	{"name": "水妖", "hp": 55, "bounty": 10, "weak": 3},
+	{"name": "光萤", "hp": 40, "bounty": 9, "weak": 5},
+	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4},
+]
+const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4}
+const ELITE_CHANCE := 0.1           # [占位] 精英出现率
+const WEAKNESS_MULT := 2.0          # 命中弱点属性的伤害倍率
+const CHAIN_BONUS_PER_WAVE := 0.2   # 连锁加成：第 n 波伤害 ×(1 + 0.2×(n-1))
 # 元素设定（【已拍板】全色皆攻击 + 属性克制）：
 # 火 → 風 → 土 → 水 → 火 循环相克；光 ↔ 闇 互克（克制加成数值随怪物表审定）
 const ELEMENT_NAMES := ["火", "水", "風", "土", "光", "闇"]
@@ -44,6 +57,11 @@ const ELEMENT_TEXT_COLORS := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE
 static func battle_steps(level: int) -> int:
 	# 本场冒险步数上限：Lv.1 = 10、Lv.10 = 15、Lv.30 = 25
 	return BATTLE_STEPS_BASE + int(level * BATTLE_STEPS_PER_LEVEL)
+
+
+static func damage_multiplier(element: int, monster: Dictionary) -> float:
+	## 命中弱点属性返回 WEAKNESS_MULT，否则 1.0
+	return WEAKNESS_MULT if element == int(monster.get("weak", -1)) else 1.0
 
 
 # ---------- 存档 ----------

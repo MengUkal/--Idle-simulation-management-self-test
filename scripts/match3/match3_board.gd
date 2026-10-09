@@ -124,20 +124,21 @@ func ensure_playable() -> bool:
 # ---------- 内部 ----------
 
 func _resolve_board() -> Dictionary:
+	## 战报：cleared = 被消格子；chains = 连锁波数；waves = 每波 [{cell, element}]（供属性克制结算）
 	var total_cleared := {}
-	var chain := 0
-	var per_chain: Array[int] = []
+	var waves: Array = []
 	while true:
 		var matches := find_matches()
 		if matches.is_empty():
 			break
-		chain += 1
+		var wave: Array = []
 		for cell in matches:
+			wave.append({"cell": cell, "element": grid[cell.y][cell.x]})
 			grid[cell.y][cell.x] = EMPTY
 			total_cleared[cell] = true
-		per_chain.append(matches.size())
+		waves.append(wave)
 		_apply_gravity_and_refill()
-	return {"cleared": total_cleared.keys(), "chains": chain, "cleared_per_chain": per_chain}
+	return {"cleared": total_cleared.keys(), "chains": waves.size(), "waves": waves}
 
 
 func _apply_gravity_and_refill() -> void:

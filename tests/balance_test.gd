@@ -33,6 +33,17 @@ func _init() -> void:
 	check("Lv.1 步数 = 10", Balance.battle_steps(1), 10)
 	check("Lv.10 步数 = 15", Balance.battle_steps(10), 15)
 	check("Lv.30 步数 = 25", Balance.battle_steps(30), 25)
+	# 怪物表（第一层）
+	check("第一层常驻怪物 6 只", Balance.MONSTERS_FLOOR1.size(), 6)
+	var monsters_ok := true
+	for m: Dictionary in Balance.MONSTERS_FLOOR1:
+		if int(m["hp"]) <= 0 or int(m["bounty"]) <= 0:
+			monsters_ok = false
+		if int(m["weak"]) < 0 or int(m["weak"]) > 5:
+			monsters_ok = false
+	check("怪物 HP/赏金/弱点取值合法", monsters_ok, true)
+	check("命中弱点倍率 = 2", Balance.damage_multiplier(0, {"weak": 0}), 2.0)
+	check("非弱点倍率 = 1", Balance.damage_multiplier(1, {"weak": 0}), 1.0)
 	# 数值格式化
 	check("格式 999", Balance.format_number(999.0), "999")
 	check("格式 1234", Balance.format_number(1234.0), "1,234")

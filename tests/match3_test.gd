@@ -94,6 +94,13 @@ func _test_resolve() -> void:
 			first_row_cleared = false
 	check("首行三连被消除", first_row_cleared, true)
 	check("连锁数 ≥ 1", rep["chains"] >= 1, true)
+	var waves: Array = rep["waves"]
+	check("waves 波数与 chains 一致", waves.size(), rep["chains"])
+	var first_wave_uniform := true
+	for entry in waves[0]:
+		if int(entry["element"]) != 4:
+			first_wave_uniform = false
+	check("首波元素全为 4", first_wave_uniform, true)
 	var full := true
 	for r in 3:
 		for c in 3:
