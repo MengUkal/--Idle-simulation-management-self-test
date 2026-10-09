@@ -20,22 +20,25 @@ func check(case_name: String, actual: Variant, expected: Variant) -> void:
 
 
 func _init() -> void:
-	# 收入公式：1 + 2*(lv-1)
-	check("Lv.1 收入 = 1", Balance.income_per_sec(1), 1.0)
-	check("Lv.10 收入 = 19", Balance.income_per_sec(10), 19.0)
-	check("Lv.11 收入 = 21", Balance.income_per_sec(11), 21.0)
+	# 收入公式：0.06 * 1.10^(lv-1)（30分钟+到二层节奏，2026-10-09 拍板）
+	check("Lv.1 收入 = 0.06", Balance.income_per_sec(1), 0.06)
+	check("Lv.10 收入 = 0.06×1.1^9", Balance.income_per_sec(10), 0.06 * pow(1.10, 9.0))
+	check("Lv.11 收入 = 0.06×1.1^10", Balance.income_per_sec(11), 0.06 * pow(1.10, 10.0))
 	# 献金公式：10 * 1.15^(lv-1)
 	check("Lv.1→2 献金 = 10", Balance.upgrade_cost(1), 10.0)
 	check("Lv.10→11 献金 = 10×1.15^9", Balance.upgrade_cost(10), 10.0 * pow(1.15, 9.0))
 	# 层数门槛
 	check("二层门槛 = Lv.10", Balance.FLOOR_2_LEVEL_REQ, 10)
-	# 大数格式化
+	# 数值格式化
 	check("格式 999", Balance.format_number(999.0), "999")
 	check("格式 1234", Balance.format_number(1234.0), "1,234")
 	check("格式 10000", Balance.format_number(10000.0), "1万")
 	check("格式 12345678", Balance.format_number(12345678.0), "1234.57万")
 	check("格式 1.5亿", Balance.format_number(150000000.0), "1.5亿")
 	check("格式 负数", Balance.format_number(-20000.0), "-2万")
+	check("格式 小数 0.06", Balance.format_number(0.06), "0.06")
+	check("格式 6.5", Balance.format_number(6.5), "6.5")
+	check("格式 6.0", Balance.format_number(6.0), "6")
 	print("---")
 	print("结果：%d 项失败" % _fails)
 	quit(1 if _fails > 0 else 0)
