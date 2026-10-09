@@ -134,3 +134,18 @@ func debug_add_line(kind: String, n: int) -> void:
 	EventBus.line_changed.emit(kind, line_level(kind))
 	if kind == "income":
 		EventBus.income_changed.emit(income_per_sec())
+
+
+func debug_set_line(kind: String, new_level: int) -> void:
+	## 【修改器】直接设置训练线等级（可为 0，方便测试各档练度）
+	var lv := maxi(new_level, 0)
+	match kind:
+		"atk":
+			atk_line = lv
+		"bounty":
+			bounty_line = lv
+		"income":
+			income_line = lv
+	EventBus.line_changed.emit(kind, line_level(kind))
+	if kind == "income":
+		EventBus.income_changed.emit(income_per_sec())

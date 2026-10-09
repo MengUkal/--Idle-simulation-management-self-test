@@ -11,6 +11,7 @@ const COL_DIM := Color("a89f8d")
 
 var _stats: Label
 var _refresh_accum := 0.0
+var _line_set_input: LineEdit
 
 
 func _ready() -> void:
@@ -85,6 +86,29 @@ func _build_panel() -> void:
 		btn.add_theme_font_size_override("font_size", 15)
 		btn.pressed.connect(_act_add_line.bind(pair[0]))
 		line_row.add_child(btn)
+
+	# 训练线直接设为指定等级
+	var set_row := HBoxContainer.new()
+	set_row.add_theme_constant_override("separation", 8)
+	box.add_child(set_row)
+	var set_lab := Label.new()
+	set_lab.text = "训练线设为"
+	set_lab.custom_minimum_size = Vector2(92, 0)
+	set_lab.add_theme_font_size_override("font_size", 16)
+	set_lab.add_theme_color_override("font_color", COL_TEXT)
+	set_row.add_child(set_lab)
+	_line_set_input = LineEdit.new()
+	_line_set_input.text = "20"
+	_line_set_input.custom_minimum_size = Vector2(90, 32)
+	_line_set_input.add_theme_font_size_override("font_size", 16)
+	set_row.add_child(_line_set_input)
+	for pair in [["atk", "攻"], ["bounty", "赏"], ["income", "收"]]:
+		var sbtn := Button.new()
+		sbtn.text = "%s设" % pair[1]
+		sbtn.custom_minimum_size = Vector2(66, 32)
+		sbtn.add_theme_font_size_override("font_size", 15)
+		sbtn.pressed.connect(_act_set_line.bind(pair[0]))
+		set_row.add_child(sbtn)
 
 	# 传送
 	var tp_row := HBoxContainer.new()
@@ -184,6 +208,11 @@ func _act_skip_time(input: LineEdit) -> void:
 
 func _act_add_line(kind: String) -> void:
 	GameState.debug_add_line(kind, 1)
+	_refresh_stats()
+
+
+func _act_set_line(kind: String) -> void:
+	GameState.debug_set_line(kind, _to_i(_line_set_input.text))
 	_refresh_stats()
 
 
