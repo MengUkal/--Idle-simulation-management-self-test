@@ -24,6 +24,8 @@ var grid: Array = []             # grid[行][列] = 元素 0..kinds-1；EMPTY=-1
 var specials: Array = []         # specials[行][列] = SPECIAL_*（与 grid 平行）
 var rng := RandomNumberGenerator.new()
 var spawned_last_move: Array = []  # 上一次交换生成的特效 [{cell, special}]（供 UI 提示）
+var last_moves: Array = []         # 本回合重力移动记录 [{from: Vector2i, to: Vector2i}]（供下落动画）
+var last_refills: Array = []       # 本回合补牌位置 [Vector2i]（供掉落动画）
 
 
 func _init(board_size: int = 7, element_kinds: int = 6) -> void:
@@ -145,6 +147,8 @@ func ensure_playable() -> bool:
 ## 普通+普通=颜色匹配（无消除则还原）。
 func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	spawned_last_move = []
+	last_moves = []
+	last_refills = []
 	if not are_adjacent(a, b):
 		return {"ok": false}
 	var sa := special_at(a.y, a.x)
@@ -213,6 +217,7 @@ func _report(waves: Array) -> Dictionary:
 	return {
 		"ok": true, "cleared": total.keys(), "chains": waves.size(),
 		"waves": waves, "spawned": spawned_last_move.duplicate(),
+		"moves": last_moves.duplicate(), "refills": last_refills.duplicate(),
 	}
 
 
@@ -467,6 +472,7 @@ func _apply_gravity_and_refill() -> void:
 			if grid[r][c] != EMPTY:
 				if write != r:
 					# 只有真正移动时才搬运并清源（静止的特效块标记不能被误清！）
+					last_moves.append({"from": Vector2i(c, r), "to": Vector2i(c, write)})
 					grid[write][c] = grid[r][c]
 					specials[write][c] = specials[r][c]
 					specials[r][c] = SPECIAL_NONE
@@ -474,6 +480,7 @@ func _apply_gravity_and_refill() -> void:
 		for r in range(write, -1, -1):
 			grid[r][c] = rng.randi_range(0, kinds - 1)
 			specials[r][c] = SPECIAL_NONE
+			last_refills.append(Vector2i(c, r))
 
 
 ## 生成期检查：在 (r,c) 放 v 是否与左侧/上方构成三连（右侧下方尚未填充）。

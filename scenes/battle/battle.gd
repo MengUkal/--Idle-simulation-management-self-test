@@ -10,6 +10,7 @@ const COL_TEXT := Color("e8e0cf")
 const COL_DIM := Color("a89f8d")
 const COL_PANEL := Color("241d33")
 const TILE := 84.0
+const STEP := 88.0  # TILE + 间距
 
 var board: Match3Board
 var monster: Dictionary = {}
@@ -45,6 +46,9 @@ var _toast: Label
 var _toast_tween: Tween
 var _bird_sb: StyleBoxFlat
 var _special_style_cache := {}
+var board_layer: Control
+var _busy := false
+var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹结算）
 
 
 func _process(delta: float) -> void:
@@ -75,17 +79,24 @@ func _ready() -> void:
 		_debug_capture.call_deferred()
 
 
-## 【诊断工具】自动生成特效并截屏（-- --capture-debug 触发）
+## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
 func _debug_capture() -> void:
 	await get_tree().process_frame
 	debug_spawn_random_special()
 	debug_spawn_random_special()
 	debug_spawn_random_special()
 	await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	var img := get_viewport().get_texture().get_image()
-	img.save_png("F:/放置测试/挂机放置增量rpg/tests/capture.png")
-	print("[capture] saved")
+	var mv := board.find_any_move()
+	print("[capture] move=", mv)
+	if mv.size() == 2:
+		_try_move(mv[0], mv[1])
+	var plan := [[0.06, "cap_swap"], [0.22, "cap_clear"], [0.4, "cap_fall"], [0.95, "cap_done"]]
+	for step in plan:
+		await get_tree().create_timer(step[0]).timeout
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		img.save_png("F:/放置测试/挂机放置增量rpg/tests/%s.png" % step[1])
+		print("[capture] %s saved" % step[1])
 	get_tree().quit()
 
 
@@ -148,24 +159,25 @@ func _build_enemy_panel() -> void:
 
 
 func _build_board() -> void:
+	# 手动布局（非容器）：位移动画需要自由控制子节点位置
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-	var grid_box := GridContainer.new()
-	grid_box.columns = Balance.BOARD_SIZE
-	grid_box.add_theme_constant_override("h_separation", 4)
-	grid_box.add_theme_constant_override("v_separation", 4)
-	center.add_child(grid_box)
+	board_layer = Control.new()
+	var board_px := Balance.BOARD_SIZE * STEP
+	board_layer.custom_minimum_size = Vector2(board_px, board_px)
+	center.add_child(board_layer)
 	tiles.clear()
 	for r in Balance.BOARD_SIZE:
 		var row := []
 		for c in Balance.BOARD_SIZE:
 			var b := Button.new()
-			b.custom_minimum_size = Vector2(TILE, TILE)
+			b.position = _cell_pos(Vector2i(c, r))
+			b.size = Vector2(TILE, TILE)
 			b.add_theme_font_size_override("font_size", 40)
 			b.focus_mode = Control.FOCUS_NONE
 			b.pressed.connect(_on_tile_pressed.bind(Vector2i(c, r)))
-			grid_box.add_child(b)
+			board_layer.add_child(b)
 			row.append(b)
 		tiles.append(row)
 
@@ -281,7 +293,7 @@ func _make_label(parent: Node, text: String, font_size: int, color: Color = COL_
 # ---------- 交互 ----------
 
 func _on_tile_pressed(cell: Vector2i) -> void:
-	if steps_left <= 0 or defeated:
+	if _busy or steps_left <= 0 or defeated:
 		return
 	if selected == Vector2i(-1, -1):
 		selected = cell
@@ -296,22 +308,47 @@ func _on_tile_pressed(cell: Vector2i) -> void:
 
 
 func _try_move(a: Vector2i, b: Vector2i) -> void:
+	if _busy:
+		return
 	var report := board.try_swap(a, b)
 	if not report.get("ok", false):
-		return  # 无效交换：棋盘已自动还原，静默忽略
+		_busy = true
+		await _anim_invalid_swap(a, b)  # 无效交换：来回摆动作反馈
+		_busy = false
+		return
+	_busy = true
 	var spawned: Array = report.get("spawned", [])
 	if spawned.size() > 0:
 		_show_toast("生成特殊棋子！")
+	# 1) 交换补间
+	await _anim_swap_move(a, b)
 	steps_left -= 1
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
 	_apply_damage(report["waves"])
-	if board.ensure_playable():
-		_show_toast("无可行交换，棋盘已重洗")
-	if steps_left <= 0 and not defeated:
-		_show_result(false)
+	var reshuffled := board.ensure_playable()
+	if defeated:
+		_pending_result = 1
+	elif steps_left <= 0:
+		_pending_result = 2
+	# 2) 消除：闪白 + 缩小消失
+	await _anim_clear(report["cleared"])
+	# 3) 重力下落 + 补牌空降
+	_refresh_board()
+	_apply_motion_targets(report)
+	if int(report["chains"]) >= 2:
+		_shake_board()
+	await _anim_settle()
 	_refresh_board()
 	_refresh_hud()
+	# 4) 结算弹窗
+	if _pending_result == 1:
+		_show_result(true)
+	elif _pending_result == 2:
+		_show_result(false)
+	elif reshuffled:
+		_show_toast("无可行交换，棋盘已重洗")
+	_busy = false
 
 
 func _apply_damage(waves: Array) -> void:
@@ -347,7 +384,7 @@ func _victory() -> void:
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line)))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)
-	_show_result(true)
+	_pending_result = 1  # 结果弹窗在动画结束后弹出
 
 
 func _on_retreat_pressed() -> void:
@@ -432,6 +469,107 @@ func _special_style(element: int, sp: int) -> StyleBoxFlat:
 			sb.border_color = COL_GOLD
 	_special_style_cache[key] = sb
 	return sb
+
+
+# ---------- 动画 ----------
+
+func _cell_pos(cell: Vector2i) -> Vector2:
+	return Vector2(cell.x * STEP, cell.y * STEP)
+
+
+## 有效交换：两钮互换位置（数据已交换，动画结束后按格刷新文字）
+func _anim_swap_move(a: Vector2i, b: Vector2i) -> void:
+	var ba: Button = tiles[a.y][a.x]
+	var bb: Button = tiles[b.y][b.x]
+	var pa := _cell_pos(a)
+	var pb := _cell_pos(b)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(ba, "position", pb, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(bb, "position", pa, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tw.finished
+	ba.position = pa
+	bb.position = pb
+
+
+## 无效交换：走到一半弹回
+func _anim_invalid_swap(a: Vector2i, b: Vector2i) -> void:
+	var ba: Button = tiles[a.y][a.x]
+	var bb: Button = tiles[b.y][b.x]
+	var pa := _cell_pos(a)
+	var pb := _cell_pos(b)
+	var mid := (_cell_pos(a) + _cell_pos(b)) * 0.5
+	var tw1 := create_tween().set_parallel(true)
+	tw1.tween_property(ba, "position", mid, 0.07)
+	tw1.tween_property(bb, "position", mid, 0.07)
+	await tw1.finished
+	var tw2 := create_tween().set_parallel(true)
+	tw2.tween_property(ba, "position", pa, 0.09)
+	tw2.tween_property(bb, "position", pb, 0.09)
+	await tw2.finished
+
+
+## 消除：闪白 + 向心缩小消失
+func _anim_clear(cleared: Array) -> void:
+	if cleared.is_empty():
+		return
+	var tw := create_tween().set_parallel(true)
+	for e in cleared:
+		var cell: Vector2i = e
+		var btn: Button = tiles[cell.y][cell.x]
+		btn.pivot_offset = btn.size / 2.0
+		btn.z_index = 10
+		tw.tween_property(btn, "scale", Vector2(0.05, 0.05), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(btn, "modulate:a", 0.15, 0.16)
+	await tw.finished
+	for e in cleared:
+		var cell: Vector2i = e
+		var btn: Button = tiles[cell.y][cell.x]
+		btn.scale = Vector2.ONE
+		btn.modulate = Color.WHITE
+		btn.z_index = 0
+
+
+## 按重力记录设置下落/补牌的起始位置
+func _apply_motion_targets(report: Dictionary) -> void:
+	var drop_from := {}
+	for mv in report["moves"]:
+		var to: Vector2i = mv["to"]
+		if not drop_from.has(to):
+			drop_from[to] = mv["from"]
+	for to: Vector2i in drop_from.keys():
+		var btn: Button = tiles[to.y][to.x]
+		btn.position = _cell_pos(drop_from[to])
+	for cell: Vector2i in report["refills"]:
+		var btn: Button = tiles[cell.y][cell.x]
+		btn.position = _cell_pos(cell) + Vector2(0, -STEP * 1.35)
+
+
+## 所有偏位的按钮滑回棋盘格（下落/补牌的收尾）
+func _anim_settle() -> void:
+	var tw := create_tween().set_parallel(true)
+	var moved := false
+	for r in Balance.BOARD_SIZE:
+		for c in Balance.BOARD_SIZE:
+			var btn: Button = tiles[r][c]
+			var target := _cell_pos(Vector2i(c, r))
+			if btn.position.distance_to(target) > 1.0:
+				tw.tween_property(btn, "position", target, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				moved = true
+	if moved:
+		await tw.finished
+	for r in Balance.BOARD_SIZE:
+		for c in Balance.BOARD_SIZE:
+			tiles[r][c].position = _cell_pos(Vector2i(c, r))
+
+
+## 连锁 ≥2 时棋盘轻微震屏
+func _shake_board() -> void:
+	var origin := board_layer.position
+	var tw := create_tween()
+	for i in 3:
+		tw.tween_property(board_layer, "position", origin + Vector2(7, 0), 0.045)
+		tw.tween_property(board_layer, "position", origin - Vector2(7, 0), 0.045)
+	tw.tween_property(board_layer, "position", origin, 0.045)
 
 
 func _refresh_hud() -> void:

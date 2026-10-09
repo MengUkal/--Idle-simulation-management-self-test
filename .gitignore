@@ -3,3 +3,4 @@
 /android/
 tests/capture.png
 tests/*.uid
+tests/cap_*.png
