@@ -49,6 +49,11 @@ func _init() -> void:
 	check("训练线 1→2 费用 = 25×1.35", Balance.train_cost(1), 25.0 * 1.35)
 	check("训练线 2 级倍率 = 1.10", Balance.train_multiplier(2), 1.10)
 	check("里程碑 Lv.8 奖励 30 精华", Balance.MILESTONE_EP[8], 30)
+	# 第二层怪物表与怪物池切换
+	check("第二层常驻怪物 6 只", Balance.MONSTERS_FLOOR2.size(), 6)
+	check("怪物池按层切换", Balance.monster_pool(2).size(), 6)
+	check("二层精英为守林古树", Balance.monster_elite(2)["name"], "守林古树")
+	check("一层精英为树根守卫", Balance.monster_elite(1)["name"], "树根守卫")
 	# 数值格式化
 	check("格式 999", Balance.format_number(999.0), "999")
 	check("格式 1234", Balance.format_number(1234.0), "1,234")

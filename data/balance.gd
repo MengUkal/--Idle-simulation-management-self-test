@@ -25,7 +25,7 @@ const UPGRADE_COST_GROWTH := 1.15   # 【已拍板】每级费用倍率（指数
 const FLOOR_2_LEVEL_REQ := 10       # 【已拍板】进入第二层所需等级
 const FLOOR_NAMES := {
 	1: "第一层 · 树根之街",
-	2: "第二层 · ???（未实装）",
+	2: "第二层 · 翠枝回廊",
 }
 
 # ---------- 消消乐冒险（M2） ----------
@@ -44,6 +44,16 @@ const MONSTERS_FLOOR1 := [
 	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4},
 ]
 const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4}
+# 第二层怪物表（2026-10-09 草案落地；数值直接改这里）
+const MONSTERS_FLOOR2 := [
+	{"name": "荆棘树妖", "hp": 120, "bounty": 18, "weak": 0},
+	{"name": "風羽隼", "hp": 150, "bounty": 22, "weak": 3},
+	{"name": "苔石巨人", "hp": 220, "bounty": 32, "weak": 1},
+	{"name": "沼泽水灵", "hp": 180, "bounty": 26, "weak": 3},
+	{"name": "暗藤魔", "hp": 160, "bounty": 24, "weak": 4},
+	{"name": "辉羽蝶", "hp": 160, "bounty": 24, "weak": 5},
+]
+const MONSTER_ELITE_FLOOR2 := {"name": "守林古树", "hp": 500, "bounty": 120, "weak": 0}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
 const WEAKNESS_MULT := 2.0          # 命中弱点属性的伤害倍率
 const CHAIN_BONUS_PER_WAVE := 0.2   # 连锁加成：第 n 波伤害 ×(1 + 0.2×(n-1))
@@ -62,6 +72,15 @@ static func battle_steps(level: int) -> int:
 static func damage_multiplier(element: int, monster: Dictionary) -> float:
 	## 命中弱点属性返回 WEAKNESS_MULT，否则 1.0
 	return WEAKNESS_MULT if element == int(monster.get("weak", -1)) else 1.0
+
+
+static func monster_pool(floor_index: int) -> Array:
+	## 各层常驻怪物池：在哪层冒险，遇哪层的怪
+	return MONSTERS_FLOOR2 if floor_index >= 2 else MONSTERS_FLOOR1
+
+
+static func monster_elite(floor_index: int) -> Dictionary:
+	return MONSTER_ELITE_FLOOR2 if floor_index >= 2 else MONSTER_ELITE_FLOOR1
 
 
 # ---------- 元素精华与训练线（NGU 式多线成长，2026-10-09 拍板落地） ----------

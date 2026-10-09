@@ -309,7 +309,11 @@ func _on_upgrade_pressed() -> void:
 
 
 func _on_floor2_pressed() -> void:
-	GameState.go_to_floor(2)
+	## 层间往返：一层 ↔ 二层（低练度回一层速刷，练度够了上二层）
+	if GameState.floor_index >= 2:
+		GameState.go_to_floor(1)
+	else:
+		GameState.go_to_floor(2)
 
 
 func _on_adventure_pressed() -> void:
@@ -351,12 +355,14 @@ func _refresh_buttons() -> void:
 	]
 	var at_floor2 := GameState.floor_index >= 2
 	var unlocked := GameState.level >= Balance.FLOOR_2_LEVEL_REQ
-	_floor2_button.disabled = at_floor2 or not unlocked
 	if at_floor2:
-		_floor2_button.text = "已抵达第二层（内容建设中）"
+		_floor2_button.disabled = false
+		_floor2_button.text = "返回第一层"
 	elif unlocked:
+		_floor2_button.disabled = false
 		_floor2_button.text = "前往第二层"
 	else:
+		_floor2_button.disabled = true
 		_floor2_button.text = "第二层（需 Lv.%d，当前 Lv.%d）" % [
 			Balance.FLOOR_2_LEVEL_REQ, GameState.level,
 		]

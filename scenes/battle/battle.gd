@@ -70,11 +70,12 @@ func _ready() -> void:
 
 
 func _roll_monster() -> void:
+	## 怪物池按当前所在层切换（在哪层冒险，遇哪层的怪）
 	if randf() < Balance.ELITE_CHANCE:
-		monster = Balance.MONSTER_ELITE_FLOOR1.duplicate()
+		monster = Balance.monster_elite(GameState.floor_index).duplicate()
 		monster["elite"] = true
 	else:
-		var pool: Array = Balance.MONSTERS_FLOOR1
+		var pool: Array = Balance.monster_pool(GameState.floor_index)
 		monster = pool[randi() % pool.size()].duplicate()
 	monster_hp_max = int(monster["hp"])
 	monster_hp = float(monster_hp_max)
