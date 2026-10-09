@@ -38,6 +38,8 @@ func _ready() -> void:
 	_build_reset_confirm()
 	_connect_signals()
 	_refresh_all()
+	if OS.is_debug_build():
+		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 
 
 # ---------- UI 构建 ----------

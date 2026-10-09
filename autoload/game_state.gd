@@ -111,3 +111,26 @@ func reset() -> void:
 	EventBus.line_changed.emit("atk", 0)
 	EventBus.line_changed.emit("bounty", 0)
 	EventBus.line_changed.emit("income", 0)
+
+
+# ---------- 开发修改器专用（release 构建不可达：修改器面板仅 debug 构建加载） ----------
+
+func debug_set_level(new_level: int) -> void:
+	## 【修改器】直接设置等级
+	level = maxi(new_level, 1)
+	EventBus.level_changed.emit(level)
+	EventBus.income_changed.emit(income_per_sec())
+
+
+func debug_add_line(kind: String, n: int) -> void:
+	## 【修改器】免费提升训练线
+	match kind:
+		"atk":
+			atk_line += n
+		"bounty":
+			bounty_line += n
+		"income":
+			income_line += n
+	EventBus.line_changed.emit(kind, line_level(kind))
+	if kind == "income":
+		EventBus.income_changed.emit(income_per_sec())

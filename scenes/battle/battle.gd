@@ -67,6 +67,8 @@ func _ready() -> void:
 	_refresh_hud()
 	if monster.get("elite", false):
 		_show_toast("遭遇精英：%s！" % monster["name"])
+	if OS.is_debug_build():
+		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 
 
 func _roll_monster() -> void:
