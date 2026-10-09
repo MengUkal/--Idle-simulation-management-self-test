@@ -44,6 +44,7 @@ var _retreat_confirm: Control
 var _toast: Label
 var _toast_tween: Tween
 var _bird_sb: StyleBoxFlat
+var _special_style_cache := {}
 
 
 func _process(delta: float) -> void:
@@ -349,32 +350,19 @@ func _refresh_board() -> void:
 			var b: Button = tiles[r][c]
 			var v: int = board.grid[r][c]
 			var sp: int = board.special_at(r, c)
-			var text: String
-			var col: Color
-			if sp == Match3Board.SPECIAL_BIRD or v == Match3Board.BIRD_ELEM:
-				text = "神鸟"
-				col = COL_GOLD
+			# 属性文字恒为大号单字，保证一眼可辨；特效用边框形状区分（不依赖字形）
+			b.text = "鸟" if sp == Match3Board.SPECIAL_BIRD else Balance.ELEMENT_NAMES[v]
+			b.add_theme_font_size_override("font_size", 40)
+			if sp == Match3Board.SPECIAL_BIRD:
 				b.add_theme_stylebox_override("normal", _bird_style())
-				b.add_theme_font_size_override("font_size", 26)
-			else:
-				text = Balance.ELEMENT_NAMES[v]
-				col = Balance.ELEMENT_TEXT_COLORS[v]
-				match sp:
-					Match3Board.SPECIAL_LINE_H:
-						text += "↔"
-					Match3Board.SPECIAL_LINE_V:
-						text += "↕"
-					Match3Board.SPECIAL_BOMB:
-						text += "◎"
-				b.add_theme_stylebox_override("normal", _tile_style(v))
-				b.add_theme_font_size_override("font_size", 30 if sp != Match3Board.SPECIAL_NONE else 40)
-			b.add_theme_color_override("font_color", col)
-			if selected == Vector2i(c, r):
-				b.modulate = Color(1.4, 1.4, 1.15)
+				b.add_theme_color_override("font_color", COL_GOLD)
 			elif sp != Match3Board.SPECIAL_NONE:
-				b.modulate = Color(1.25, 1.25, 0.9)
+				b.add_theme_stylebox_override("normal", _special_style(v, sp))
+				b.add_theme_color_override("font_color", Balance.ELEMENT_TEXT_COLORS[v])
 			else:
-				b.modulate = Color.WHITE
+				b.add_theme_stylebox_override("normal", _tile_style(v))
+				b.add_theme_color_override("font_color", Balance.ELEMENT_TEXT_COLORS[v])
+			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
 
 
 func _bird_style() -> StyleBoxFlat:
@@ -383,8 +371,29 @@ func _bird_style() -> StyleBoxFlat:
 		_bird_sb.bg_color = Color("3a2f55")
 		_bird_sb.set_corner_radius_all(10)
 		_bird_sb.border_color = COL_GOLD
-		_bird_sb.set_border_width_all(3)
+		_bird_sb.set_border_width_all(4)
 	return _bird_sb
+
+
+## 特殊棋子样式：元素底色 + 形状边框（横条纹=清行，竖条纹=清列，金框=爆炸）
+func _special_style(element: int, sp: int) -> StyleBoxFlat:
+	var key := "%d_%d" % [element, sp]
+	if _special_style_cache.has(key):
+		return _special_style_cache[key]
+	var sb: StyleBoxFlat = _tile_style(element).duplicate()
+	sb.border_color = Color(1, 1, 1, 0.95)
+	match sp:
+		Match3Board.SPECIAL_LINE_H:
+			sb.border_width_top = 6
+			sb.border_width_bottom = 6
+		Match3Board.SPECIAL_LINE_V:
+			sb.border_width_left = 6
+			sb.border_width_right = 6
+		Match3Board.SPECIAL_BOMB:
+			sb.set_border_width_all(5)
+			sb.border_color = COL_GOLD
+	_special_style_cache[key] = sb
+	return sb
 
 
 func _refresh_hud() -> void:
