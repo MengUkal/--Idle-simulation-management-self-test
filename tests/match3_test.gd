@@ -25,6 +25,7 @@ func _init() -> void:
 	_test_swap_rules()
 	_test_resolve()
 	_test_specials()
+	_test_special_survives_gravity()
 	_test_find_any_move()
 	print("---")
 	print("结果：%d 项失败" % _fails)
@@ -217,6 +218,25 @@ func _test_specials() -> void:
 	var chain_cleared: Array = rep_chain["cleared"]
 	var exploded := chain_cleared.has(Vector2i(1, 2)) and chain_cleared.has(Vector2i(2, 0))
 	check("三连波及爆炸特效并引爆", exploded, true)
+
+
+func _test_special_survives_gravity() -> void:
+	## 回归测试：重力下未移动的特殊块，其标记不得被误清
+	## （历史 bug：r == write 时"复制后清源"会把静止特效块变回普通块）
+	var b := Match3Board.new(3, 6)
+	_grid_only(b, [[1, 2, 3], [4, 5, 6], [2, 1, 2]])
+	b.specials[2][0] = Match3Board.SPECIAL_BOMB  # (x=0, y=2) 底部
+	b.grid[0][0] = Match3Board.EMPTY  # 顶端空位：特殊块正下方无空洞 → 完全静止
+	b._apply_gravity_and_refill()
+	check("静止特殊块重力后标记保留", b.special_at(2, 0), Match3Board.SPECIAL_BOMB)
+	# 对照：移动过的特殊块标记也要跟着走
+	var b2 := Match3Board.new(3, 6)
+	_grid_only(b2, [[1, 2, 3], [4, 5, 6], [2, 1, 2]])
+	b2.specials[0][0] = Match3Board.SPECIAL_LINE_H
+	b2.grid[2][0] = Match3Board.EMPTY
+	b2.grid[1][0] = Match3Board.EMPTY  # 下方两个空位，特殊块会下落
+	b2._apply_gravity_and_refill()
+	check("下落特殊块标记跟随", b2.special_at(2, 0), Match3Board.SPECIAL_LINE_H)
 
 
 func _test_find_any_move() -> void:

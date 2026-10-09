@@ -465,9 +465,11 @@ func _apply_gravity_and_refill() -> void:
 		var write := size - 1
 		for r in range(size - 1, -1, -1):
 			if grid[r][c] != EMPTY:
-				grid[write][c] = grid[r][c]
-				specials[write][c] = specials[r][c]
-				specials[r][c] = SPECIAL_NONE
+				if write != r:
+					# 只有真正移动时才搬运并清源（静止的特效块标记不能被误清！）
+					grid[write][c] = grid[r][c]
+					specials[write][c] = specials[r][c]
+					specials[r][c] = SPECIAL_NONE
 				write -= 1
 		for r in range(write, -1, -1):
 			grid[r][c] = rng.randi_range(0, kinds - 1)
