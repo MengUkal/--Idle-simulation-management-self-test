@@ -64,6 +64,24 @@ static func damage_multiplier(element: int, monster: Dictionary) -> float:
 	return WEAKNESS_MULT if element == int(monster.get("weak", -1)) else 1.0
 
 
+# ---------- 元素精华与训练线（NGU 式多线成长，2026-10-09 拍板落地） ----------
+const EP_PER_TILE := 1              # 每消除 1 块获得的元素精华
+const EP_WEAKNESS_MULT := 2.0       # 弱点属性方块的精华倍率
+const TRAIN_COST_BASE := 25.0       # 训练线 0→1 级费用（精华）
+const TRAIN_COST_GROWTH := 1.35     # 训练线每级费用倍率
+const TRAIN_EFFECT_PER_LEVEL := 0.05 # 每级 +5%（攻击/赏金/收入三线通用）
+const MILESTONE_EP := {2: 10, 4: 15, 6: 20, 8: 30}  # 等级里程碑一次性精华
+
+
+static func train_cost(level: int) -> float:
+	## 训练线从 level 级升到 level+1 级的精华费用
+	return TRAIN_COST_BASE * pow(TRAIN_COST_GROWTH, float(level))
+
+
+static func train_multiplier(line_level: int) -> float:
+	return 1.0 + TRAIN_EFFECT_PER_LEVEL * float(line_level)
+
+
 # ---------- 存档 ----------
 const AUTOSAVE_INTERVAL_SEC := 10.0
 

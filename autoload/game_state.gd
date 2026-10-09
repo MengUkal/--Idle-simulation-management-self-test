@@ -6,10 +6,53 @@ var money := Balance.START_MONEY          # 当前吉尔
 var level := Balance.START_LEVEL          # 当前等级
 var floor_index := 1                      # 当前所在层（1 = 树根之街）
 var total_earned := 0.0                   # 累计获得吉尔（统计用）
+var essence := 0                          # 元素精华（三消获得，训练线消耗）
+var atk_line := 0                         # 攻击训练线等级
+var bounty_line := 0                      # 赏金训练线等级
+var income_line := 0                      # 收入训练线等级
 
 
 func income_per_sec() -> float:
-	return Balance.income_per_sec(level)
+	# 挂机收入 = 基础公式 × 收入训练线倍率
+	return Balance.income_per_sec(level) * Balance.train_multiplier(income_line)
+
+
+func add_essence(amount: int) -> void:
+	if amount <= 0:
+		return
+	essence += amount
+	EventBus.essence_changed.emit(essence)
+
+
+func line_level(kind: String) -> int:
+	match kind:
+		"atk":
+			return atk_line
+		"bounty":
+			return bounty_line
+		"income":
+			return income_line
+	return 0
+
+
+func upgrade_line(kind: String) -> bool:
+	## 用元素精华升级训练线（NGU 式多线成长）
+	var cost := int(Balance.train_cost(line_level(kind)))
+	if essence < cost:
+		return false
+	essence -= cost
+	EventBus.essence_changed.emit(essence)
+	match kind:
+		"atk":
+			atk_line += 1
+		"bounty":
+			bounty_line += 1
+		"income":
+			income_line += 1
+	EventBus.line_changed.emit(kind, line_level(kind))
+	if kind == "income":
+		EventBus.income_changed.emit(income_per_sec())
+	return true
 
 
 func can_afford(cost: float) -> bool:
@@ -56,7 +99,15 @@ func reset() -> void:
 	level = Balance.START_LEVEL
 	floor_index = 1
 	total_earned = 0.0
+	essence = 0
+	atk_line = 0
+	bounty_line = 0
+	income_line = 0
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())
 	EventBus.level_changed.emit(level)
 	EventBus.floor_changed.emit(floor_index)
+	EventBus.essence_changed.emit(essence)
+	EventBus.line_changed.emit("atk", 0)
+	EventBus.line_changed.emit("bounty", 0)
+	EventBus.line_changed.emit("income", 0)

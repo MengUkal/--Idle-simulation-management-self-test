@@ -20,6 +20,11 @@ var _toast: Label
 var _toast_tween: Tween
 var _reset_button: Button
 var _reset_confirm: Control
+var _countdown_label: Label
+var _essence_label: Label
+var _line_buttons := {}
+
+const LINE_NAMES := {"atk": "攻击训练", "bounty": "赏金训练", "income": "收入训练"}
 
 
 func _ready() -> void:
@@ -54,6 +59,7 @@ func _build_top_hud() -> void:
 	add_child(box)
 	_money_label = _make_label(box, "", 64, COL_GOLD)
 	_income_label = _make_label(box, "", 24, COL_DIM)
+	_countdown_label = _make_label(box, "", 17, COL_DIM)
 
 
 func _build_tree_panel() -> void:
@@ -105,6 +111,15 @@ func _build_right_panel() -> void:
 	adventure.add_theme_font_size_override("font_size", 22)
 	adventure.pressed.connect(_on_adventure_pressed)
 	box.add_child(adventure)
+
+	_essence_label = _make_label(box, "", 20, COL_GOLD)
+	for kind: String in ["atk", "bounty", "income"]:
+		var line_btn := Button.new()
+		line_btn.custom_minimum_size = Vector2(460, 52)
+		line_btn.add_theme_font_size_override("font_size", 19)
+		line_btn.pressed.connect(_on_line_pressed.bind(kind))
+		box.add_child(line_btn)
+		_line_buttons[kind] = line_btn
 
 	var flavor := _make_label(box, Balance.UPGRADE_FLAVOR, 17, COL_DIM)
 	flavor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -201,18 +216,23 @@ func _connect_signals() -> void:
 	EventBus.floor_changed.connect(_on_floor_changed)
 	EventBus.floor_unlocked.connect(_on_floor_unlocked)
 	EventBus.save_completed.connect(_on_save_completed)
+	EventBus.essence_changed.connect(_on_essence_changed)
+	EventBus.line_changed.connect(_on_line_changed)
 
 
 func _on_money_changed(total: float) -> void:
 	_money_label.text = "%s %s" % [Balance.CURRENCY_SHORT, Balance.format_number(total)]
+	_update_countdown()
 
 
 func _on_income_changed(per_sec: float) -> void:
 	_income_label.text = "挂机收入 %s/秒" % Balance.format_number(per_sec)
+	_update_countdown()
 
 
-func _on_level_changed(_new_level: int) -> void:
+func _on_level_changed(new_level: int) -> void:
 	_refresh_buttons()
+	_check_milestone(new_level)
 
 
 func _on_money_not_enough(_needed: float) -> void:
@@ -230,6 +250,56 @@ func _on_floor_unlocked(req_level: int) -> void:
 
 func _on_save_completed() -> void:
 	_save_label.text = "已自动保存 %s" % Time.get_time_string_from_system().substr(0, 5)
+
+
+func _update_countdown() -> void:
+	## QoL：距下次献金的预计时间（NGU 进度条文化）
+	var remain := Balance.upgrade_cost(GameState.level) - GameState.money
+	if remain <= 0.0:
+		_countdown_label.text = "现在就能献金！"
+		return
+	var inc := GameState.income_per_sec()
+	if inc <= 0.0:
+		_countdown_label.text = ""
+		return
+	var secs := remain / inc
+	if secs < 90.0:
+		_countdown_label.text = "距下次献金约 %d 秒" % int(ceil(secs))
+	elif secs < 5400.0:
+		_countdown_label.text = "距下次献金约 %d 分钟" % int(ceil(secs / 60.0))
+	else:
+		_countdown_label.text = "距下次献金约 %.1f 小时" % (secs / 3600.0)
+
+
+func _check_milestone(new_level: int) -> void:
+	## QoL：等级里程碑一次性精华奖励（NGU 式"升级有新东西"）
+	if not Balance.MILESTONE_EP.has(new_level):
+		return
+	var reward := int(Balance.MILESTONE_EP[new_level])
+	GameState.add_essence(reward)
+	_show_toast("里程碑！Lv.%d 达成，奖励 %d 元素精华" % [new_level, reward])
+
+
+func _refresh_training() -> void:
+	_essence_label.text = "元素精华：%d" % GameState.essence
+	for kind: String in _line_buttons.keys():
+		var btn: Button = _line_buttons[kind]
+		var lv := GameState.line_level(kind)
+		var cost := int(Balance.train_cost(lv))
+		btn.text = "%s Lv.%d → %d（%d 精华）" % [LINE_NAMES[kind], lv, lv + 1, cost]
+		btn.disabled = GameState.essence < cost
+
+
+func _on_essence_changed(_total: int) -> void:
+	_refresh_training()
+
+
+func _on_line_changed(_kind: String, _level: int) -> void:
+	_refresh_training()
+
+
+func _on_line_pressed(kind: String) -> void:
+	GameState.upgrade_line(kind)
 
 
 # ---------- 交互 ----------
@@ -269,6 +339,7 @@ func _refresh_all() -> void:
 	_on_income_changed(GameState.income_per_sec())
 	_on_floor_changed(GameState.floor_index)
 	_refresh_buttons()
+	_refresh_training()
 
 
 func _refresh_buttons() -> void:

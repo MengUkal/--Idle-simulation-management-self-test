@@ -44,6 +44,11 @@ func _init() -> void:
 	check("怪物 HP/赏金/弱点取值合法", monsters_ok, true)
 	check("命中弱点倍率 = 2", Balance.damage_multiplier(0, {"weak": 0}), 2.0)
 	check("非弱点倍率 = 1", Balance.damage_multiplier(1, {"weak": 0}), 1.0)
+	# 训练线与里程碑（元素精华，NGU 式多线成长）
+	check("训练线 0→1 费用 = 25", Balance.train_cost(0), 25.0)
+	check("训练线 1→2 费用 = 25×1.35", Balance.train_cost(1), 25.0 * 1.35)
+	check("训练线 2 级倍率 = 1.10", Balance.train_multiplier(2), 1.10)
+	check("里程碑 Lv.8 奖励 30 精华", Balance.MILESTONE_EP[8], 30)
 	# 数值格式化
 	check("格式 999", Balance.format_number(999.0), "999")
 	check("格式 1234", Balance.format_number(1234.0), "1,234")

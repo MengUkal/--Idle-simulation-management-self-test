@@ -1,7 +1,8 @@
 extends Control
 ## M2 冒险界面：三消战斗（一场一只怪）。
-## 规则【已拍板】：每次消除 = 一次攻击；命中弱点属性 ×2；连锁第 n 波伤害 ×(1+0.2×(n-1))；
+## 规则【已拍板】：每次消除 = 一次攻击；命中弱点属性伤害×2；连锁第 n 波伤害 ×(1+0.2×(n-1))；
 ## 步数内击杀 → 获得赏金；步数耗尽未击杀 → 无赏金。
+## 多线成长：消除方块获得元素精华（弱点块 ×2）；攻击/赏金线倍率在此生效。
 
 const COL_BG := Color("191322")
 const COL_GOLD := Color("ffd75e")
@@ -15,6 +16,8 @@ var monster: Dictionary = {}
 var monster_hp := 0.0
 var monster_hp_max := 1
 var defeated := false
+var battle_over := false
+var elapsed := 0.0
 var steps_left := 0
 var selected := Vector2i(-1, -1)
 var tiles: Array = []
@@ -24,19 +27,27 @@ var _tile_styles: Array = []
 var total_cleared := 0
 var max_chain := 0
 var total_damage := 0
+var session_ep := 0
 
 var _steps_label: Label
 var _stat_cleared: Label
 var _stat_chain: Label
 var _stat_damage: Label
+var _stat_ep: Label
 var _hp_bar: ProgressBar
 var _hp_label: Label
 var _enemy_name: Label
 var _result_panel: Control
 var _result_title: Label
 var _result_stats: Label
+var _retreat_confirm: Control
 var _toast: Label
 var _toast_tween: Tween
+
+
+func _process(delta: float) -> void:
+	if not battle_over:
+		elapsed += delta
 
 
 func _ready() -> void:
@@ -50,6 +61,7 @@ func _ready() -> void:
 	_build_board()
 	_build_side_panel()
 	_build_result_panel()
+	_build_retreat_confirm()
 	_build_toast()
 	_refresh_board()
 	_refresh_hud()
@@ -111,7 +123,7 @@ func _build_enemy_panel() -> void:
 	_hp_bar.add_theme_stylebox_override("fill", bar_fg)
 	box.add_child(_hp_bar)
 	_hp_label = _make_label(box, "", 16, COL_DIM)
-	_make_label(box, "在步数内击倒它即可获得赏金\n打不过也可以直接撤退", 14, COL_DIM)
+	_make_label(box, "消除弱属性方块：伤害与精华双倍\n打不过也可以直接撤退", 14, COL_DIM)
 
 
 func _build_board() -> void:
@@ -151,6 +163,7 @@ func _build_side_panel() -> void:
 	_stat_cleared = _make_label(box, "", 20)
 	_stat_chain = _make_label(box, "", 20)
 	_stat_damage = _make_label(box, "", 20)
+	_stat_ep = _make_label(box, "", 20)
 	var hint := _make_label(box, "消除怪物弱属性颜色的方块可造成双倍伤害\n连锁越高伤害加成越高", 15, COL_DIM)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var retreat := Button.new()
@@ -185,6 +198,43 @@ func _build_result_panel() -> void:
 	back.add_theme_font_size_override("font_size", 20)
 	back.pressed.connect(_on_retreat_pressed)
 	box.add_child(back)
+
+
+func _build_retreat_confirm() -> void:
+	_retreat_confirm = CenterContainer.new()
+	_retreat_confirm.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_retreat_confirm.visible = false
+	add_child(_retreat_confirm)
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COL_PANEL
+	sb.set_corner_radius_all(16)
+	sb.set_content_margin_all(28)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.custom_minimum_size = Vector2(520, 0)
+	_retreat_confirm.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	panel.add_child(box)
+	_make_label(box, "确定撤退？", 26, COL_GOLD)
+	_make_label(box, "当前战斗进度与未到手的赏金将被放弃。", 19)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 16)
+	box.add_child(buttons)
+	var cancel := Button.new()
+	cancel.text = "继续战斗"
+	cancel.custom_minimum_size = Vector2(150, 48)
+	cancel.add_theme_font_size_override("font_size", 20)
+	cancel.pressed.connect(func() -> void: _retreat_confirm.visible = false)
+	buttons.add_child(cancel)
+	var confirm := Button.new()
+	confirm.text = "确定撤退"
+	confirm.custom_minimum_size = Vector2(150, 48)
+	confirm.add_theme_font_size_override("font_size", 20)
+	confirm.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+	confirm.pressed.connect(_leave_battle)
+	buttons.add_child(confirm)
 
 
 func _build_toast() -> void:
@@ -242,17 +292,25 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 
 func _apply_damage(waves: Array) -> void:
 	var dmg_f := 0.0
+	var ep := 0
 	var any_weak := false
+	var atk_mult := Balance.train_multiplier(GameState.atk_line)
 	for i in waves.size():
 		var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
 		for entry in waves[i]:
 			var m := Balance.damage_multiplier(int(entry["element"]), monster)
 			if m > 1.0:
 				any_weak = true
-			dmg_f += wave_mult * m
+				ep += int(Balance.EP_PER_TILE * Balance.EP_WEAKNESS_MULT)
+			else:
+				ep += Balance.EP_PER_TILE
+			dmg_f += wave_mult * m * atk_mult
 	var dmg := int(ceil(dmg_f))
 	total_damage += dmg
 	monster_hp -= dmg
+	if ep > 0:
+		session_ep += ep
+		GameState.add_essence(ep)
 	_spawn_damage_number(dmg, any_weak)
 	if monster_hp <= 0:
 		_victory()
@@ -262,11 +320,20 @@ func _victory() -> void:
 	if defeated:
 		return
 	defeated = true
-	GameState.add_money(float(int(monster["bounty"])))
+	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line)))
+	GameState.add_money(float(bounty))
+	GameState.set_meta("last_bounty", bounty)
 	_show_result(true)
 
 
 func _on_retreat_pressed() -> void:
+	if _result_panel.visible:
+		_leave_battle()  # 战斗已结束，直接离开
+		return
+	_retreat_confirm.visible = true
+
+
+func _leave_battle() -> void:
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 
@@ -288,6 +355,7 @@ func _refresh_hud() -> void:
 	_stat_cleared.text = "消除方块：%d" % total_cleared
 	_stat_chain.text = "最大连锁：%d" % max_chain
 	_stat_damage.text = "总输出：%d" % total_damage
+	_stat_ep.text = "本局精华：+%d" % session_ep
 	var weak_name: String = Balance.ELEMENT_NAMES[int(monster.get("weak", 0))]
 	var elite_tag: String = "★精英 " if monster.get("elite", false) else ""
 	_enemy_name.text = "%s%s（弱点：%s）" % [elite_tag, monster["name"], weak_name]
@@ -320,17 +388,22 @@ func _spawn_damage_number(amount: int, weak: bool) -> void:
 
 
 func _show_result(victory: bool) -> void:
+	battle_over = true
+	var time_text := "%d:%02d" % [int(elapsed / 60.0), int(elapsed) % 60]
 	if victory:
 		_result_title.text = "战斗胜利！"
-		_result_stats.text = "获得赏金 %d %s\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d" % [
-			int(monster["bounty"]), Balance.CURRENCY_SHORT,
+		var bounty := int(GameState.get_meta("last_bounty", 0))
+		_result_stats.text = "获得赏金 %d %s\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d\n精华 +%d ｜ 用时 %s" % [
+			bounty, Balance.CURRENCY_SHORT,
 			total_damage, total_cleared, max_chain,
+			session_ep, time_text,
 		]
 	else:
 		_result_title.text = "步数耗尽……"
-		_result_stats.text = "%s 逃走了（剩余 HP %d）\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d" % [
+		_result_stats.text = "%s 逃走了（剩余 HP %d）\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d\n精华 +%d ｜ 用时 %s" % [
 			monster["name"], ceili(maxf(monster_hp, 0.0)),
 			total_damage, total_cleared, max_chain,
+			session_ep, time_text,
 		]
 	_result_panel.visible = true
 
