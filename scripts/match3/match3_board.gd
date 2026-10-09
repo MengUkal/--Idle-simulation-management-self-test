@@ -23,6 +23,7 @@ var kinds := 6
 var grid: Array = []             # grid[行][列] = 元素 0..kinds-1；EMPTY=-1；魔力鸟=BIRD_ELEM
 var specials: Array = []         # specials[行][列] = SPECIAL_*（与 grid 平行）
 var rng := RandomNumberGenerator.new()
+var spawned_last_move: Array = []  # 上一次交换生成的特效 [{cell, special}]（供 UI 提示）
 
 
 func _init(board_size: int = 7, element_kinds: int = 6) -> void:
@@ -143,6 +144,7 @@ func ensure_playable() -> bool:
 ## 分支：特效+特效=组合技；魔力鸟+普通=全场同色消除；直线/爆炸+普通=激活特效；
 ## 普通+普通=颜色匹配（无消除则还原）。
 func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
+	spawned_last_move = []
 	if not are_adjacent(a, b):
 		return {"ok": false}
 	var sa := special_at(a.y, a.x)
@@ -208,7 +210,10 @@ func _report(waves: Array) -> Dictionary:
 	for w in waves:
 		for e in w:
 			total[e["cell"]] = true
-	return {"ok": true, "cleared": total.keys(), "chains": waves.size(), "waves": waves}
+	return {
+		"ok": true, "cleared": total.keys(), "chains": waves.size(),
+		"waves": waves, "spawned": spawned_last_move.duplicate(),
+	}
 
 
 ## 消除一格并返回其元素（同时清特效标记）。
@@ -302,6 +307,7 @@ func _process_match_wave(matches: Array[Vector2i], waves: Array) -> void:
 	for sp in spawns:
 		var cell: Vector2i = sp["cell"]
 		specials[cell.y][cell.x] = sp["special"]
+		spawned_last_move.append({"cell": cell, "special": sp["special"]})
 	_expand_chain(queue, wave)
 	waves.append(wave)
 

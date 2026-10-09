@@ -283,6 +283,9 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	var report := board.try_swap(a, b)
 	if not report.get("ok", false):
 		return  # 无效交换：棋盘已自动还原，静默忽略
+	var spawned: Array = report.get("spawned", [])
+	if spawned.size() > 0:
+		_show_toast("生成特殊棋子！")
 	steps_left -= 1
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
@@ -336,6 +339,22 @@ func _on_retreat_pressed() -> void:
 		_leave_battle()  # 战斗已结束，直接离开
 		return
 	_retreat_confirm.visible = true
+
+
+func debug_spawn_random_special() -> void:
+	## 【修改器】随机格子生成一颗随机特殊棋子（测试视觉与引爆表现用）
+	var types: Array = [
+		Match3Board.SPECIAL_LINE_H, Match3Board.SPECIAL_LINE_V,
+		Match3Board.SPECIAL_BOMB, Match3Board.SPECIAL_BIRD,
+	]
+	var t: int = types[randi() % types.size()]
+	var r := randi() % board.size
+	var c := randi() % board.size
+	if t == Match3Board.SPECIAL_BIRD:
+		board.grid[r][c] = Match3Board.BIRD_ELEM
+	board.specials[r][c] = t
+	_refresh_board()
+	_show_toast("已在 (%d,%d) 生成特殊棋子" % [c, r])
 
 
 func _leave_battle() -> void:

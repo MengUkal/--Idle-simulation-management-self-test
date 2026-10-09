@@ -133,6 +133,24 @@ func _build_panel() -> void:
 	to_f1.pressed.connect(func() -> void: GameState.go_to_floor(1))
 	tp_row.add_child(to_f1)
 
+	# 棋盘工具（战斗界面生效）
+	var bd_row := HBoxContainer.new()
+	bd_row.add_theme_constant_override("separation", 8)
+	box.add_child(bd_row)
+	var bd_lab := Label.new()
+	bd_lab.text = "棋盘工具"
+	bd_lab.custom_minimum_size = Vector2(92, 0)
+	bd_lab.add_theme_font_size_override("font_size", 16)
+	bd_lab.add_theme_color_override("font_color", COL_TEXT)
+	bd_row.add_child(bd_lab)
+	var spawn_btn := Button.new()
+	spawn_btn.text = "随机生成特效"
+	spawn_btn.custom_minimum_size = Vector2(180, 32)
+	spawn_btn.add_theme_font_size_override("font_size", 15)
+	spawn_btn.tooltip_text = "在战斗棋盘随机位置生成一颗特殊棋子"
+	spawn_btn.pressed.connect(_act_spawn_special)
+	bd_row.add_child(spawn_btn)
+
 	# 清档
 	var wipe := Button.new()
 	wipe.text = "清空存档（全新开局）"
@@ -214,6 +232,13 @@ func _act_add_line(kind: String) -> void:
 func _act_set_line(kind: String) -> void:
 	GameState.debug_set_line(kind, _to_i(_line_set_input.text))
 	_refresh_stats()
+
+
+func _act_spawn_special() -> void:
+	## 仅战斗界面生效（修改器面板挂在主/战斗两个场景下）
+	var p := get_parent()
+	if p != null and p.has_method("debug_spawn_random_special"):
+		p.call("debug_spawn_random_special")
 
 
 func _act_wipe() -> void:
