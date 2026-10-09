@@ -91,6 +91,18 @@ const TRAIN_COST_GROWTH := 1.35     # 训练线每级费用倍率
 const TRAIN_EFFECT_PER_LEVEL := 0.05 # 每级 +5%（攻击/赏金/收入三线通用）
 const MILESTONE_EP := {2: 10, 4: 15, 6: 20, 8: 30}  # 等级里程碑一次性精华
 
+# ---------- 交易所（M3，2026-10-09 拍板） ----------
+const MARKET_UNLOCK_LEVEL := 15    # 【已拍板】Lv.15 解锁
+const MARKET_FEE_RATE := 0.01      # 【已拍板】买卖各 1% 手续费
+const MARKET_TICK_SEC := 5.0       # 价格跳动间隔（秒）
+const MARKET_CANDLE_SEC := 30.0    # K 线周期（秒/根）
+const MARKET_CANDLE_COUNT := 40    # 图表显示根数
+const MARKET_TARGETS := [          # 【已拍板】三个元素风味标的（base=基准价 vol=每根波动率）
+	{"name": "火晶石", "base": 50.0, "vol": 0.06},
+	{"name": "風羽绢", "base": 80.0, "vol": 0.05},
+	{"name": "生命露", "base": 120.0, "vol": 0.04},
+]
+
 
 static func train_cost(level: int) -> float:
 	## 训练线从 level 级升到 level+1 级的精华费用
@@ -99,6 +111,19 @@ static func train_cost(level: int) -> float:
 
 static func train_multiplier(line_level: int) -> float:
 	return 1.0 + TRAIN_EFFECT_PER_LEVEL * float(line_level)
+
+
+static func trade_cost(price: float, shares: int) -> Dictionary:
+	## 买入成本：含 1% 手续费
+	var gross := price * float(shares)
+	var fee := gross * MARKET_FEE_RATE
+	return {"gross": gross, "fee": fee, "total": gross + fee}
+
+
+static func sell_proceeds(price: float, shares: int) -> float:
+	## 卖出到手：扣除 1% 手续费
+	var gross := price * float(shares)
+	return gross - gross * MARKET_FEE_RATE
 
 
 # ---------- 存档 ----------

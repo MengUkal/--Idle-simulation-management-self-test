@@ -10,3 +10,4 @@ signal floor_unlocked(req_level: int)       # 新层解锁（等级达标那一�
 signal save_completed()                     # 一次存档写盘完成
 signal essence_changed(total: int)          # 元素精华变化
 signal line_changed(kind: String, level: int)  # 训练线升级（atk/bounty/income）
+signal holdings_changed(idx: int, total: int)  # 标的持仓变化（交易所）

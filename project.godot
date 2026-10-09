@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 Economy="*res://autoload/economy.gd"
+Market="*res://autoload/market.gd"
 SaveManager="*res://autoload/save_manager.gd"
 
 [display]

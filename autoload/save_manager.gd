@@ -3,7 +3,7 @@ extends Node
 ## 【已拍板】离线收益 MVP 不做：关游戏期间不产出，读档回到离开时的数值。
 
 const SAVE_PATH := "user://save.json"
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 
 var _autosave_timer := 0.0
 
@@ -35,6 +35,8 @@ func save() -> void:
 		"atk_line": GameState.atk_line,
 		"bounty_line": GameState.bounty_line,
 		"income_line": GameState.income_line,
+		"holdings": GameState.holdings.duplicate(),
+		"market": Market.dump_state(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -64,6 +66,11 @@ func _load() -> void:
 	GameState.atk_line = int(data.get("atk_line", 0))
 	GameState.bounty_line = int(data.get("bounty_line", 0))
 	GameState.income_line = int(data.get("income_line", 0))
+	# schema v3 字段（交易所）
+	var h: Array = data.get("holdings", [])
+	if h.size() == GameState.holdings.size():
+		GameState.holdings = h.duplicate()
+	Market.apply_state(data.get("market", {}))
 
 
 func delete_save() -> void:

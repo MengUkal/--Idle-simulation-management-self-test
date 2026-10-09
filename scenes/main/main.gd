@@ -23,6 +23,7 @@ var _reset_confirm: Control
 var _countdown_label: Label
 var _essence_label: Label
 var _line_buttons := {}
+var _market_button: Button
 
 const LINE_NAMES := {"atk": "攻击训练", "bounty": "赏金训练", "income": "收入训练"}
 
@@ -113,6 +114,14 @@ func _build_right_panel() -> void:
 	adventure.add_theme_font_size_override("font_size", 22)
 	adventure.pressed.connect(_on_adventure_pressed)
 	box.add_child(adventure)
+
+	var market_btn := Button.new()
+	market_btn.text = "交易所"
+	market_btn.custom_minimum_size = Vector2(460, 52)
+	market_btn.add_theme_font_size_override("font_size", 20)
+	market_btn.pressed.connect(_on_market_pressed)
+	box.add_child(market_btn)
+	_market_button = market_btn
 
 	_essence_label = _make_label(box, "", 20, COL_GOLD)
 	for kind: String in ["atk", "bounty", "income"]:
@@ -322,6 +331,10 @@ func _on_adventure_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/battle/battle.tscn")
 
 
+func _on_market_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/market/market.tscn")
+
+
 func _on_reset_pressed() -> void:
 	_reset_confirm.visible = true
 
@@ -368,6 +381,9 @@ func _refresh_buttons() -> void:
 		_floor2_button.text = "第二层（需 Lv.%d，当前 Lv.%d）" % [
 			Balance.FLOOR_2_LEVEL_REQ, GameState.level,
 		]
+	var market_unlocked := GameState.level >= Balance.MARKET_UNLOCK_LEVEL
+	_market_button.disabled = not market_unlocked
+	_market_button.text = "交易所" if market_unlocked else "交易所（需 Lv.%d）" % Balance.MARKET_UNLOCK_LEVEL
 
 
 # ---------- 特效 ----------

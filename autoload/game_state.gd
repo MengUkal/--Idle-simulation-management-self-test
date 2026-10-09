@@ -10,6 +10,7 @@ var essence := 0                          # 元素精华（三消获得，训练
 var atk_line := 0                         # 攻击训练线等级
 var bounty_line := 0                      # 赏金训练线等级
 var income_line := 0                      # 收入训练线等级
+var holdings := [0, 0, 0]                 # 交易所持仓（按 Balance.MARKET_TARGETS 顺序）
 
 
 func income_per_sec() -> float:
@@ -111,6 +112,42 @@ func reset() -> void:
 	EventBus.line_changed.emit("atk", 0)
 	EventBus.line_changed.emit("bounty", 0)
 	EventBus.line_changed.emit("income", 0)
+	holdings = [0, 0, 0]
+	EventBus.holdings_changed.emit(0, 0)
+	EventBus.holdings_changed.emit(1, 0)
+	EventBus.holdings_changed.emit(2, 0)
+
+
+# ---------- 交易所（M3） ----------
+
+func buy_stock(idx: int, shares: int) -> bool:
+	## 买入标的（含 1% 手续费），成功返回 true
+	if idx < 0 or idx >= holdings.size() or shares <= 0:
+		return false
+	var cost := Balance.trade_cost(Market.prices[idx], shares)
+	if money < cost["total"]:
+		EventBus.money_not_enough.emit(cost["total"])
+		return false
+	money -= cost["total"]
+	holdings[idx] += shares
+	EventBus.money_changed.emit(money)
+	EventBus.holdings_changed.emit(idx, holdings[idx])
+	return true
+
+
+func sell_stock(idx: int, shares: int) -> bool:
+	## 卖出标的（含 1% 手续费），成功返回 true
+	if idx < 0 or idx >= holdings.size() or shares <= 0:
+		return false
+	shares = mini(shares, holdings[idx])
+	if shares <= 0:
+		return false
+	var gain := Balance.sell_proceeds(Market.prices[idx], shares)
+	money += gain
+	holdings[idx] -= shares
+	EventBus.money_changed.emit(money)
+	EventBus.holdings_changed.emit(idx, holdings[idx])
+	return true
 
 
 # ---------- 开发修改器专用（release 构建不可达：修改器面板仅 debug 构建加载） ----------
