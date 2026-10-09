@@ -28,6 +28,24 @@ const FLOOR_NAMES := {
 	2: "第二层 · ???（未实装）",
 }
 
+# ---------- 消消乐冒险（M2） ----------
+const BOARD_SIZE := 7               # 【已拍板】棋盘 7×7
+const ELEMENT_KINDS := 6            # 【已拍板】6 种元素
+const BATTLE_STEPS_BASE := 10       # 【已拍板】Lv.1 步数 = 10
+const BATTLE_STEPS_PER_LEVEL := 0.5 # 【已拍板】每级 +0.5 步（即每 2 级 +1）
+const DUMMY_HP := 100               # [占位] 训练木桩血量，正式怪物表待审定
+# 元素设定（【已拍板】全色皆攻击 + 属性克制）：
+# 火 → 風 → 土 → 水 → 火 循环相克；光 ↔ 闇 互克（克制加成数值随怪物表审定）
+const ELEMENT_NAMES := ["火", "水", "風", "土", "光", "闇"]
+const ELEMENT_COLORS := [Color("e0564f"), Color("4f8fe0"), Color("58b46b"), Color("c2954a"), Color("f2e6c8"), Color("8a5fbf")]
+const ELEMENT_TEXT_COLORS := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Color("3a2f1b"), Color.WHITE]
+
+
+static func battle_steps(level: int) -> int:
+	# 本场冒险步数上限：Lv.1 = 10、Lv.10 = 15、Lv.30 = 25
+	return BATTLE_STEPS_BASE + int(level * BATTLE_STEPS_PER_LEVEL)
+
+
 # ---------- 存档 ----------
 const AUTOSAVE_INTERVAL_SEC := 10.0
 

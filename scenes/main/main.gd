@@ -99,6 +99,13 @@ func _build_right_panel() -> void:
 	_floor2_button.pressed.connect(_on_floor2_pressed)
 	box.add_child(_floor2_button)
 
+	var adventure := Button.new()
+	adventure.text = "出发冒险（三消战斗）"
+	adventure.custom_minimum_size = Vector2(460, 56)
+	adventure.add_theme_font_size_override("font_size", 22)
+	adventure.pressed.connect(_on_adventure_pressed)
+	box.add_child(adventure)
+
 	var flavor := _make_label(box, Balance.UPGRADE_FLAVOR, 17, COL_DIM)
 	flavor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -233,6 +240,10 @@ func _on_upgrade_pressed() -> void:
 
 func _on_floor2_pressed() -> void:
 	GameState.go_to_floor(2)
+
+
+func _on_adventure_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/battle/battle.tscn")
 
 
 func _on_reset_pressed() -> void:
