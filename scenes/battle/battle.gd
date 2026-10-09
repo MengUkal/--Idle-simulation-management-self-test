@@ -43,6 +43,7 @@ var _result_stats: Label
 var _retreat_confirm: Control
 var _toast: Label
 var _toast_tween: Tween
+var _bird_sb: StyleBoxFlat
 
 
 func _process(delta: float) -> void:
@@ -167,7 +168,7 @@ func _build_side_panel() -> void:
 	_stat_chain = _make_label(box, "", 20)
 	_stat_damage = _make_label(box, "", 20)
 	_stat_ep = _make_label(box, "", 20)
-	var hint := _make_label(box, "消除怪物弱属性颜色的方块可造成双倍伤害\n连锁越高伤害加成越高", 15, COL_DIM)
+	var hint := _make_label(box, "四连/L形/五连生成特殊棋子（直线/爆炸/魔力鸟）\n弱属性方块：伤害与精华双倍；特效被波及会连锁引爆", 14, COL_DIM)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var retreat := Button.new()
 	retreat.text = "撤退（返回主界面）"
@@ -347,10 +348,43 @@ func _refresh_board() -> void:
 		for c in Balance.BOARD_SIZE:
 			var b: Button = tiles[r][c]
 			var v: int = board.grid[r][c]
-			b.text = Balance.ELEMENT_NAMES[v]
-			b.add_theme_stylebox_override("normal", _tile_style(v))
-			b.add_theme_color_override("font_color", Balance.ELEMENT_TEXT_COLORS[v])
-			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
+			var sp: int = board.special_at(r, c)
+			var text: String
+			var col: Color
+			if sp == Match3Board.SPECIAL_BIRD or v == Match3Board.BIRD_ELEM:
+				text = "神鸟"
+				col = COL_GOLD
+				b.add_theme_stylebox_override("normal", _bird_style())
+				b.add_theme_font_size_override("font_size", 26)
+			else:
+				text = Balance.ELEMENT_NAMES[v]
+				col = Balance.ELEMENT_TEXT_COLORS[v]
+				match sp:
+					Match3Board.SPECIAL_LINE_H:
+						text += "↔"
+					Match3Board.SPECIAL_LINE_V:
+						text += "↕"
+					Match3Board.SPECIAL_BOMB:
+						text += "◎"
+				b.add_theme_stylebox_override("normal", _tile_style(v))
+				b.add_theme_font_size_override("font_size", 30 if sp != Match3Board.SPECIAL_NONE else 40)
+			b.add_theme_color_override("font_color", col)
+			if selected == Vector2i(c, r):
+				b.modulate = Color(1.4, 1.4, 1.15)
+			elif sp != Match3Board.SPECIAL_NONE:
+				b.modulate = Color(1.25, 1.25, 0.9)
+			else:
+				b.modulate = Color.WHITE
+
+
+func _bird_style() -> StyleBoxFlat:
+	if _bird_sb == null:
+		_bird_sb = StyleBoxFlat.new()
+		_bird_sb.bg_color = Color("3a2f55")
+		_bird_sb.set_corner_radius_all(10)
+		_bird_sb.border_color = COL_GOLD
+		_bird_sb.set_border_width_all(3)
+	return _bird_sb
 
 
 func _refresh_hud() -> void:

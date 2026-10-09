@@ -78,13 +78,29 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int) -> Dictio
 					var score := 0.0
 					for cell in matches:
 						score += Balance.damage_multiplier(int(board.grid[cell.y][cell.x]), monster)
+					# 特效参与的交换永远有效（近似估值）
+					if board.special_at(a.y, a.x) != Match3Board.SPECIAL_NONE or board.special_at(b.y, b.x) != Match3Board.SPECIAL_NONE:
+						score = maxf(score, 2.5)
 					board.swap_cells(a, b)
 					if score > best_score:
 						best_score = score
 						best_a = a
 						best_b = b
 		if best_score < 0.0:
-			break  # 无有效交换
+			# 无颜色匹配可用时，激活场上任意直线/爆炸特效
+			var sp_found := false
+			for r2 in Balance.BOARD_SIZE:
+				for c2 in Balance.BOARD_SIZE:
+					var sp := board.special_at(r2, c2)
+					if sp >= Match3Board.SPECIAL_LINE_H and sp <= Match3Board.SPECIAL_BOMB and c2 + 1 < Balance.BOARD_SIZE:
+						best_a = Vector2i(c2, r2)
+						best_b = Vector2i(c2 + 1, r2)
+						sp_found = true
+						break
+				if sp_found:
+					break
+			if not sp_found:
+				break  # 无有效交换
 		var rep: Dictionary = board.try_swap(best_a, best_b)
 		if not rep.get("ok", false):
 			continue
