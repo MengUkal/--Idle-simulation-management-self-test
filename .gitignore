@@ -1,3 +1,5 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+tests/capture.png
+tests/*.uid

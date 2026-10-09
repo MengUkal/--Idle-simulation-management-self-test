@@ -71,6 +71,22 @@ func _ready() -> void:
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	if OS.get_cmdline_user_args().has("--capture-debug"):
+		_debug_capture.call_deferred()
+
+
+## 【诊断工具】自动生成特效并截屏（-- --capture-debug 触发）
+func _debug_capture() -> void:
+	await get_tree().process_frame
+	debug_spawn_random_special()
+	debug_spawn_random_special()
+	debug_spawn_random_special()
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("F:/放置测试/挂机放置增量rpg/tests/capture.png")
+	print("[capture] saved")
+	get_tree().quit()
 
 
 func _roll_monster() -> void:
@@ -369,18 +385,19 @@ func _refresh_board() -> void:
 			var b: Button = tiles[r][c]
 			var v: int = board.grid[r][c]
 			var sp: int = board.special_at(r, c)
-			# 属性文字恒为大号单字，保证一眼可辨；特效用边框形状区分（不依赖字形）
+			# 属性文字恒为大号单字；特殊棋子底色压暗 + 形状边框 + 亮色文字（保证对比度）
 			b.text = "鸟" if sp == Match3Board.SPECIAL_BIRD else Balance.ELEMENT_NAMES[v]
 			b.add_theme_font_size_override("font_size", 40)
+			var col: Color = Balance.ELEMENT_TEXT_COLORS[v] if v >= 0 else COL_GOLD
 			if sp == Match3Board.SPECIAL_BIRD:
 				b.add_theme_stylebox_override("normal", _bird_style())
-				b.add_theme_color_override("font_color", COL_GOLD)
+				col = COL_GOLD
 			elif sp != Match3Board.SPECIAL_NONE:
 				b.add_theme_stylebox_override("normal", _special_style(v, sp))
-				b.add_theme_color_override("font_color", Balance.ELEMENT_TEXT_COLORS[v])
+				col = COL_TEXT  # 压暗底色上统一用亮色字，保证属性可读
 			else:
 				b.add_theme_stylebox_override("normal", _tile_style(v))
-				b.add_theme_color_override("font_color", Balance.ELEMENT_TEXT_COLORS[v])
+			b.add_theme_color_override("font_color", col)
 			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
 
 
@@ -394,22 +411,24 @@ func _bird_style() -> StyleBoxFlat:
 	return _bird_sb
 
 
-## 特殊棋子样式：元素底色 + 形状边框（横条纹=清行，竖条纹=清列，金框=爆炸）
+## 特殊棋子样式：底色压暗 + 形状边框（横条纹=清行，竖条纹=清列，金框=爆炸），强区分度
 func _special_style(element: int, sp: int) -> StyleBoxFlat:
 	var key := "%d_%d" % [element, sp]
 	if _special_style_cache.has(key):
 		return _special_style_cache[key]
 	var sb: StyleBoxFlat = _tile_style(element).duplicate()
-	sb.border_color = Color(1, 1, 1, 0.95)
+	sb.bg_color = sb.bg_color.darkened(0.5)  # 底色压暗，与普通棋子拉开
+	sb.border_color = Color(1, 1, 1, 1)
 	match sp:
 		Match3Board.SPECIAL_LINE_H:
-			sb.border_width_top = 6
-			sb.border_width_bottom = 6
+			sb.border_width_top = 8
+			sb.border_width_bottom = 8
+			sb.border_color = Color(1, 1, 1, 1)
 		Match3Board.SPECIAL_LINE_V:
-			sb.border_width_left = 6
-			sb.border_width_right = 6
+			sb.border_width_left = 8
+			sb.border_width_right = 8
 		Match3Board.SPECIAL_BOMB:
-			sb.set_border_width_all(5)
+			sb.set_border_width_all(7)
 			sb.border_color = COL_GOLD
 	_special_style_cache[key] = sb
 	return sb
