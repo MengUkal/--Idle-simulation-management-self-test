@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b5r0jmewl8ddg"]
 
-[ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://nng2q8gl7vk" path="res://scenes/main/main.gd" id="1_main"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyk8p"]
 content_margin_left = 28.0

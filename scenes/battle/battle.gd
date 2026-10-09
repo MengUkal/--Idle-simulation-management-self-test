@@ -4,8 +4,8 @@ extends Control
 ## 脚本通过 %唯一名 绑定节点——重命名/移动节点不会破坏引用，删除才会。
 ## 规则【已拍板】：每次消除 = 一次攻击；弱点 ×2；连锁每波 +20%；
 ## 步数内击杀得赏金；耗尽无赏金。特殊棋子：直线/爆炸/魔力鸟 + 组合技。
+## 棋子视觉：assets/art/tiles/ 图标纹理（tools/artgen.py 程序化生成，2026-10-10 接入）。
 
-const COL_GOLD := Color("ffd75e")
 const TILE := 84.0
 const STEP := 88.0  # TILE + 间距
 
@@ -19,7 +19,7 @@ var elapsed := 0.0
 var steps_left := 0
 var selected := Vector2i(-1, -1)
 var tiles: Array = []
-var _tile_styles: Array = []
+var _tex_cache := {}  # 棋子图标纹理缓存（tools/artgen.py 产物，按路径懒加载）
 
 # 本局统计
 var total_cleared := 0
@@ -42,8 +42,6 @@ var _result_stats: Label
 var _retreat_confirm: Control
 var _toast: Label
 var _toast_tween: Tween
-var _bird_sb: StyleBoxFlat
-var _special_style_cache := {}
 var _busy := false
 var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹结算）
 
@@ -142,7 +140,6 @@ func _build_tiles() -> void:
 			var b := Button.new()
 			b.position = _cell_pos(Vector2i(c, r))
 			b.size = Vector2(TILE, TILE)
-			b.add_theme_font_size_override("font_size", 40)
 			b.focus_mode = Control.FOCUS_NONE
 			b.pressed.connect(_on_tile_pressed.bind(Vector2i(c, r)))
 			board_layer.add_child(b)
@@ -293,19 +290,9 @@ func _refresh_board() -> void:
 			var b: Button = tiles[r][c]
 			var v: int = board.grid[r][c]
 			var sp: int = board.special_at(r, c)
-			# 属性文字恒为大号单字；特殊棋子底色压暗 + 形状边框 + 亮色文字（保证对比度）
-			b.text = "鸟" if sp == Match3Board.SPECIAL_BIRD else Balance.ELEMENT_NAMES[v]
-			b.add_theme_font_size_override("font_size", 40)
-			var col: Color = Balance.ELEMENT_TEXT_COLORS[v] if v >= 0 else COL_GOLD
-			if sp == Match3Board.SPECIAL_BIRD:
-				b.add_theme_stylebox_override("normal", _bird_style())
-				col = COL_GOLD
-			elif sp != Match3Board.SPECIAL_NONE:
-				b.add_theme_stylebox_override("normal", _special_style(v, sp))
-				col = Color("e8e0cf")  # 压暗底色上统一用亮色字，保证属性可读
-			else:
-				b.add_theme_stylebox_override("normal", _tile_style(v))
-			b.add_theme_color_override("font_color", col)
+			b.text = ""
+			b.icon = _tile_texture(v, sp)
+			b.expand_icon = true
 			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
 
 
@@ -323,45 +310,32 @@ func _refresh_hud() -> void:
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
 
 
-func _tile_style(element: int) -> StyleBoxFlat:
-	while _tile_styles.size() <= element:
-		var i := _tile_styles.size()
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Balance.ELEMENT_COLORS[i]
-		sb.set_corner_radius_all(10)
-		_tile_styles.append(sb)
-	return _tile_styles[element]
+# ---------- 棋子图标（tools/artgen.py 程序化生成，见 docs/游戏设计文档.md §13） ----------
+
+const ELEMENT_EN := ["fire", "water", "wind", "earth", "light", "dark"]
+const TILE_TEX_FMT := "res://assets/art/tiles/tile_%d_%s_%s.png"
+const TEX_BIRD := "res://assets/art/tiles/tile_bird.png"
 
 
-func _special_style(element: int, sp: int) -> StyleBoxFlat:
-	var key := "%d_%d" % [element, sp]
-	if _special_style_cache.has(key):
-		return _special_style_cache[key]
-	var sb: StyleBoxFlat = _tile_style(element).duplicate()
-	sb.bg_color = sb.bg_color.darkened(0.5)  # 底色压暗，与普通棋子拉开
-	sb.border_color = Color(1, 1, 1, 1)
+func _tile_texture(v: int, sp: int) -> Texture2D:
+	## 普通棋子 = 元素图标；直线/爆炸 = 压暗底 + 白色标记组合图标；魔力鸟 = 专属图标
+	if sp == Match3Board.SPECIAL_BIRD:
+		return _cached_tex(TEX_BIRD)
+	var tag := "plain"
 	match sp:
 		Match3Board.SPECIAL_LINE_H:
-			sb.border_width_top = 8
-			sb.border_width_bottom = 8
+			tag = "lh"
 		Match3Board.SPECIAL_LINE_V:
-			sb.border_width_left = 8
-			sb.border_width_right = 8
+			tag = "lv"
 		Match3Board.SPECIAL_BOMB:
-			sb.set_border_width_all(7)
-			sb.border_color = COL_GOLD
-	_special_style_cache[key] = sb
-	return sb
+			tag = "bomb"
+	return _cached_tex(TILE_TEX_FMT % [v, ELEMENT_EN[clampi(v, 0, 5)], tag])
 
 
-func _bird_style() -> StyleBoxFlat:
-	if _bird_sb == null:
-		_bird_sb = StyleBoxFlat.new()
-		_bird_sb.bg_color = Color("3a2f55")
-		_bird_sb.set_corner_radius_all(10)
-		_bird_sb.border_color = COL_GOLD
-		_bird_sb.set_border_width_all(4)
-	return _bird_sb
+func _cached_tex(path: String) -> Texture2D:
+	if not _tex_cache.has(path):
+		_tex_cache[path] = load(path)
+	return _tex_cache[path]
 
 
 func _spawn_damage_number(amount: int, weak: bool) -> void:
@@ -421,7 +395,7 @@ func _cell_pos(cell: Vector2i) -> Vector2:
 	return Vector2(cell.x * STEP, cell.y * STEP)
 
 
-## 有效交换：两钮互换位置（数据已交换，动画结束后按格刷新文字）
+## 有效交换：两钮互换位置（数据已交换，动画结束后按格刷新图标）
 func _anim_swap_move(a: Vector2i, b: Vector2i) -> void:
 	var ba: Button = tiles[a.y][a.x]
 	var bb: Button = tiles[b.y][b.x]

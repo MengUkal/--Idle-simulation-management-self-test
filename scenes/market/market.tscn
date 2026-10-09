@@ -1,7 +1,7 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dvt4a31qydiht"]
 
-[ext_resource type="Script" path="res://scenes/market/market.gd" id="1_market"]
-[ext_resource type="Script" path="res://scenes/market/kline_chart.gd" id="2_uiuro"]
+[ext_resource type="Script" uid="uid://b4xyay6bsj2os" path="res://scenes/market/market.gd" id="1_market"]
+[ext_resource type="Script" uid="uid://nr88shpfxiai" path="res://scenes/market/kline_chart.gd" id="2_uiuro"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_apks8"]
 content_margin_left = 20.0
@@ -147,15 +147,18 @@ text = "现金 207 G ｜ 总资产 5340 G"
 horizontal_alignment = 1
 
 [node name="ChartPanel" type="PanelContainer" parent="." unique_id=826334767]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -445.0
-offset_top = -310.0
-offset_right = 445.0
-offset_bottom = 150.0
+offset_left = -447.0
+offset_top = -220.0
+offset_right = 443.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_cgn7w")
 
 [node name="ChartBox" type="VBoxContainer" parent="ChartPanel" unique_id=1850990595]
