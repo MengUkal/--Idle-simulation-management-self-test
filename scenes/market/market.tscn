@@ -1,11 +1,273 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/market/market.gd" id="1_market"]
+[ext_resource type="Script" path="res://scenes/market/kline_chart.gd" id="2_uiuro"]
 
-[node name="Market" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_apks8"]
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cgn7w"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e5foy"]
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cum83"]
+content_margin_left = 32.0
+content_margin_top = 32.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="Market" type="Control" unique_id=1708336133]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_market")
+
+[node name="Background" type="ColorRect" parent="." unique_id=678302006]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.09803922, 0.07450981, 0.13333334, 1)
+
+[node name="TopBar" type="HBoxContainer" parent="." unique_id=1568387530]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 924.0
+offset_bottom = 70.0
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="TopBar" unique_id=2076445969]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 30
+text = "交易所（树根之街支行）"
+
+[node name="FeeNote" type="Label" parent="TopBar" unique_id=830912684]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 16
+text = "手续费 1%（买卖均收）"
+
+[node name="BackBtn" type="Button" parent="TopBar" unique_id=1387323465]
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "返回主界面"
+
+[node name="TargetList" type="PanelContainer" parent="." unique_id=1112530063]
+layout_mode = 0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 60.0
+offset_top = -160.0
+offset_right = 460.0
+offset_bottom = 160.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_apks8")
+
+[node name="TargetListBox" type="VBoxContainer" parent="TargetList" unique_id=2016040525]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ListHeader" type="Label" parent="TargetList/TargetListBox" unique_id=308573300]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 22
+text = "标的行情"
+
+[node name="Target0" type="Button" parent="TargetList/TargetListBox" unique_id=898669056]
+unique_name_in_owner = true
+modulate = Color(1.35, 1.35, 1.05, 1)
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "火晶石  56.9 G  ↓19.7%"
+
+[node name="Target1" type="Button" parent="TargetList/TargetListBox" unique_id=104687399]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "風羽绢  72.0 G  ↓19.8%"
+
+[node name="Target2" type="Button" parent="TargetList/TargetListBox" unique_id=1495806032]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "生命露  96.2 G  ↑8.5%"
+
+[node name="HoldLabel" type="Label" parent="TargetList/TargetListBox" unique_id=1395875617]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 18
+text = "持仓：10 股 ｜ 市值：569 G"
+horizontal_alignment = 1
+
+[node name="ValueLabel" type="Label" parent="TargetList/TargetListBox" unique_id=26617045]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 16
+text = "现金 207 G ｜ 总资产 5340 G"
+horizontal_alignment = 1
+
+[node name="ChartPanel" type="PanelContainer" parent="." unique_id=826334767]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -445.0
+offset_top = -310.0
+offset_right = 445.0
+offset_bottom = 150.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_cgn7w")
+
+[node name="ChartBox" type="VBoxContainer" parent="ChartPanel" unique_id=1850990595]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PriceLabel" type="Label" parent="ChartPanel/ChartBox" unique_id=1098063517]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 24
+text = "火晶石 现价 56.9 G"
+horizontal_alignment = 1
+
+[node name="Chart" type="Control" parent="ChartPanel/ChartBox" unique_id=2037279067]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 380)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("2_uiuro")
+
+[node name="TradePanel" type="PanelContainer" parent="." unique_id=12666959]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -170.0
+offset_right = -60.0
+offset_bottom = 170.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_e5foy")
+
+[node name="TradeBox" type="VBoxContainer" parent="TradePanel" unique_id=186499945]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TradeHeader" type="Label" parent="TradePanel/TradeBox" unique_id=1108214605]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 22
+text = "交易"
+
+[node name="QtyRow" type="HBoxContainer" parent="TradePanel/TradeBox" unique_id=2113238190]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="QtyLabel" type="Label" parent="TradePanel/TradeBox/QtyRow" unique_id=992518289]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "数量"
+
+[node name="AmountInput" type="LineEdit" parent="TradePanel/TradeBox/QtyRow" unique_id=1190319553]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "10"
+
+[node name="BuyBtn" type="Button" parent="TradePanel/TradeBox" unique_id=1188062217]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "买入"
+
+[node name="SellBtn" type="Button" parent="TradePanel/TradeBox" unique_id=1530441973]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "卖出"
+
+[node name="TradeHint" type="Label" parent="TradePanel/TradeBox" unique_id=1215679957]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 15
+text = "低买高卖，赚取差价
+价格每 5 秒波动一次"
+horizontal_alignment = 1
+
+[node name="LockPanel" type="CenterContainer" parent="." unique_id=1557719809]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="LockBox" type="PanelContainer" parent="LockPanel" unique_id=2010619314]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_cum83")
+
+[node name="LockBox2" type="VBoxContainer" parent="LockPanel/LockBox" unique_id=1231770754]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="LockTitle" type="Label" parent="LockPanel/LockBox/LockBox2" unique_id=1951922028]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 30
+text = "交易所 Lv.15 解锁"
+horizontal_alignment = 1
+
+[node name="LockSub" type="Label" parent="LockPanel/LockBox/LockBox2" unique_id=1276008230]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 18
+text = "先在世界树练练级吧"
+horizontal_alignment = 1
+
+[node name="LockBackBtn" type="Button" parent="LockPanel/LockBox/LockBox2" unique_id=124968243]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "返回主界面"

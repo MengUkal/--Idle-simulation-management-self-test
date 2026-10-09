@@ -1,11 +1,305 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/battle/battle.gd" id="1_battle"]
 
-[node name="Battle" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7gynk"]
+content_margin_left = 24.0
+content_margin_top = 24.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ffvsa"]
+bg_color = Color(0.08235294, 0.0627451, 0.1254902, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xd4uy"]
+bg_color = Color(0.8509804, 0.3137255, 0.3137255, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0yh6x"]
+content_margin_left = 32.0
+content_margin_top = 32.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h0kxc"]
+content_margin_left = 28.0
+content_margin_top = 28.0
+content_margin_right = 28.0
+content_margin_bottom = 28.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="Battle" type="Control" unique_id=1055620941]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_battle")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1892994674]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.09803922, 0.07450981, 0.13333334, 1)
+
+[node name="EnemyPanel" type="PanelContainer" parent="." unique_id=791264618]
+layout_mode = 0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 80.0
+offset_top = -240.0
+offset_right = 440.0
+offset_bottom = 240.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_7gynk")
+
+[node name="EnemyBox" type="VBoxContainer" parent="EnemyPanel" unique_id=601898146]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EnemyName" type="Label" parent="EnemyPanel/EnemyBox" unique_id=1866081848]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 24
+text = "暗影鼠（弱点：光）"
+horizontal_alignment = 1
+
+[node name="EnemyPortrait" type="ColorRect" parent="EnemyPanel/EnemyBox" unique_id=1800913881]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+color = Color(0.22745098, 0.2, 0.3137255, 1)
+
+[node name="HpBar" type="ProgressBar" parent="EnemyPanel/EnemyBox" unique_id=211936155]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_ffvsa")
+theme_override_styles/fill = SubResource("StyleBoxFlat_xd4uy")
+max_value = 40.0
+value = 40.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="EnemyPanel/EnemyBox" unique_id=2022056456]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 16
+text = "HP 40 / 40"
+horizontal_alignment = 1
+
+[node name="EnemyHint" type="Label" parent="EnemyPanel/EnemyBox" unique_id=1609883242]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 14
+text = "消除弱属性方块：伤害与精华双倍
+打不过也可以直接撤退"
+horizontal_alignment = 1
+
+[node name="BoardCenter" type="CenterContainer" parent="." unique_id=1526459245]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="BoardLayer" type="Control" parent="BoardCenter" unique_id=87686769]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(616, 616)
+layout_mode = 2
+
+[node name="SidePanel" type="VBoxContainer" parent="." unique_id=2135481924]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -240.0
+offset_right = -80.0
+offset_bottom = 240.0
+theme_override_constants/separation = 8
+
+[node name="StepsHeader" type="Label" parent="SidePanel" unique_id=1709165180]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 22
+text = "剩余步数"
+horizontal_alignment = 1
+
+[node name="StepsLabel" type="Label" parent="SidePanel" unique_id=1978030786]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 72
+text = "17"
+horizontal_alignment = 1
+
+[node name="StatCleared" type="Label" parent="SidePanel" unique_id=772396161]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "消除方块：0"
+horizontal_alignment = 1
+
+[node name="StatChain" type="Label" parent="SidePanel" unique_id=1817616943]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "最大连锁：0"
+horizontal_alignment = 1
+
+[node name="StatDamage" type="Label" parent="SidePanel" unique_id=260473735]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "总输出：0"
+horizontal_alignment = 1
+
+[node name="StatEp" type="Label" parent="SidePanel" unique_id=182123504]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "本局精华：+0"
+horizontal_alignment = 1
+
+[node name="BattleHint" type="Label" parent="SidePanel" unique_id=357050325]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 14
+text = "四连/L形/五连生成特殊棋子（直线/爆炸/魔力鸟）
+弱属性方块：伤害与精华双倍；特效被波及会连锁引爆"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="RetreatBtn" type="Button" parent="SidePanel" unique_id=1410823337]
+custom_minimum_size = Vector2(380, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "撤退（返回主界面）"
+
+[node name="ResultPanel" type="CenterContainer" parent="." unique_id=209035443]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ResultBox" type="PanelContainer" parent="ResultPanel" unique_id=382573864]
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_0yh6x")
+
+[node name="ResultBox2" type="VBoxContainer" parent="ResultPanel/ResultBox" unique_id=1880531571]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ResultTitle" type="Label" parent="ResultPanel/ResultBox/ResultBox2" unique_id=2077028166]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+
+[node name="ResultStats" type="Label" parent="ResultPanel/ResultBox/ResultBox2" unique_id=1531293850]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+
+[node name="ResultBackBtn" type="Button" parent="ResultPanel/ResultBox/ResultBox2" unique_id=458866877]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "返回主界面"
+
+[node name="RetreatConfirm" type="CenterContainer" parent="." unique_id=2129399647]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="RetreatBox" type="PanelContainer" parent="RetreatConfirm" unique_id=1109373850]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_h0kxc")
+
+[node name="RetreatBox2" type="VBoxContainer" parent="RetreatConfirm/RetreatBox" unique_id=1010512808]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="RetreatTitle" type="Label" parent="RetreatConfirm/RetreatBox/RetreatBox2" unique_id=1250487992]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 26
+text = "确定撤退？"
+horizontal_alignment = 1
+
+[node name="RetreatSub" type="Label" parent="RetreatConfirm/RetreatBox/RetreatBox2" unique_id=451049639]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 19
+text = "当前战斗进度与未到手的赏金将被放弃。"
+horizontal_alignment = 1
+
+[node name="RetreatButtons" type="HBoxContainer" parent="RetreatConfirm/RetreatBox/RetreatBox2" unique_id=899176418]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="RetreatStayBtn" type="Button" parent="RetreatConfirm/RetreatBox/RetreatBox2/RetreatButtons" unique_id=1157320736]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "继续战斗"
+
+[node name="RetreatLeaveBtn" type="Button" parent="RetreatConfirm/RetreatBox/RetreatBox2/RetreatButtons" unique_id=1422572001]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 20
+text = "确定撤退"
+
+[node name="Toast" type="Label" parent="." unique_id=1444513699]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -500.0
+offset_top = -60.0
+offset_right = 500.0
+offset_bottom = -24.0
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1

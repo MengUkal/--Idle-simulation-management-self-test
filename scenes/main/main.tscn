@@ -1,11 +1,282 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 
-[node name="Main" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyk8p"]
+content_margin_left = 28.0
+content_margin_top = 28.0
+content_margin_right = 28.0
+content_margin_bottom = 28.0
+bg_color = Color(0.14117648, 0.23137255, 0.18039216, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iuonh"]
+content_margin_left = 28.0
+content_margin_top = 28.0
+content_margin_right = 28.0
+content_margin_bottom = 28.0
+bg_color = Color(0.14117648, 0.11372549, 0.2, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="Main" type="Control" unique_id=1812653219]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1859556969]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.09803922, 0.07450981, 0.13333334, 1)
+
+[node name="TopBox" type="VBoxContainer" parent="." unique_id=1178836968]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 32.0
+offset_right = 400.0
+offset_bottom = 232.0
+
+[node name="MoneyLabel" type="Label" parent="TopBox" unique_id=1084818386]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 64
+text = "G 207"
+horizontal_alignment = 1
+
+[node name="IncomeLabel" type="Label" parent="TopBox" unique_id=1997471083]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 24
+text = "挂机收入 0.23/秒"
+horizontal_alignment = 1
+
+[node name="CountdownLabel" type="Label" parent="TopBox" unique_id=361611307]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 17
+text = "现在就能献金！"
+horizontal_alignment = 1
+
+[node name="TreePanel" type="PanelContainer" parent="." unique_id=1816649821]
+layout_mode = 0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 96.0
+offset_top = -220.0
+offset_right = 616.0
+offset_bottom = 220.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hyk8p")
+
+[node name="TreeBox" type="VBoxContainer" parent="TreePanel" unique_id=731293634]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TreeTitle" type="Label" parent="TreePanel/TreeBox" unique_id=68642834]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 40
+text = "世界树"
+horizontal_alignment = 1
+
+[node name="FloorNameLabel" type="Label" parent="TreePanel/TreeBox" unique_id=434872211]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 28
+text = "第一层 · 树根之街"
+horizontal_alignment = 1
+
+[node name="TreeHint" type="Label" parent="TreePanel/TreeBox" unique_id=938515162]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 16
+text = "（场景立绘占位）"
+horizontal_alignment = 1
+
+[node name="RightPanel" type="VBoxContainer" parent="." unique_id=1502659765]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -556.0
+offset_top = -160.0
+offset_right = -96.0
+offset_bottom = 160.0
+theme_override_constants/separation = 18
+
+[node name="UpgradeButton" type="Button" parent="RightPanel" unique_id=987756225]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 25
+text = "献金升级 → Lv.16（71 G）"
+
+[node name="Floor2Button" type="Button" parent="RightPanel" unique_id=1481299089]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 25
+text = "前往第二层"
+
+[node name="AdventureButton" type="Button" parent="RightPanel" unique_id=1422063426]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "出发冒险（三消战斗）"
+
+[node name="MarketButton" type="Button" parent="RightPanel" unique_id=241574259]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "交易所"
+
+[node name="EssenceLabel" type="Label" parent="RightPanel" unique_id=486447733]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 20
+text = "元素精华：75"
+horizontal_alignment = 1
+
+[node name="LineAtk" type="Button" parent="RightPanel" unique_id=468775965]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "攻击训练 Lv.0 → 1（25 精华）"
+
+[node name="LineBounty" type="Button" parent="RightPanel" unique_id=866869732]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "赏金训练 Lv.0 → 1（25 精华）"
+
+[node name="LineIncome" type="Button" parent="RightPanel" unique_id=765580422]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "收入训练 Lv.0 → 1（25 精华）"
+
+[node name="FlavorLabel" type="Label" parent="RightPanel" unique_id=707278334]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 17
+text = "向世界树献金，换取更深的祝福"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Toast" type="Label" parent="." unique_id=1605053150]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -500.0
+offset_top = -140.0
+offset_right = 500.0
+offset_bottom = -100.0
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+
+[node name="SaveLabel" type="Label" parent="." unique_id=1090605633]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -380.0
+offset_top = -44.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+
+[node name="ResetButton" type="Button" parent="." unique_id=1739675573]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -40.0
+offset_right = 120.0
+offset_bottom = -12.0
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 15
+text = "重置存档"
+flat = true
+
+[node name="ResetConfirm" type="CenterContainer" parent="." unique_id=1709511493]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ResetPanel" type="PanelContainer" parent="ResetConfirm" unique_id=1063234247]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_iuonh")
+
+[node name="ResetBox" type="VBoxContainer" parent="ResetConfirm/ResetPanel" unique_id=59553576]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ResetTitle" type="Label" parent="ResetConfirm/ResetPanel/ResetBox" unique_id=1034876876]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 28
+text = "重置存档"
+horizontal_alignment = 1
+
+[node name="ResetSub" type="Label" parent="ResetConfirm/ResetPanel/ResetBox" unique_id=322657448]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "确定要清空所有进度吗？
+此操作无法撤销。"
+horizontal_alignment = 1
+
+[node name="ResetButtons" type="HBoxContainer" parent="ResetConfirm/ResetPanel/ResetBox" unique_id=999874945]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="ResetCancelBtn" type="Button" parent="ResetConfirm/ResetPanel/ResetBox/ResetButtons" unique_id=1932843282]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "取消"
+
+[node name="ResetApplyBtn" type="Button" parent="ResetConfirm/ResetPanel/ResetBox/ResetButtons" unique_id=364302406]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 20
+text = "确定重置"

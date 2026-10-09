@@ -7,11 +7,12 @@ const COL_GOLD := Color("ffd75e")
 const COL_TEXT := Color("e8e0cf")
 const COL_DIM := Color("a89f8d")
 const COL_PANEL := Color("241d33")
-const UP_RED := Color("e0564f")      # 涨（红涨绿跌）
+const UP_RED := Color("e0564f")      # 涨（中式红涨）
 const DOWN_GREEN := Color("58b46b")  # 跌
+const KLINE_CHART := preload("res://scenes/market/kline_chart.gd")
 
 var selected := 0
-var _chart: MarketChart
+var _chart: Control
 var _target_buttons: Array = []
 var _price_label: Label
 var _hold_label: Label
@@ -19,51 +20,6 @@ var _value_label: Label
 var _amount_input: LineEdit
 var _lock_panel: Control
 var _last_prices: Array = []
-
-
-class MarketChart extends Control:
-	## K 线图自绘控件：红涨绿跌 + 影线
-	var source: Node
-	var target_idx := 0
-
-	func _draw() -> void:
-		var bg := Color("10141f")
-		draw_rect(Rect2(Vector2.ZERO, size), bg, true)
-		if source == null or source.history.size() <= target_idx:
-			return
-		var series: Array = []
-		for candle in source.history[target_idx]:
-			series.append(candle)
-		if target_idx < source.current_open.size():
-			var o: float = source.current_open[target_idx]
-			var h: float = maxf(source.live_high[target_idx], source.prices[target_idx])
-			var l: float = minf(source.live_low[target_idx], source.prices[target_idx])
-			series.append([o, h, l, source.prices[target_idx]])
-		if series.is_empty():
-			return
-		var lo := INF
-		var hi := -INF
-		for cd in series:
-			lo = minf(lo, cd[2])
-			hi = maxf(hi, cd[1])
-		var pad := (hi - lo) * 0.1 + 0.001
-		lo -= pad
-		hi += pad
-		var count := series.size()
-		var slot := size.x / float(count)
-		var bw := maxf(slot * 0.6, 2.0)
-		for i in count:
-			var cd: Array = series[i]
-			var cx := slot * (i + 0.5)
-			var up: bool = cd[3] >= cd[0]
-			var col := Color("e0564f") if up else Color("58b46b")
-			draw_line(Vector2(cx, _y_of(cd[1], lo, hi)), Vector2(cx, _y_of(cd[2], lo, hi)), col, 1.5)
-			var top := _y_of(maxf(cd[0], cd[3]), lo, hi)
-			var bot := _y_of(minf(cd[0], cd[3]), lo, hi)
-			draw_rect(Rect2(Vector2(cx - bw / 2, top), Vector2(bw, maxf(bot - top, 1.5))), col, true)
-
-	func _y_of(v: float, lo: float, hi: float) -> float:
-		return size.y - (v - lo) / (hi - lo) * size.y
 
 
 func _ready() -> void:
@@ -76,22 +32,34 @@ func _ready() -> void:
 	Market.prices_changed.connect(_refresh_quotes)
 	Market.candle_closed.connect(_refresh_quotes)
 	_refresh_all()
-	if OS.get_cmdline_user_args().has("--capture-debug"):
-		_debug_capture.call_deferred()
+	if OS.get_cmdline_user_args().has("--bake-ui"):
+		_bake_ui.call_deferred()
 
 
-## 【诊断工具】截屏（-- --capture-debug 触发）
-func _debug_capture() -> void:
-	await get_tree().process_frame
-	await get_tree().create_timer(0.5).timeout
-	await RenderingServer.frame_post_draw
-	var img := get_viewport().get_texture().get_image()
-	img.save_png("F:/放置测试/挂机放置增量rpg/tests/capture_market.png")
-	print("[capture] saved")
+## 【场景化迁移】把运行时构建的 UI 树烘焙进 market.tscn（一次性工具）
+func _bake_ui() -> void:
+	_set_owner_recursive(self)
+	var keep: Array = [_price_label, _hold_label, _value_label, _amount_input,
+		_chart, _lock_panel]
+	keep += _target_buttons
+	for n in keep:
+		if n != null:
+			n.unique_name_in_owner = true
+	var ps := PackedScene.new()
+	var err := ps.pack(self)
+	print("[bake] pack=", err)
+	if err == OK:
+		err = ResourceSaver.save(ps, "res://scenes/market/market.tscn")
+	print("[bake] save=", err)
 	get_tree().quit()
 
 
-# ---------- UI 构建 ----------
+func _set_owner_recursive(node: Node) -> void:
+	if node != self:
+		node.owner = self
+	for c in node.get_children():
+		_set_owner_recursive(c)
+
 
 func _build_background() -> void:
 	var bg := ColorRect.new()
@@ -180,7 +148,7 @@ func _build_chart() -> void:
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
 	_price_label = _make_label(box, "", 24, COL_GOLD)
-	_chart = MarketChart.new()
+	_chart = KLINE_CHART.new()
 	_chart.source = Market
 	_chart.custom_minimum_size = Vector2(0, 380)
 	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
