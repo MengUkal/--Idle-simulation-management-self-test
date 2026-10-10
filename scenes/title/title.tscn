@@ -1,0 +1,146 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/title/title.gd" id="1_title"]
+[ext_resource type="Texture2D" path="res://assets/art/bg/world_tree.png" id="2_tree"]
+
+[node name="Title" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_title")
+
+[node name="BgArt" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("2_tree")
+expand_mode = 1
+stretch_mode = 6
+texture_filter = 1
+self_modulate = Color(1, 1, 1, 0.9)
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.3)
+
+[node name="CenterBox" type="VBoxContainer" parent="."]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -420.0
+offset_top = -300.0
+offset_right = 420.0
+offset_bottom = 300.0
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.65)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_font_sizes/font_size = 78
+text = "挂机放置增量RPG"
+horizontal_alignment = 1
+
+[node name="SubLabel" type="Label" parent="CenterBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 24
+text = "献上吉尔，登上世界树"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="ContinueBtn" type="Button" parent="CenterBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(400, 68)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "继续游戏"
+
+[node name="NewBtn" type="Button" parent="CenterBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(400, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "开始游戏"
+
+[node name="VersionLabel" type="Label" parent="."]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -40.0
+offset_right = -16.0
+offset_bottom = -14.0
+theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
+theme_override_font_sizes/font_size = 15
+text = "Alpha 0.1 · 美术 v1"
+horizontal_alignment = 1
+
+[node name="NewConfirm" type="CenterContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="NewPanel" type="PanelContainer" parent="NewConfirm"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+
+[node name="NewBox" type="VBoxContainer" parent="NewConfirm/NewPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="NewTitle" type="Label" parent="NewConfirm/NewPanel/NewBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 28
+text = "开始新的开始？"
+horizontal_alignment = 1
+
+[node name="NewInfo" type="Label" parent="NewConfirm/NewPanel/NewBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 19
+text = "当前进度将被清空
+此操作无法撤销。"
+horizontal_alignment = 1
+
+[node name="NewButtons" type="HBoxContainer" parent="NewConfirm/NewPanel/NewBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="NewCancelBtn" type="Button" parent="NewConfirm/NewPanel/NewBox/NewButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "取消"
+
+[node name="NewApplyBtn" type="Button" parent="NewConfirm/NewPanel/NewBox/NewButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 20
+text = "确定重置"
