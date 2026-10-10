@@ -27,6 +27,14 @@ var max_chain := 0
 var total_damage := 0
 var session_ep := 0
 
+# 主动技能（三期，2026-10-11 拍板：资源模型 charge/fixed/steps）
+var skill_def := {}            # 当前职业主动技能定义（data/skills.gd）
+var skill_energy := 0          # 充能池（charge 型）
+var skill_frac := 0            # 充能余数（已消除但不足一格的块数）
+var skill_uses := 0            # 固定次数余量（fixed 型）
+var skill_targeting := false   # 瞄准模式（需选格/列的技能）
+var _skill_btn: Button
+
 var board_layer: Control
 var _steps_label: Label
 var _stat_cleared: Label
@@ -109,22 +117,44 @@ func _ready() -> void:
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# BGM 按层：三层暂用二层曲顶替（bgm_floor3 待音频会话产出）
 	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
-	_build_skill_bar_placeholder()
+	_setup_skill()
+	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
 		_debug_capture.call_deferred()
 
 
-## 主动技能栏占位（预留：三灰槽，后续版本开放职业主动技能）
-func _build_skill_bar_placeholder() -> void:
+func _setup_skill() -> void:
+	## 主动技能初始化（三期）：按职业加载定义与资源
+	skill_def = GameSkills.get_skill(GameState.character_class)
+	if skill_def.is_empty():
+		return
+	match str(skill_def.get("resource", "")):
+		"fixed":
+			skill_uses = int(skill_def.get("uses", 1))
+
+
+## 主动技能栏：槽 1 = 职业专属技（激活），槽 2/3 = 通用道具位（预留灰槽）
+func _build_skill_bar() -> void:
+	var has_skill := not skill_def.is_empty()
 	for i in 3:
 		var b := Button.new()
-		b.text = "技能"
-		b.disabled = true
-		b.custom_minimum_size = Vector2(60, 38)
-		b.position = Vector2(6 + i * 66, -46)
-		b.modulate = Color(1, 1, 1, 0.4)
+		b.custom_minimum_size = Vector2(64, 38)
+		b.position = Vector2(6 + i * 68, -46)
 		b.focus_mode = Control.FOCUS_NONE
+		if i == 0 and has_skill:
+			_skill_btn = b
+			b.text = str(skill_def.get("name", "技能"))
+			b.add_theme_font_size_override("font_size", 14)
+			b.pressed.connect(_on_skill_pressed)
+			b.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
+			b.disabled = not skill_ready()
+		else:
+			b.text = "道具"
+			b.disabled = true
+			b.modulate = Color(1, 1, 1, 0.4)
 		board_layer.add_child(b)
+	if has_skill:
+		_refresh_skill_bar()
 
 
 ## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
@@ -198,6 +228,11 @@ func _on_tile_pressed(btn: Button) -> void:
 	var cell := Vector2i(
 		clampi(int(round(btn.position.x / STEP)), 0, Balance.BOARD_SIZE - 1),
 		clampi(int(round(btn.position.y / STEP)), 0, Balance.BOARD_SIZE - 1))
+	if skill_targeting:
+		# 技能瞄准模式：本次点击作为技能目标（格/列）
+		skill_targeting = false
+		_cast_skill(cell)
+		return
 	if selected == Vector2i(-1, -1):
 		selected = cell
 	elif selected == cell:
@@ -294,6 +329,17 @@ func _apply_damage(waves: Array) -> void:
 	var dmg := int(ceil(dmg_f))
 	total_damage += dmg
 	monster_hp -= dmg
+	# 充能型技能：按消除块数积能量（资源模型 charge）
+	if str(skill_def.get("resource", "")) == "charge":
+		var cleared_here := 0
+		for w in waves.size():
+			cleared_here += (waves[w] as Array).size()
+		skill_frac += cleared_here
+		var cap := int(skill_def.get("max", 3))
+		while skill_frac >= int(skill_def.get("charge_per", 8)) and skill_energy < cap:
+			skill_frac -= int(skill_def.get("charge_per", 8))
+			skill_energy += 1
+		_refresh_skill_bar()
 	Sfx.play("monster_hit", 1.0, -4.0)  # 受击低频垫层（音效文件本身已 -9dB，再压 4dB 防吵）
 	if ep > 0:
 		ep = int(round(ep * Mods.mult("ep")))
@@ -650,3 +696,108 @@ func _kill_burst() -> void:
 	add_child(p)
 	p.emitting = true
 	get_tree().create_timer(1.2).timeout.connect(p.queue_free)
+
+
+# ---------- 主动技能（三期，2026-10-11 拍板：资源模型 charge/fixed/steps，S3 正常结算） ----------
+
+func skill_ready() -> bool:
+	if skill_def.is_empty() or _busy or defeated or battle_over:
+		return false
+	match str(skill_def.get("resource", "")):
+		"charge":
+			return skill_energy >= 1
+		"fixed":
+			return skill_uses > 0
+		"steps":
+			return steps_left >= int(skill_def.get("step_cost", 2))
+	return false
+
+
+func _on_skill_pressed() -> void:
+	if skill_targeting:
+		skill_targeting = false
+		_show_toast("已取消瞄准")
+		return
+	if not skill_ready():
+		return
+	if bool(skill_def.get("targeting", false)):
+		skill_targeting = true
+		_show_toast("选择目标（点击棋盘格子；再按技能键取消）")
+		return
+	_cast_skill(Vector2i(-1, -1))
+
+
+## 释放职业主动技能：资源扣除 → board 技能执行 → 正常伤害/动画结算（S3 拍板）
+func _cast_skill(cell: Vector2i) -> void:
+	if _busy:
+		return
+	_busy = true
+	skill_targeting = false
+	match str(skill_def.get("resource", "")):
+		"charge":
+			skill_energy -= 1
+		"fixed":
+			skill_uses -= 1
+		"steps":
+			steps_left -= int(skill_def.get("step_cost", 2))
+	var waves: Array = []
+	match GameState.character_class:
+		"warrior":
+			var r := board.skill_smash([cell,
+				cell + Vector2i(1, 0), cell + Vector2i(-1, 0),
+				cell + Vector2i(0, 1), cell + Vector2i(0, -1)])
+			waves = r["waves"]
+		"mage":
+			var weak := int(monster.get("weak", -1))
+			if weak < 0:
+				weak = board.rng.randi_range(0, Balance.ELEMENT_KINDS - 1)
+			var r := board.skill_transform_random(weak, 6)
+			waves = r["waves"]
+		"rogue":
+			board.skill_shuffle()
+		"priest":
+			steps_left += 3
+		"paladin":
+			board.skill_bless(cell)
+		"ranger":
+			var r := board.skill_pierce_col(cell.x)
+			waves = r["waves"]
+		"warlock":
+			var r := board.skill_plague()
+			waves = r["waves"]
+	if waves.size() > 0:
+		_apply_damage(waves)
+		_refresh_board()
+		await _anim_clear(waves)
+		_refresh_board()
+		board.ensure_playable()
+		await _anim_settle()
+	else:
+		board.ensure_playable()  # 洗牌/祝圣后同样防死局
+	if defeated:
+		_pending_result = 1
+	elif steps_left <= 0:
+		_pending_result = 2
+	_refresh_board()
+	_refresh_hud()
+	_refresh_skill_bar()
+	if _pending_result == 1:
+		_show_result(true)
+	elif _pending_result == 2:
+		_show_result(false)
+	_busy = false
+
+
+func _refresh_skill_bar() -> void:
+	if _skill_btn == null or skill_def.is_empty():
+		return
+	match str(skill_def.get("resource", "")):
+		"charge":
+			_skill_btn.text = "⚡%d+%d" % [skill_energy, skill_frac]
+			_skill_btn.disabled = not skill_ready()
+		"fixed":
+			_skill_btn.text = "×%d" % skill_uses
+			_skill_btn.disabled = not skill_ready()
+		"steps":
+			_skill_btn.text = "-%d 步" % int(skill_def.get("step_cost", 2))
+			_skill_btn.disabled = not skill_ready()

@@ -466,6 +466,110 @@ func _resolve_combo(a: Vector2i, b: Vector2i, sa: int, sb: int, waves: Array) ->
 	waves.append(wave)
 
 
+# ---------- 主动技能 API（三期，2026-10-11 拍板；均走正常重力+连锁结算） ----------
+
+## 摧毁指定格子集合（战士·破城锤）。返回 {waves, removed}
+func skill_smash(cells: Array) -> Dictionary:
+	var removed := 0
+	for c in cells:
+		var cell: Vector2i = c
+		if cell.x < 0 or cell.y < 0 or cell.x >= size or cell.y >= size:
+			continue
+		if grid[cell.y][cell.x] == EMPTY:
+			continue
+		_remove_cell(cell)
+		removed += 1
+	var waves := []
+	if removed > 0:
+		_apply_gravity_and_refill()
+		_cascade(waves)
+	return {"waves": waves, "removed": removed}
+
+
+## 清除一整列（游侠·穿透箭）。返回 {waves}
+func skill_pierce_col(col: int) -> Dictionary:
+	var waves := []
+	if col < 0 or col >= size:
+		return {"waves": waves}
+	for r in size:
+		if grid[r][col] != EMPTY:
+			_remove_cell(Vector2i(col, r))
+	_apply_gravity_and_refill()
+	_cascade(waves)
+	return {"waves": waves}
+
+
+## 随机 count 个非目标元素方块变为 target 元素（法师·元素嬗变）。返回 {changed, waves}
+func skill_transform_random(target: int, count: int) -> Dictionary:
+	var candidates := []
+	for r in size:
+		for c in size:
+			if grid[r][c] >= 0 and grid[r][c] != target:
+				candidates.append(Vector2i(c, r))
+	candidates.shuffle()
+	var changed := 0
+	for cell in candidates.slice(0, count):
+		grid[cell.y][cell.x] = target
+		specials[cell.y][cell.x] = SPECIAL_NONE
+		changed += 1
+	var waves := []
+	_cascade(waves)  # 变色后可能凑出三连，走正常连锁
+	return {"waves": waves, "changed": changed}
+
+
+## 洗牌：重排全部非空棋子（盗贼·偷天换日），尝试避免洗出即时三连。返回 {ok}
+func skill_shuffle() -> Dictionary:
+	var cells := []
+	for r in size:
+		for c in size:
+			if grid[r][c] != EMPTY:
+				cells.append({"v": grid[r][c], "s": specials[r][c]})
+	for attempt in 24:
+		cells.shuffle()
+		var i := 0
+		for r in size:
+			for c in size:
+				grid[r][c] = cells[i]["v"]
+				specials[r][c] = cells[i]["s"]
+				i += 1
+		if find_matches().is_empty():
+			return {"ok": true}
+	return {"ok": true}  # 尝试上限后接受现状（罕见）
+
+
+## 指定方块变为爆炸特殊块（圣骑士·祝圣之槌）。返回是否成功
+func skill_bless(cell: Vector2i) -> bool:
+	if cell.x < 0 or cell.y < 0 or cell.x >= size or cell.y >= size:
+		return false
+	if grid[cell.y][cell.x] == EMPTY:
+		return false
+	specials[cell.y][cell.x] = SPECIAL_BOMB
+	return true
+
+
+## 瘟疫：约一半非空方块随机变为其他颜色（术士·暗影瘟疫），随后正常连锁。返回 {waves, changed}
+func skill_plague() -> Dictionary:
+	var targets := []
+	for r in size:
+		for c in size:
+			if grid[r][c] >= 0:
+				targets.append(Vector2i(c, r))
+	targets.shuffle()
+	var half := int(ceil(targets.size() / 2.0))
+	var changed := 0
+	for cell in targets.slice(0, half):
+		var old: int = grid[cell.y][cell.x]
+		var nv := rng.randi_range(0, kinds - 1)
+		if nv == old:
+			nv = (nv + 1 + rng.randi_range(0, kinds - 2)) % kinds
+		grid[cell.y][cell.x] = nv
+		specials[cell.y][cell.x] = SPECIAL_NONE
+		changed += 1
+	var waves := []
+	_cascade(waves)  # 变色凑出的三连走正常连锁
+	return {"waves": waves, "changed": changed}
+
+
 func _apply_gravity_and_refill() -> void:
 	for c in size:
 		var write := size - 1
