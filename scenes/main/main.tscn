@@ -1,6 +1,11 @@
 [gd_scene format=3 uid="uid://b5r0jmewl8ddg"]
 
 [ext_resource type="Script" uid="uid://nng2q8gl7vk" path="res://scenes/main/main.gd" id="1_main"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/ui_gil.png" id="2_gil"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/ui_essence.png" id="3_ess"]
+[ext_resource type="Texture2D" path="res://assets/art/bg/world_tree.png" id="4_tree"]
+[ext_resource type="Texture2D" path="res://assets/art/bg/bg_floor1.png" id="5_bg1"]
+[ext_resource type="Texture2D" path="res://assets/art/bg/bg_floor2.png" id="6_bg2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyk8p"]
 content_margin_left = 28.0
@@ -39,6 +44,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.09803922, 0.07450981, 0.13333334, 1)
 
+[node name="BgArt" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("5_bg1")
+expand_mode = 1
+stretch_mode = 6
+texture_filter = 1
+self_modulate = Color(1, 1, 1, 0.55)
+
 [node name="TopBox" type="VBoxContainer" parent="." unique_id=1178836968]
 layout_mode = 0
 anchor_left = 0.5
@@ -48,13 +64,24 @@ offset_top = 32.0
 offset_right = 400.0
 offset_bottom = 232.0
 
-[node name="MoneyLabel" type="Label" parent="TopBox" unique_id=1084818386]
+[node name="MoneyRow" type="HBoxContainer" parent="TopBox" unique_id=1084818386]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MoneyIcon" type="TextureRect" parent="TopBox/MoneyRow"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("2_gil")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MoneyLabel" type="Label" parent="TopBox/MoneyRow" unique_id=1084818386]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
 theme_override_font_sizes/font_size = 64
 text = "G 207"
-horizontal_alignment = 1
 
 [node name="IncomeLabel" type="Label" parent="TopBox" unique_id=1997471083]
 unique_name_in_owner = true
@@ -101,12 +128,13 @@ theme_override_font_sizes/font_size = 28
 text = "第一层 · 树根之街"
 horizontal_alignment = 1
 
-[node name="TreeHint" type="Label" parent="TreePanel/TreeBox" unique_id=938515162]
+[node name="TreeArt" type="TextureRect" parent="TreePanel/TreeBox"]
+custom_minimum_size = Vector2(0, 240)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
-theme_override_font_sizes/font_size = 16
-text = "（场景立绘占位）"
-horizontal_alignment = 1
+texture = ExtResource("4_tree")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
 
 [node name="FruitsLabel" type="Label" parent="TreePanel/TreeBox" unique_id=2100000101]
 unique_name_in_owner = true
@@ -163,13 +191,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "交易所"
 
-[node name="EssenceLabel" type="Label" parent="RightPanel" unique_id=486447733]
+[node name="EssenceRow" type="HBoxContainer" parent="RightPanel" unique_id=486447733]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="EssenceIcon" type="TextureRect" parent="RightPanel/EssenceRow"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+texture = ExtResource("3_ess")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EssenceLabel" type="Label" parent="RightPanel/EssenceRow" unique_id=4864477332]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
 theme_override_font_sizes/font_size = 20
 text = "元素精华：75"
-horizontal_alignment = 1
 
 [node name="LineAtk" type="Button" parent="RightPanel" unique_id=468775965]
 unique_name_in_owner = true

@@ -45,6 +45,12 @@ STYLE_NEG = ("blurry, smooth gradients, realistic, photo, text, watermark, signa
              "grey background, gradient background, frame, border, "
              "jpeg artifacts, human, humanoid face")
 
+# 场景图（背景/立绘）风格：不抠底，负面词不能含 scenery
+SCENE_STYLE_POS = ("pixel art, japanese fantasy RPG scenery, detailed, vibrant colors, "
+                   "cozy atmosphere, game background illustration")
+SCENE_NEG = ("blurry, realistic, photo, text, watermark, signature, frame, border, "
+             "jpeg artifacts, human, humanoid face")
+
 # 每只怪：中文名 -> (文件名标识, 英文特征描述)。新怪加一行即可。
 MONSTERS = {
     "树精史莱姆": ("slime",   "green slime monster with a small leaf sprout on head, big round eyes"),
@@ -75,10 +81,9 @@ def api_json(path, payload=None, timeout=30):
         return json.loads(r.read().decode())
 
 
-def build_workflow(pos, neg, seed):
-    """SD1.5 txt2img 标准工作流（checkpoint → LoRA → 采样 → 保存）"""
-    p_pos = pos + ", " + STYLE_POS
-    p_neg = neg + ", " + STYLE_NEG
+def build_workflow(pos, neg, seed, w=0, h=0):
+    """SD1.5 txt2img 标准工作流（checkpoint → LoRA → 采样 → 保存）。
+    pos/neg 为完整提示词（风格前缀由调用方拼好）；w/h=0 时用 GEN_SIZE。"""
     return {
         "3": {"class_type": "KSampler", "inputs": {
             "seed": seed, "steps": 24, "cfg": 7.0, "sampler_name": "euler_ancestral",
@@ -87,9 +92,9 @@ def build_workflow(pos, neg, seed):
             "latent_image": ["5", 0]}},
         "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": CKPT}},
         "5": {"class_type": "EmptyLatentImage", "inputs": {
-            "width": GEN_SIZE, "height": GEN_SIZE, "batch_size": 1}},
-        "6": {"class_type": "CLIPTextEncode", "inputs": {"text": p_pos, "clip": ["11", 0]}},
-        "7": {"class_type": "CLIPTextEncode", "inputs": {"text": p_neg, "clip": ["11", 0]}},
+            "width": w or GEN_SIZE, "height": h or GEN_SIZE, "batch_size": 1}},
+        "6": {"class_type": "CLIPTextEncode", "inputs": {"text": pos, "clip": ["11", 0]}},
+        "7": {"class_type": "CLIPTextEncode", "inputs": {"text": neg, "clip": ["11", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
         "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "monster", "images": ["8", 0]}},
         "10": {"class_type": "LoraLoader", "inputs": {
@@ -99,9 +104,9 @@ def build_workflow(pos, neg, seed):
     }
 
 
-def gen_one(pos, neg, seed, timeout=300):
+def gen_one(pos, neg, seed, timeout=300, w=0, h=0):
     """排队一张图，轮询到完成，返回 PNG 字节"""
-    ws_data = api_json("/prompt", {"prompt": build_workflow(pos, neg, seed)})
+    ws_data = api_json("/prompt", {"prompt": build_workflow(pos, neg, seed, w, h)})
     pid = ws_data["prompt_id"]
     t0 = time.time()
     while time.time() - t0 < timeout:
@@ -194,7 +199,8 @@ def slug_ok(name):
     return True
 
 
-def run(monster, desc, seed=42, retries=2):
+def run(monster, desc, seed=42, retries=2, min_trans=0.20):
+    """生成一只怪物头像。质量门：透明率 >= min_trans 才收货，否则换 seed 重出。"""
     if monster not in MONSTERS:
         print("未知的怪物：%s（可选：%s）" % (monster, "、".join(MONSTERS)))
         return False
@@ -203,16 +209,53 @@ def run(monster, desc, seed=42, retries=2):
     out_path = os.path.join(OUT_DIR, slug + ".png")
     print("生成 %s（%s）seed=%d ..." % (monster, slug, seed))
     for attempt in range(retries + 1):
+        cur = seed + attempt * 1000
         try:
-            png = gen_one(MONSTERS[monster][1], "", seed + attempt * 1000)
-            break
+            png = gen_one(desc + ", " + STYLE_POS, STYLE_NEG, cur)
         except Exception as e:
             print("  第 %d 次失败：%s" % (attempt + 1, e))
             if attempt == retries:
                 return False
-    n = pixelate(png, out_path)
-    print("  OK -> %s（透明像素 %.0f%%）" % (out_path, 100.0 * n / OUT_SIZE / OUT_SIZE))
+            continue
+        n = pixelate(png, out_path)
+        ratio = n / float(OUT_SIZE * OUT_SIZE)
+        print("  第 %d 次出图：透明率 %.0f%%" % (attempt + 1, 100.0 * ratio))
+        if ratio >= min_trans:
+            print("  OK -> %s" % out_path)
+            return True
+    print("  ⚠ %d 次均低于 %.0f%%，保留最后一次（建议换描述或 --seed）" % (retries + 1, 100.0 * min_trans))
     return True
+
+
+BG_DIR = os.path.join(ROOT, "assets", "art", "bg")
+
+
+def run_scene(prompt, out_name, w=640, h=360, scale=1, seed=7, colors=48, retries=2):
+    """场景图（背景/立绘）：不抠底；scale>1 时最近邻放大保像素感。"""
+    os.makedirs(BG_DIR, exist_ok=True)
+    out_path = os.path.join(BG_DIR, out_name + ".png")
+    print("生成场景 %s（%dx%d, x%d）seed=%d ..." % (out_name, w, h, scale, seed))
+    for attempt in range(retries + 1):
+        cur = seed + attempt * 1000
+        try:
+            png = gen_one(prompt + ", " + SCENE_STYLE_POS, SCENE_NEG, cur, w=w, h=h)
+        except Exception as e:
+            print("  第 %d 次失败：%s" % (attempt + 1, e))
+            if attempt == retries:
+                return False
+            continue
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(png)).convert("RGB")
+        if (img.width, img.height) != (w, h):
+            img = img.resize((w, h), Image.LANCZOS)
+        img = img.quantize(colors=colors, method=Image.MEDIANCUT).convert("RGB")
+        if scale > 1:
+            img = img.resize((w * scale, h * scale), Image.NEAREST)
+        img.save(out_path)
+        print("  OK -> %s" % out_path)
+        return True
+    return False
 
 
 def preview():
@@ -238,12 +281,22 @@ def main():
     ap.add_argument("--desc", help="临时英文特征描述（配合 --monster 覆盖内置描述）")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--preview", action="store_true", help="仅拼合预览图")
+    ap.add_argument("--scene", help="场景模式：英文场景描述（如世界树立绘/背景）")
+    ap.add_argument("--out", help="场景模式输出文件名（不含扩展名）")
+    ap.add_argument("--w", type=int, default=640, help="场景模式宽度（默认 640）")
+    ap.add_argument("--h", type=int, default=360, help="场景模式高度（默认 360）")
+    ap.add_argument("--scale", type=int, default=1, help="场景模式最近邻放大倍数")
     args = ap.parse_args()
     if args.preview:
         preview()
         return
+    if args.scene:
+        if not args.out:
+            ap.error("场景模式需要 --out")
+        ok = run_scene(args.scene, args.out, args.w, args.h, args.scale, args.seed)
+        sys.exit(0 if ok else 1)
     if not args.monster:
-        ap.error("需要 --monster 或 --preview")
+        ap.error("需要 --monster / --scene / --preview 之一")
     desc = args.desc or MONSTERS.get(args.monster, ("", ""))[1]
     ok = run(args.monster, desc, args.seed)
     sys.exit(0 if ok else 1)

@@ -32,6 +32,7 @@ var _toast_tween: Tween
 @onready var _rebirth_info: Label = %RebirthInfo
 @onready var _rebirth_cancel_btn: Button = %RebirthCancelBtn
 @onready var _rebirth_apply_btn: Button = %RebirthApplyBtn
+@onready var _bg_art: TextureRect = %BgArt
 
 
 func _ready() -> void:
@@ -40,6 +41,19 @@ func _ready() -> void:
 	_refresh_all()
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	if OS.get_cmdline_user_args().has("--capture-main"):
+		_debug_capture.call_deferred()
+
+
+## 【诊断工具】截屏主界面（-- --capture-main 触发，输出 tests/cap_main.png）
+func _debug_capture() -> void:
+	await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_main.png")
+	print("[capture] cap_main saved")
+	get_tree().quit()
 
 
 func _init_line_buttons() -> void:
@@ -98,6 +112,9 @@ func _on_money_not_enough(_needed: float) -> void:
 func _on_floor_changed(new_floor: int) -> void:
 	_floor_name_label.text = Balance.FLOOR_NAMES.get(new_floor, "未知层")
 	_refresh_buttons()
+	# 场景背景按层切换（tools/gen_asset.py --scene 产物；缺失时保持上一张/空）
+	var bg_path := "res://assets/art/bg/bg_floor%d.png" % new_floor
+	_bg_art.texture = load(bg_path) if ResourceLoader.exists(bg_path) else null
 
 
 func _on_floor_unlocked(_req_level: int) -> void:
