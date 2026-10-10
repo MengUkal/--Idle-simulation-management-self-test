@@ -32,8 +32,21 @@ func _ready() -> void:
 	Market.prices_changed.connect(_refresh_quotes)
 	Market.candle_closed.connect(_refresh_quotes)
 	_refresh_all()
+	if OS.get_cmdline_user_args().has("--capture-market"):
+		_debug_capture.call_deferred()
 	if OS.get_cmdline_user_args().has("--bake-ui"):
 		_bake_ui.call_deferred()
+
+
+## 【诊断工具】截屏交易所（-- --capture-market 触发，输出 tests/capture_market.png）
+func _debug_capture() -> void:
+	await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("F:/放置测试/挂机放置增量rpg/tests/capture_market.png")
+	print("[capture] capture_market saved")
+	get_tree().quit()
 
 
 ## 【场景化迁移】把运行时构建的 UI 树烘焙进 market.tscn（一次性工具）
@@ -66,6 +79,17 @@ func _build_background() -> void:
 	bg.color = COL_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# 场景背景：交易所固定位于树根之街（一层），美术管线产物；缺失时留暗色底
+	var tex_path := "res://assets/art/bg/bg_floor1.png"
+	if ResourceLoader.exists(tex_path):
+		var art := TextureRect.new()
+		art.texture = load(tex_path)
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.self_modulate = Color(1, 1, 1, 0.35)
+		add_child(art)
 
 
 func _build_topbar() -> void:
