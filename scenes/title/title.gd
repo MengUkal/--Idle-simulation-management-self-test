@@ -25,6 +25,10 @@ func _ready() -> void:
 		var runner := Node.new()
 		runner.set_script(load("res://tests/_talents_shot_node.gd"))
 		get_tree().root.add_child.call_deferred(runner)
+	elif OS.get_cmdline_user_args().has("--capture-paragon"):
+		var runner_p := Node.new()
+		runner_p.set_script(load("res://tests/_paragon_shot_node.gd"))
+		get_tree().root.add_child.call_deferred(runner_p)
 	else:
 		_play_intro.call_deferred()
 

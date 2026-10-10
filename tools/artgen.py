@@ -666,6 +666,179 @@ def make_race_emblems():
     return made
 
 
+# ---------- 天赋节点效果图标（按 mods 键，透明底） ----------
+
+def make_effect_icons():
+    """9 种效果图标：键名 → PNG（eff_*.png），天赋节点按 mod 键引用。"""
+    out = {}
+
+    def new():
+        i = Image.new("RGBA", (S, S), BG)
+        return i, ImageDraw.Draw(i)
+
+    # 伤害：红剑
+    i, d = new()
+    d.polygon([(S * 0.80, S * 0.12), (S * 0.88, S * 0.20), (S * 0.46, S * 0.62),
+               (S * 0.38, S * 0.54)], fill=(0xE0, 0x56, 0x4F, 255))
+    d.polygon([(S * 0.36, S * 0.52), (S * 0.48, S * 0.64), (S * 0.30, S * 0.82),
+               (S * 0.18, S * 0.70)], fill=(0xC0, 0xC8, 0xD8, 255))
+    out["eff_damage"] = i
+
+    # 弱点：紫色裂星
+    i, d = new()
+    col = (0x8A, 0x5F, 0xBF, 255)
+    cx, cy = S * 0.5, S * 0.52
+    pts = []
+    for k in range(8):
+        rad = math.radians(k * 45 - 90)
+        rr = S * (0.34 if k % 2 == 0 else 0.14)
+        pts.append((cx + rr * math.cos(rad), cy + rr * math.sin(rad)))
+    d.polygon(pts, fill=col)
+    d.line([(cx - S * 0.16, cy - S * 0.10), (cx + S * 0.14, cy + S * 0.12)],
+           fill=(255, 255, 255, 220), width=4)
+    out["eff_weakness"] = i
+
+    # 收入：金币叠 + 上升箭
+    i, d = new()
+    gold = (0xF2, 0xC9, 0x4C, 255)
+    d.ellipse([S * 0.16, S * 0.56, S * 0.60, S * 0.84], fill=gold,
+              outline=(0xC0, 0x8A, 0x28, 255), width=3)
+    d.ellipse([S * 0.28, S * 0.44, S * 0.72, S * 0.72], fill=(0xFF, 0xE0, 0x8A, 255),
+              outline=(0xC0, 0x8A, 0x28, 255), width=3)
+    d.line([S * 0.40, S * 0.58, S * 0.60, S * 0.58], fill=(0xC0, 0x8A, 0x28, 255), width=4)
+    d.line([S * 0.60, S * 0.44, S * 0.80, S * 0.20], fill=(0x58, 0xB4, 0x6B, 255), width=6)
+    d.polygon([(S * 0.84, S * 0.12), (S * 0.82, S * 0.30), (S * 0.66, S * 0.22)],
+              fill=(0x58, 0xB4, 0x6B, 255))
+    out["eff_income"] = i
+
+    # 训练：翻开的书
+    i, d = new()
+    cover = (0x8A, 0x5F, 0xBF, 255)
+    d.polygon([(S * 0.50, S * 0.30), (S * 0.20, S * 0.36), (S * 0.20, S * 0.72),
+               (S * 0.50, S * 0.78)], fill=(0x3a, 0x2f, 0x55, 255), outline=cover, width=3)
+    d.polygon([(S * 0.50, S * 0.30), (S * 0.80, S * 0.36), (S * 0.80, S * 0.72),
+               (S * 0.50, S * 0.78)], fill=(0x3a, 0x2f, 0x55, 255), outline=cover, width=3)
+    d.line([S * 0.50, S * 0.28, S * 0.50, S * 0.80], fill=cover, width=4)
+    for k in range(3):
+        y = S * (0.42 + k * 0.10)
+        d.line([S * 0.28, y, S * 0.46, y - S * 0.02], fill=(0xE8, 0xE0, 0xCF, 200), width=3)
+        d.line([S * 0.54, y - S * 0.02, S * 0.72, y], fill=(0xE8, 0xE0, 0xCF, 200), width=3)
+    out["eff_train"] = i
+
+    # 赏金：钱袋（复用袋形）
+    out["eff_bounty"] = make_line_bounty()
+
+    # 精华：青水晶滴（复用露滴形，去星光）
+    i, d = new()
+    teal = (0x5F, 0xD3, 0xC9, 255)
+    r = S * 0.26
+    bc = (S * 0.5, S * 0.62)
+    tip = (S * 0.5, S * 0.16)
+    L, R = (bc[0] - r, bc[1]), (bc[0] + r, bc[1])
+    right = cubic(tip, (tip[0] + S * 0.03, tip[1] + S * 0.14), (bc[0] + r * 1.02, bc[1] - r * 0.5), R)
+    bottom = arc_pts(bc[0], bc[1], r, r * 0.96, 0, 180)[1:]
+    left = cubic(L, (bc[0] - r * 1.02, bc[1] - r * 0.5), (tip[0] - S * 0.03, tip[1] + S * 0.14), tip)[1:]
+    d.polygon(right + bottom + left, fill=teal)
+    d.ellipse([bc[0] - r * 0.38, bc[1] + r * 0.08, bc[0] - r * 0.05, bc[1] + r * 0.5],
+              fill=light_up(teal, 1.4))
+    out["eff_ep"] = i
+
+    # 步数：靴子
+    i, d = new()
+    boot = (0xE8, 0xE0, 0xCF, 255)
+    d.polygon([(S * 0.30, S * 0.20), (S * 0.46, S * 0.20), (S * 0.46, S * 0.56),
+               (S * 0.72, S * 0.56), (S * 0.78, S * 0.72), (S * 0.78, S * 0.80),
+               (S * 0.30, S * 0.80)], fill=boot)
+    d.rectangle([S * 0.30, S * 0.20, S * 0.46, S * 0.30], fill=(0xC0, 0x8A, 0x28, 255))
+    out["eff_steps"] = i
+
+    # 连锁：三环斜链
+    i, d = new()
+    col = (0x58, 0xB4, 0x6B, 255)
+    for k, (cx, cy) in enumerate([(S * 0.28, S * 0.68), (S * 0.50, S * 0.50), (S * 0.72, S * 0.32)]):
+        rr = S * 0.13
+        d.ellipse([cx - rr, cy - rr, cx + rr, cy + rr], outline=col, width=6)
+    out["eff_chain"] = i
+
+    # 果实：橙果 + 叶
+    i, d = new()
+    d.ellipse([S * 0.24, S * 0.36, S * 0.76, S * 0.88], fill=(0xE8, 0x9A, 0x4C, 255))
+    d.line([S * 0.50, S * 0.36, S * 0.54, S * 0.22], fill=(0x8a, 0x5a, 0x2b, 255), width=5)
+    d.polygon([(S * 0.54, S * 0.24), (S * 0.72, S * 0.14), (S * 0.62, S * 0.30)],
+              fill=(0x58, 0xB4, 0x6B, 255))
+    out["eff_fruit"] = i
+
+    made = []
+    for name, img in out.items():
+        path = os.path.join(UI_DIR, name + ".png")
+        img.save(path)
+        made.append(path)
+    return made
+
+
+# ---------- 巅峰板块纹章（破坏冰蓝 / 经济金 / 通用绿） ----------
+
+def _emblem_p1(d):
+    """世界之冬：六臂雪花 + 中央冰晶"""
+    col = (0x9A, 0xD8, 0xF0, 255)
+    cx, cy = S * 0.5, S * 0.5
+    for a in range(0, 360, 60):
+        rad = math.radians(a)
+        x2, y2 = cx + math.cos(rad) * S * 0.30, cy + math.sin(rad) * S * 0.30
+        d.line([cx, cy, x2, y2], fill=col, width=7)
+        for t in (0.5, 0.75):
+            bx, by = cx + (x2 - cx) * t, cy + (y2 - cy) * t
+            for s in (-1, 1):
+                rad2 = rad + s * 0.5
+                d.line([bx, by, bx + math.cos(rad2) * S * 0.06, by + math.sin(rad2) * S * 0.06],
+                       fill=col, width=4)
+    d.ellipse([cx - S * 0.09, cy - S * 0.09, cx + S * 0.09, cy + S * 0.09],
+              fill=light_up(col, 1.3))
+
+
+def _emblem_p2(d):
+    """尼达维勒分号：天平（横梁 + 双盘 + 立柱）"""
+    gold = (0xF2, 0xC9, 0x4C, 255)
+    d.line([S * 0.26, S * 0.30, S * 0.74, S * 0.30], fill=gold, width=6)
+    d.line([S * 0.50, S * 0.30, S * 0.50, S * 0.72], fill=gold, width=6)
+    d.line([S * 0.36, S * 0.72, S * 0.64, S * 0.72], fill=gold, width=6)
+    for sx in (S * 0.26, S * 0.74):
+        d.line([sx, S * 0.30, sx, S * 0.44], fill=gold, width=4)
+        d.arc([sx - S * 0.11, S * 0.40, sx + S * 0.11, S * 0.58], 0, 180, fill=gold, width=5)
+    d.ellipse([S * 0.44, S * 0.20, S * 0.56, S * 0.32], fill=(0xE8, 0xE0, 0xCF, 255))
+
+
+def _emblem_p3(d):
+    """枝务厅编制：圆印章内嫩叶双芽"""
+    col = (0x58, 0xB4, 0x6B, 255)
+    d.ellipse([S * 0.18, S * 0.18, S * 0.82, S * 0.82], outline=col, width=6)
+    d.line([S * 0.50, S * 0.72, S * 0.50, S * 0.44], fill=col, width=6)
+    d.polygon([(S * 0.50, S * 0.48), (S * 0.28, S * 0.38), (S * 0.46, S * 0.28)], fill=col)
+    d.polygon([(S * 0.50, S * 0.48), (S * 0.72, S * 0.38), (S * 0.54, S * 0.28)],
+              fill=light_up(col, 1.2))
+    d.ellipse([S * 0.44, S * 0.20, S * 0.56, S * 0.32], fill=(0xF2, 0xC9, 0x4C, 255))
+
+
+EMBLEM_BOARDS = {
+    "p1": (_emblem_p1, (0x9A, 0xD8, 0xF0, 255)),
+    "p2": (_emblem_p2, (0xF2, 0xC9, 0x4C, 255)),
+    "p3": (_emblem_p3, (0x58, 0xB4, 0x6B, 255)),
+}
+
+
+def make_board_emblems():
+    made = []
+    for bid, (fn, ring) in EMBLEM_BOARDS.items():
+        img = Image.new("RGBA", (S, S), BG)
+        d = ImageDraw.Draw(img)
+        _emblem_base(d, ring)
+        fn(d)
+        path = os.path.join(UI_DIR, f"board_{bid}.png")
+        img.save(path)
+        made.append(path)
+    return made
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -721,6 +894,12 @@ def main():
     # 职业/种族纹章
     made += make_class_emblems()
     made += make_race_emblems()
+
+    # 天赋效果图标
+    made += make_effect_icons()
+
+    # 巅峰板块纹章
+    made += make_board_emblems()
 
     # 预览拼图：5 行（元素4变体）+ 1 行（鸟+UI）
     pad = px(0.06)

@@ -12,8 +12,19 @@ func _ready() -> void:
 	layer = 95
 	var dim := ColorRect.new()
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0, 0, 0, 0.6)
+	dim.color = Color(0, 0, 0, 0.72)
 	add_child(dim)
+	# 场景背景：世界树星夜（与天赋面板同源，美术管线产物；缺失时留暗色底）
+	var tex_path := "res://assets/art/bg/bg_talent.png"
+	if ResourceLoader.exists(tex_path):
+		var art := TextureRect.new()
+		art.texture = load(tex_path)
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.self_modulate = Color(1, 1, 1, 0.28)
+		add_child(art)
 
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -89,13 +100,32 @@ func _board_section(bid: String) -> VBoxContainer:
 	var sec := VBoxContainer.new()
 	sec.add_theme_constant_override("separation", 6)
 
+	var head_box := HBoxContainer.new()
+	head_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	head_box.add_theme_constant_override("separation", 10)
+	# 板块纹章（tools/artgen.py 巅峰板块徽记；缺失时纯文字）
+	var emblem_path := "res://assets/art/ui/board_%s.png" % bid
+	if ResourceLoader.exists(emblem_path):
+		var tex: Texture2D = load(emblem_path)
+		var img: Image = tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		img.resize(30, 30, Image.INTERPOLATE_NEAREST)
+		var emblem := TextureRect.new()
+		emblem.texture = ImageTexture.create_from_image(img)
+		emblem.custom_minimum_size = Vector2(30, 30)
+		emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		head_box.add_child(emblem)
 	var head := Label.new()
 	head.text = "—— %s —— %s" % [board.get("name", bid), "已开放" if unlocked else "需前一板块传奇解锁"]
 	head.add_theme_font_size_override("font_size", 22)
 	head.add_theme_color_override("font_color",
 		Color(1, 0.843, 0.369) if unlocked else Color(0.55, 0.5, 0.45))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sec.add_child(head)
+	head_box.add_child(head)
+	sec.add_child(head_box)
 
 	if not unlocked:
 		var locked_note := Label.new()
