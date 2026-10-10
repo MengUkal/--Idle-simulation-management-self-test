@@ -60,6 +60,7 @@ var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹�
 @onready var _toast_ref: Label = %Toast
 @onready var _board_layer_ref: Control = %BoardLayer
 @onready var _enemy_portrait: TextureRect = %EnemyPortrait
+@onready var _bg_art: TextureRect = %BgArt
 
 ## 怪物名 -> 头像文件标识（assets/art/monsters/<slug>.png，与 tools/gen_asset.py 的 MONSTERS 对应）
 const MONSTER_SLUG := {
@@ -92,6 +93,9 @@ func _ready() -> void:
 	_toast = _toast_ref
 	_build_tiles()
 	_connect_button_signals()
+	# 场景背景按层切换（美术管线产物；缺失时留空走暗色底）
+	var bg_path := "res://assets/art/bg/bg_floor%d.png" % GameState.floor_index
+	_bg_art.texture = load(bg_path) if ResourceLoader.exists(bg_path) else null
 	board = Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
