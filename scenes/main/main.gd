@@ -100,8 +100,8 @@ func _on_floor_changed(new_floor: int) -> void:
 	_refresh_buttons()
 
 
-func _on_floor_unlocked(req_level: int) -> void:
-	_show_toast("祝福降临！等级已达 Lv.%d，第二层解锁" % req_level)
+func _on_floor_unlocked(_req_level: int) -> void:
+	_show_toast("枝务厅通知：您的登层签证已下发。树的祝福随函附上——不用谢。")
 
 
 func _on_save_completed() -> void:
@@ -166,8 +166,8 @@ func _on_rebirth_pressed() -> void:
 	if not GameState.rebirth_ready():
 		return
 	var gained := GameState.pending_fruits()
-	_rebirth_info.text = "将获得世界树的果实 ×%d\n（此后每颗果实：挂机收入 +5%%、训练费用 -2%%）\n\n将失去：Lv.%d 的等级、全部吉尔、全部训练线\n（交易所持仓与行情保留）" % [
-		gained, GameState.level,
+	_rebirth_info.text = "你将失去：等级、吉尔、精华。\n你将保留：果实、持仓，以及记忆——\n毕竟挨过冬天的，都记性好。\n\n本次献上可得：世界树的果实 ×%d\n此后每颗果实：挂机收入 +5%%、训练费用 -2%%、攻击效果 +1%%\n（交易所持仓与行情保留）" % [
+		gained,
 	]
 	_rebirth_confirm.visible = true
 

@@ -221,13 +221,13 @@ func _build_lock_panel() -> void:
 	box.add_theme_constant_override("separation", 14)
 	panel.add_child(box)
 	var t := Label.new()
-	t.text = "交易所 Lv.%d 解锁" % Balance.MARKET_UNLOCK_LEVEL
+	t.text = "侏儒的名言：\n天上不会掉钱，但树上会。"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 30)
 	t.add_theme_color_override("font_color", COL_GOLD)
 	box.add_child(t)
 	var s := Label.new()
-	s.text = "先在世界树练练级吧"
+	s.text = "交易所 Lv.%d 解锁——先在世界树练练级吧" % Balance.MARKET_UNLOCK_LEVEL
 	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	s.add_theme_font_size_override("font_size", 18)
 	s.add_theme_color_override("font_color", COL_DIM)
