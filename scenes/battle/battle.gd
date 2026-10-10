@@ -151,6 +151,7 @@ func _roll_monster() -> void:
 ## 棋子为运行时动态生成（49 颗，位置由棋盘算法决定），挂载到场景中的 BoardLayer 下
 func _build_tiles() -> void:
 	tiles.clear()
+	var sb_empty := StyleBoxEmpty.new()  # 棋子按钮豁免全局主题（紫底金边会从图标透明边角透出）
 	for r in Balance.BOARD_SIZE:
 		var row := []
 		for c in Balance.BOARD_SIZE:
@@ -158,6 +159,8 @@ func _build_tiles() -> void:
 			b.position = _cell_pos(Vector2i(c, r))
 			b.size = Vector2(TILE, TILE)
 			b.focus_mode = Control.FOCUS_NONE
+			for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+				b.add_theme_stylebox_override(st, sb_empty)
 			b.pressed.connect(_on_tile_pressed.bind(b))
 			board_layer.add_child(b)
 			row.append(b)
