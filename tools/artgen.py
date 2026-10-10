@@ -408,6 +408,73 @@ def make_target_sheng():
     return img
 
 
+# ---------- 训练线图标（攻击/赏金/收入） ----------
+
+def make_line_atk():
+    """攻击：斜置剑（刃 + 护手 + 柄）"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    steel, steel_l = (0xD8, 0xDE, 0xE8, 255), (0xFF, 0xFF, 0xFF, 255)
+    gold = (0xF2, 0xC9, 0x4C, 255)
+    # 刃（斜 45°，从右上尖到中左）
+    d.polygon([(S * 0.82, S * 0.14), (S * 0.86, S * 0.18), (S * 0.40, S * 0.62),
+               (S * 0.34, S * 0.56)], fill=steel)
+    d.line([(S * 0.82, S * 0.16), (S * 0.38, S * 0.58)], fill=steel_l, width=3)
+    # 护手（垂直于刃的金条）
+    d.polygon([(S * 0.30, S * 0.50), (S * 0.38, S * 0.42), (S * 0.56, S * 0.60),
+               (S * 0.48, S * 0.68)], fill=gold)
+    # 柄 + 柄头
+    d.polygon([(S * 0.32, S * 0.62), (S * 0.40, S * 0.70), (S * 0.24, S * 0.86),
+               (S * 0.16, S * 0.78)], fill=(0x8a, 0x5a, 0x2b, 255))
+    d.ellipse([S * 0.12, S * 0.76, S * 0.24, S * 0.88], fill=gold)
+    return img
+
+
+def make_line_bounty():
+    """赏金：钱袋（束口布袋 + 金币）"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    bag, bag_d = (0xC2, 0x95, 0x4A, 255), (0x8a, 0x5a, 0x2b, 255)
+    # 袋身
+    d.ellipse([S * 0.20, S * 0.34, S * 0.80, S * 0.90], fill=bag, outline=bag_d, width=4)
+    # 束口
+    d.rounded_rectangle([S * 0.36, S * 0.26, S * 0.64, S * 0.40], radius=6,
+                        fill=bag_d, outline=darken(bag_d, 0.8), width=3)
+    # 袋口露出金币
+    d.ellipse([S * 0.42, S * 0.16, S * 0.58, S * 0.32], fill=(0xF2, 0xC9, 0x4C, 255),
+              outline=(0xC0, 0x8A, 0x28, 255), width=3)
+    # 袋面 "G" 印记
+    try:
+        font = ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", int(S * 0.30))
+        bb = d.textbbox((0, 0), "G", font=font)
+        d.text((S * 0.5 - (bb[2] + bb[0]) / 2, S * 0.63 - (bb[3] + bb[1]) / 2), "G",
+               font=font, fill=darken(bag_d, 0.7))
+    except OSError:
+        d.arc([S * 0.42, S * 0.50, S * 0.62, S * 0.70], -60, 200, fill=bag_d, width=4)
+    return img
+
+
+def make_line_income():
+    """收入：底轴 + 上升折线 + 箭头"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    green = (0x58, 0xB4, 0x6B, 255)
+    # 坐标轴
+    d.line([S * 0.18, S * 0.16, S * 0.18, S * 0.82], fill=(0xE8, 0xE0, 0xCF, 255), width=5)
+    d.line([S * 0.18, S * 0.82, S * 0.84, S * 0.82], fill=(0xE8, 0xE0, 0xCF, 255), width=5)
+    # 上升折线
+    pts = [(S * 0.24, S * 0.68), (S * 0.40, S * 0.52), (S * 0.54, S * 0.60),
+           (S * 0.74, S * 0.28)]
+    d.line(pts, fill=green, width=6, joint="curve")
+    for p in pts:
+        d.ellipse([p[0] - 5, p[1] - 5, p[0] + 5, p[1] + 5], fill=green)
+    # 箭头
+    ex, ey = pts[-1]
+    d.polygon([(ex + S * 0.10, ey - S * 0.12), (ex - S * 0.01, ey - S * 0.14),
+               (ex + S * 0.04, ey - S * 0.01)], fill=green)
+    return img
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -448,6 +515,14 @@ def main():
     targets = {"target_huo": make_target_huo(), "target_feng": make_target_feng(),
                "target_sheng": make_target_sheng()}
     for name, img in targets.items():
+        path = os.path.join(ui_dir, name + ".png")
+        img.save(path)
+        made.append(path)
+
+    # 训练线图标
+    lines = {"line_atk": make_line_atk(), "line_bounty": make_line_bounty(),
+             "line_income": make_line_income()}
+    for name, img in lines.items():
         path = os.path.join(ui_dir, name + ".png")
         img.save(path)
         made.append(path)
