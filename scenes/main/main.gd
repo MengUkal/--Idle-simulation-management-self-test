@@ -32,6 +32,7 @@ var _toast_tween: Tween
 @onready var _rebirth_info: Label = %RebirthInfo
 @onready var _rebirth_cancel_btn: Button = %RebirthCancelBtn
 @onready var _rebirth_apply_btn: Button = %RebirthApplyBtn
+@onready var _settings_button: Button = %SettingsButton
 @onready var _bg_art: TextureRect = %BgArt
 
 
@@ -81,6 +82,11 @@ func _connect_signals() -> void:
 	_rebirth_button.pressed.connect(_on_rebirth_pressed)
 	_rebirth_cancel_btn.pressed.connect(_on_rebirth_cancelled)
 	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
+	_settings_button.pressed.connect(_on_settings_pressed)
+
+
+func _on_settings_pressed() -> void:
+	SettingsOverlay.open()
 	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
 	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
 	_line_income.pressed.connect(_on_line_pressed.bind("income"))

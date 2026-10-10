@@ -1,0 +1,193 @@
+[gd_scene load_steps=2 format=3 uid="uid://csettings0verl"]
+
+[ext_resource type="Script" path="res://scenes/settings/settings_overlay.gd" id="1_overlay"]
+
+[node name="SettingsOverlay" type="CanvasLayer"]
+layer = 90
+visible = false
+script = ExtResource("1_overlay")
+
+[node name="Dim" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0.368627, 1)
+theme_override_font_sizes/font_size = 32
+text = "设置"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/Box"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 10
+
+[node name="LabelMode" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "显示模式"
+
+[node name="OptionMode" type="OptionButton" parent="Center/Panel/Box/Grid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "无边框全屏"
+popup/item_0/id = 0
+popup/item_1/text = "窗口"
+popup/item_1/id = 1
+
+[node name="LabelRes" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "窗口分辨率"
+
+[node name="OptionRes" type="OptionButton" parent="Center/Panel/Box/Grid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "1280 × 720"
+popup/item_0/id = 0
+popup/item_1/text = "1600 × 900"
+popup/item_1/id = 1
+popup/item_2/text = "1920 × 1080"
+popup/item_2/id = 2
+
+[node name="LabelVSync" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "垂直同步"
+
+[node name="CheckVSync" type="CheckButton" parent="Center/Panel/Box/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LabelMaster" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "主音量"
+
+[node name="MasterRow" type="HBoxContainer" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HMaster" type="HSlider" parent="Center/Panel/Box/Grid/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="VMaster" type="Label" parent="Center/Panel/Box/Grid/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "80%"
+horizontal_alignment = 2
+
+[node name="LabelMusic" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "音乐音量"
+
+[node name="MusicRow" type="HBoxContainer" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HMusic" type="HSlider" parent="Center/Panel/Box/Grid/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="VMusic" type="Label" parent="Center/Panel/Box/Grid/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "80%"
+horizontal_alignment = 2
+
+[node name="LabelSFX" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "音效音量"
+
+[node name="SFXRow" type="HBoxContainer" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HSFX" type="HSlider" parent="Center/Panel/Box/Grid/SFXRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="VSFX" type="Label" parent="Center/Panel/Box/Grid/SFXRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "80%"
+horizontal_alignment = 2
+
+[node name="LabelShake" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "连锁震屏"
+
+[node name="CheckShake" type="CheckButton" parent="Center/Panel/Box/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LabelDamage" type="Label" parent="Center/Panel/Box/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "伤害数字"
+
+[node name="CheckDamage" type="CheckButton" parent="Center/Panel/Box/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Hint" type="Label" parent="Center/Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.658824, 0.623529, 0.552941, 1)
+theme_override_font_sizes/font_size = 15
+text = "Esc 关闭 · F11 切换全屏/窗口 · 设置即时保存，与游戏存档分离"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "关闭"

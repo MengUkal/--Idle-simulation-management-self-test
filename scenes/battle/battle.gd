@@ -375,6 +375,8 @@ func _cached_tex(path: String) -> Texture2D:
 
 
 func _spawn_damage_number(amount: int, weak: bool) -> void:
+	if not Settings.get_value("fx_damage_numbers"):
+		return
 	var label := Label.new()
 	label.text = "-%d" % amount
 	label.add_theme_font_size_override("font_size", 36)
@@ -523,8 +525,10 @@ func _anim_settle() -> void:
 			tiles[r][c].position = _cell_pos(Vector2i(c, r))
 
 
-## 连锁 ≥2 时棋盘轻微震屏
+## 连锁 ≥2 时棋盘轻微震屏（可在设置关闭）
 func _shake_board() -> void:
+	if not Settings.get_value("fx_screen_shake"):
+		return
 	var origin := board_layer.position
 	var tw := create_tween()
 	for i in 3:

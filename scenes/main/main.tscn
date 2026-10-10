@@ -270,6 +270,21 @@ theme_override_colors/font_color = Color(0.65882355, 0.62352943, 0.5529412, 1)
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 1
 
+[node name="SettingsButton" type="Button" parent="." unique_id=2100000201]
+unique_name_in_owner = true
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -86.0
+offset_right = -16.0
+offset_bottom = -52.0
+theme_override_font_sizes/font_size = 17
+text = "⚙ 设置"
+flat = true
+
 [node name="ResetButton" type="Button" parent="." unique_id=1739675573]
 unique_name_in_owner = true
 layout_mode = 0
