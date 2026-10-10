@@ -154,7 +154,7 @@ func _build_tiles() -> void:
 			b.position = _cell_pos(Vector2i(c, r))
 			b.size = Vector2(TILE, TILE)
 			b.focus_mode = Control.FOCUS_NONE
-			b.pressed.connect(_on_tile_pressed.bind(Vector2i(c, r)))
+			b.pressed.connect(_on_tile_pressed.bind(b))
 			board_layer.add_child(b)
 			row.append(b)
 		tiles.append(row)
@@ -168,9 +168,13 @@ func _connect_button_signals() -> void:
 
 # ---------- 交互 ----------
 
-func _on_tile_pressed(cell: Vector2i) -> void:
+func _on_tile_pressed(btn: Button) -> void:
+	## 按钮可随交换换格位（tiles 引用对调），格位从按钮当前位置反推，不能用构建期绑定的坐标
 	if _busy or steps_left <= 0 or defeated:
 		return
+	var cell := Vector2i(
+		clampi(int(round(btn.position.x / STEP)), 0, Balance.BOARD_SIZE - 1),
+		clampi(int(round(btn.position.y / STEP)), 0, Balance.BOARD_SIZE - 1))
 	if selected == Vector2i(-1, -1):
 		selected = cell
 	elif selected == cell:
@@ -197,15 +201,17 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	var spawned: Array = report.get("spawned", [])
 	if spawned.size() > 0:
 		_show_toast("生成特殊棋子！")
-	# 1) 交换补间；逻辑确已换位（普通三连）时同步两格纹理，
-	#    否则后续消除动画会拿交换前的旧颜色去消（玩家看到"消错颜色"）
-	await _anim_swap_move(a, b)
+	# 1) 交换补间。普通三连（逻辑已换位）：按钮跟随块走——滑到新格位后停住、
+	#    tiles 引用对调，之后的消除/下落/刷新全部按新映射，视觉与逻辑一致。
+	#    特效激活（逻辑不换位）：只播撞击回弹，明确"这块没有换过去"。
 	if report.get("swapped", false):
+		await _anim_swap_move(a, b)
 		var ba2: Button = tiles[a.y][a.x]
 		var bb2: Button = tiles[b.y][b.x]
-		var swapped_icon := ba2.icon
-		ba2.icon = bb2.icon
-		bb2.icon = swapped_icon
+		tiles[a.y][a.x] = bb2
+		tiles[b.y][b.x] = ba2
+	else:
+		await _anim_invalid_swap(a, b)
 	steps_left -= 1
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
@@ -416,18 +422,14 @@ func _cell_pos(cell: Vector2i) -> Vector2:
 	return Vector2(cell.x * STEP, cell.y * STEP)
 
 
-## 有效交换：两钮互换位置（数据已交换，动画结束后按格刷新图标）
+## 有效交换：两钮互换位置并停留在新格位（调用方随后对调 tiles 引用，按钮从此跟随块走）
 func _anim_swap_move(a: Vector2i, b: Vector2i) -> void:
 	var ba: Button = tiles[a.y][a.x]
 	var bb: Button = tiles[b.y][b.x]
-	var pa := _cell_pos(a)
-	var pb := _cell_pos(b)
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(ba, "position", pb, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tw.tween_property(bb, "position", pa, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ba, "position", _cell_pos(b), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(bb, "position", _cell_pos(a), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tw.finished
-	ba.position = pa
-	bb.position = pb
 
 
 ## 无效交换：走到一半弹回
@@ -491,7 +493,7 @@ func _apply_motion_targets(report: Dictionary) -> void:
 		btn.position = _cell_pos(cell) + Vector2(0, -STEP * 1.35)
 
 
-## 所有偏位的按钮滑回棋盘格（下落/补牌的收尾）
+## 所有偏位的按钮滑回棋盘格（下落/补牌的收尾）；时长随下落距离缩放，避免远距离瞬移感
 func _anim_settle() -> void:
 	var tw := create_tween().set_parallel(true)
 	var moved := false
@@ -499,8 +501,10 @@ func _anim_settle() -> void:
 		for c in Balance.BOARD_SIZE:
 			var btn: Button = tiles[r][c]
 			var target := _cell_pos(Vector2i(c, r))
-			if btn.position.distance_to(target) > 1.0:
-				tw.tween_property(btn, "position", target, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			var dist := btn.position.distance_to(target)
+			if dist > 1.0:
+				var dur: float = clampf(0.09 + 0.05 * dist / STEP, 0.09, 0.34)
+				tw.tween_property(btn, "position", target, dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 				moved = true
 	if moved:
 		await tw.finished
