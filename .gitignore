@@ -6,3 +6,7 @@ tests/*.uid
 tests/cap_*.png
 tests/capture_market.png
 __pycache__/
+
+# Export artifacts (source stays; built exe/pck are per-machine)
+/build/*
+!/build/.gdignore
