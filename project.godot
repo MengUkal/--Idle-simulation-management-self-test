@@ -24,6 +24,7 @@ Market="*res://autoload/market.gd"
 SaveManager="*res://autoload/save_manager.gd"
 Settings="*res://autoload/settings.gd"
 Sfx="*res://autoload/sfx.gd"
+Mods="*res://autoload/mods.gd"
 SettingsOverlay="*res://scenes/settings/settings_overlay.tscn"
 
 [display]

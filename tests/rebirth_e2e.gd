@@ -61,11 +61,13 @@ func _snap(fname: String) -> void:
 
 
 func _run(main: Control) -> void:
-	# ---- T0 干净基线 ----
+	# ---- T0 干净基线（先完成角色创建：重生链的宿主状态）----
 	SaveManager.delete_save()
 	GameState.reset()
+	check("T0 角色创建（人类战士）", GameState.create_character("warrior", "human"))
 	await get_tree().process_frame
-	check("T0 基线：全新开局 Lv.1 果实 0", GameState.level == 1 and GameState.fruits == 0)
+	check("T0 基线：Lv.1 果实 0、无需再创建", GameState.level == 1 and GameState.fruits == 0
+		and not GameState.needs_character_creation())
 
 	# ---- T1 触墙引导（Lv.38 首次弹，只弹一次）----
 	GameState.debug_set_level(37)
@@ -130,7 +132,9 @@ func _run(main: Control) -> void:
 	var data: Variant = JSON.parse_string(f.get_as_text())
 	f.close()
 	var saved: Dictionary = data if typeof(data) == TYPE_DICTIONARY else {}
-	check("T7 存档 version = 4", int(saved.get("version", 0)) == 4)
+	check("T7 存档 version = 5", int(saved.get("version", 0)) == 5)
+	check("T7 角色字段落盘（v5）",
+		str(saved.get("class_id", "")) == "warrior" and str(saved.get("race_id", "")) == "human")
 	check("T7 果实/轮数/引导标记落盘",
 		int(saved.get("fruits", -1)) == 5 and int(saved.get("rebirth_count", -1)) == 1
 		and bool(saved.get("rebirth_guide_shown", false)))

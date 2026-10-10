@@ -14,6 +14,8 @@ var _pool_idx := 0
 var _bgm_player: AudioStreamPlayer
 var _bgm_current := ""
 var _cache := {}
+var _essence_last := -1      # -1 = 尚未初始化（读档/重生当次不响）
+var _essence_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -25,6 +27,20 @@ func _ready() -> void:
 	_bgm_player = AudioStreamPlayer.new()
 	_bgm_player.bus = "Music"
 	add_child(_bgm_player)
+	# 精华入账音：精华「增加」时才响（训练消耗不响），节流防刷屏（音频会话补接线）
+	EventBus.essence_changed.connect(_on_essence_changed)
+
+
+func _process(delta: float) -> void:
+	if _essence_cooldown > 0.0:
+		_essence_cooldown -= delta
+
+
+func _on_essence_changed(total: int) -> void:
+	if _essence_last >= 0 and total > _essence_last and _essence_cooldown <= 0.0:
+		play("essence_gain")
+		_essence_cooldown = 0.5
+	_essence_last = total
 
 
 ## 播一个命名音效（可带 pitch：连锁升调用）。产物缺失或未导入时静默跳过。

@@ -14,12 +14,41 @@ var holdings := [0, 0, 0]                 # 交易所持仓（按 Balance.MARKET
 var fruits := 0                           # 世界树的果实（重生永久货币，M4）
 var rebirth_count := 0                    # 已重生轮数（M4）
 var rebirth_guide_shown := false          # Lv.38 触墙引导已弹过（M4）
+var character_class := ""                 # 职业 id（空 = 未创建，见 data/classes.gd）
+var character_race := ""                  # 种族 id（见 data/races.gd）
+var skill_points := 0                     # 天赋技能点（每级 +1；天赋树预留，本期只积累）
+var talents := {}                         # 天赋记录（预留，本期不消费）
+
+
+func needs_character_creation() -> bool:
+	## 未选职业（或职业 id 非法）= 需要进入角色创建
+	return character_class == "" or not GameClasses.CLASSES.has(character_class) \
+		or character_race == "" or not GameRaces.RACES.has(character_race)
+
+
+func create_character(class_id: String, race_id: String) -> bool:
+	## 角色创建（仅未创建时可调用）；创建后重算修饰符
+	if character_class != "":
+		return false
+	if not GameClasses.CLASSES.has(class_id) or not GameRaces.RACES.has(race_id):
+		return false
+	character_class = class_id
+	character_race = race_id
+	Mods.recompute()
+	EventBus.level_changed.emit(level)  # 广播一次，驱动各界面刷新
+	return true
 
 
 func income_per_sec() -> float:
-	# 挂机收入 = 基础公式 × 收入训练线倍率 × 果实加成（M4：每颗 +5%）
+	# 挂机收入 = 基础公式 × 收入训练线倍率 × 果实加成（M4）× 职业/种族修饰符
 	return Balance.income_per_sec(level) * Balance.train_multiplier(income_line) \
-		* Balance.income_fruit_mult(fruits)
+		* Balance.income_fruit_mult(fruits) * Mods.mult("income")
+
+
+func train_cost_for(kind: String) -> int:
+	## 训练线升级实价 = 基础费用 × 果实折扣 × 轮数衰减 × 职业/种族修饰符
+	return int(ceil(Balance.train_cost(line_level(kind)) * Balance.train_cost_mult(fruits, rebirth_count)
+		* Mods.mult("train_cost")))
 
 
 func add_essence(amount: int) -> void:
@@ -41,9 +70,8 @@ func line_level(kind: String) -> int:
 
 
 func upgrade_line(kind: String) -> bool:
-	## 用元素精华升级训练线（NGU 式多线成长；费用乘果实折扣 × 轮数衰减，M4）
-	var cost := int(ceil(Balance.train_cost(line_level(kind)) \
-		* Balance.train_cost_mult(fruits, rebirth_count)))
+	## 用元素精华升级训练线（NGU 式多线成长；费用乘果实折扣 × 轮数衰减 × 职业种族修饰符）
+	var cost := train_cost_for(kind)
 	if essence < cost:
 		return false
 	essence -= cost
@@ -69,8 +97,8 @@ func rebirth_threshold() -> int:
 
 
 func pending_fruits() -> int:
-	## 若现在重生可获得的果实数
-	return Balance.fruits_for_level(level)
+	## 若现在重生可获得的果实数（×果实获取修饰符，术士 +10%）
+	return int(ceil(Balance.fruits_for_level(level) * Mods.mult("fruit")))
 
 
 func rebirth_ready() -> bool:
@@ -127,14 +155,20 @@ func try_spend(cost: float) -> bool:
 
 func upgrade_level() -> bool:
 	## 献金升级：花费吉尔提升等级（等级即收入）。
-	if not try_spend(Balance.upgrade_cost(level)):
+	if not try_spend(upgrade_cost()):
 		return false
 	level += 1
+	skill_points += 1  # 天赋技能点（天赋树预留，本期只积累）
 	EventBus.level_changed.emit(level)
 	EventBus.income_changed.emit(income_per_sec())
 	if level == Balance.FLOOR_2_LEVEL_REQ:
 		EventBus.floor_unlocked.emit(level)
 	return true
+
+
+func upgrade_cost() -> float:
+	## 下一级献金费用（含职业/种族修饰符）
+	return ceil(Balance.upgrade_cost(level) * Mods.mult("upgrade_cost"))
 
 
 func go_to_floor(index: int) -> void:
@@ -155,6 +189,11 @@ func reset() -> void:
 	fruits = 0
 	rebirth_count = 0
 	rebirth_guide_shown = false
+	character_class = ""
+	character_race = ""
+	skill_points = 0
+	talents = {}
+	Mods.recompute()
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())
 	EventBus.level_changed.emit(level)
@@ -171,11 +210,15 @@ func reset() -> void:
 
 # ---------- 交易所（M3） ----------
 
+func market_fee_rate() -> float:
+	## 当前手续费率（种族修饰符：矮人 -0.5%；下限 0）
+	return maxf(0.0, Balance.MARKET_FEE_RATE + Mods.add("fee"))
+
 func buy_stock(idx: int, shares: int) -> bool:
-	## 买入标的（含 1% 手续费），成功返回 true
+	## 买入标的（含手续费，手续费率受种族修饰符），成功返回 true
 	if idx < 0 or idx >= holdings.size() or shares <= 0:
 		return false
-	var cost := Balance.trade_cost(Market.prices[idx], shares)
+	var cost := Balance.trade_cost(Market.prices[idx], shares, market_fee_rate())
 	if money < cost["total"]:
 		EventBus.money_not_enough.emit(cost["total"])
 		return false
@@ -193,7 +236,7 @@ func sell_stock(idx: int, shares: int) -> bool:
 	shares = mini(shares, holdings[idx])
 	if shares <= 0:
 		return false
-	var gain := Balance.sell_proceeds(Market.prices[idx], shares)
+	var gain := Balance.sell_proceeds(Market.prices[idx], shares, market_fee_rate())
 	money += gain
 	holdings[idx] -= shares
 	EventBus.money_changed.emit(money)

@@ -44,6 +44,9 @@ func _init() -> void:
 	print("=== 四、重生循环模拟（M4 数值定稿：步进5+陡果实+三轨，门槛即重生） ===")
 	_rebirth_sim()
 	print("")
+	print("=== 五、全职业平衡对比（角色系统 D1-D2：Lv.50 练度标定战） ===")
+	_class_balance_sim()
+	print("")
 	print("---")
 	print("模拟结束：%d 项标记" % _fails)
 	quit(1 if _fails > 0 else 0)
@@ -59,7 +62,7 @@ func _pick_monster(floor_idx: int) -> Dictionary:
 
 
 ## 贪心 AI 打一场：每步枚举全部相邻交换，选弱属性加权消除最大的
-func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int) -> Dictionary:
+func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod := 1.0, chain_mod := 0.0) -> Dictionary:
 	var board := Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
@@ -113,9 +116,9 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int) -> Dictio
 		moves_used += 1
 		var waves: Array = rep["waves"]
 		var dmg_f := 0.0
-		var atk_mult := Balance.train_multiplier(atk_line) * Balance.atk_fruit_mult(fruits)
+		var atk_mult := Balance.train_multiplier(atk_line) * Balance.atk_fruit_mult(fruits) * atk_mod
 		for i in waves.size():
-			var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
+			var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + chain_mod) * float(i)
 			for entry in waves[i]:
 				var m := Balance.damage_multiplier(int(entry["element"]), monster)
 				if m > 1.0:
@@ -380,3 +383,58 @@ func _rebirth_sim() -> void:
 		# 拍板目标 62.5%（5/8），护栏取 50% 容随机波动
 		check("第 3 轮门槛练度古树稳定击杀（≥4/8 护栏）", int(elite_rates[3]) >= 4,
 			"击杀 %d/8" % int(elite_rates[3]))
+
+
+# ---------- 五、全职业平衡对比（角色系统，2026-10-11 拍板 D1=显著/D2=草案+游侠增强） ----------
+
+func _class_mods(cid: String) -> Dictionary:
+	## 单职业修饰符镜像（无种族；与 autoload/mods.gd 同规则：mult 连乘、add 累加）
+	var mult_keys := ["battle_damage", "weakness", "income", "upgrade_cost", "train_cost", "bounty", "ep", "fruit"]
+	var add_keys := ["steps", "chain_bonus"]
+	var m := {}
+	for k in mult_keys:
+		m[k] = 1.0
+	for k in add_keys:
+		m[k] = 0.0
+	for k: String in (GameClasses.CLASSES[cid]["mods"] as Dictionary).keys():
+		if m.has(k):
+			if k in add_keys:
+				m[k] += float(GameClasses.CLASSES[cid]["mods"][k])
+			else:
+				m[k] *= float(GameClasses.CLASSES[cid]["mods"][k])
+	return m
+
+
+func _class_balance_sim() -> void:
+	## 标定战：Lv.50 练度（攻15/果实33/步数35 基准）打 3000HP 标定木桩，8 场取均值
+	atk_line = 15
+	bounty_line = 15
+	income_line = 15
+	fruits = 33
+	var dummy := {"name": "标定木桩", "hp": 450, "bounty": 0, "weak": 0}
+	var base_steps := 35
+	print("-- 标定：Lv.50 / 攻15 / 果实33 / 木桩 HP3000 / 8 场均值（纯职业，无种族） --")
+	var kill_log := {}
+	for cid: String in GameClasses.CLASSES.keys():
+		var info: Dictionary = GameClasses.CLASSES[cid]
+		var m := _class_mods(cid)
+		var steps := base_steps + int(m["steps"])
+		var kills := 0
+		var dmg_sum := 0
+		for t in 8:
+			var r := _simulate_battle(2, dummy, steps, float(m["battle_damage"]), float(m["chain_bonus"]))
+			dmg_sum += int(r["damage"])
+			if r["killed"]:
+				kills += 1
+		kill_log[cid] = kills
+		print("  %-4s 步数%-3d 均伤%-6d 击杀%d/8 ｜ 收入×%.2f 赏金×%.2f 弱点×%.2f 精华×%.2f 果实×%.2f" % [
+			info["name"], steps, dmg_sum / 8, kills,
+			float(m["income"]), float(m["bounty"]), float(m["weakness"]), float(m["ep"]), float(m["fruit"]),
+		])
+	var max_k := 0
+	var min_k := 8
+	for cid: String in kill_log.keys():
+		max_k = maxi(max_k, int(kill_log[cid]))
+		min_k = mini(min_k, int(kill_log[cid]))
+	check("全职业击杀率带宽 ≤5/8（显著但不失衡）", max_k - min_k <= 5,
+		"最强 %d/8 vs 最弱 %d/8" % [max_k, min_k])

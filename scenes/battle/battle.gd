@@ -99,7 +99,7 @@ func _ready() -> void:
 	board = Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
-	steps_left = Balance.battle_steps(GameState.level)
+	steps_left = Balance.battle_steps(GameState.level) + Mods.add("steps")
 	_roll_monster()
 	_refresh_board()
 	_refresh_hud()
@@ -108,8 +108,22 @@ func _ready() -> void:
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
+	_build_skill_bar_placeholder()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
 		_debug_capture.call_deferred()
+
+
+## 主动技能栏占位（预留：三灰槽，后续版本开放职业主动技能）
+func _build_skill_bar_placeholder() -> void:
+	for i in 3:
+		var b := Button.new()
+		b.text = "技能"
+		b.disabled = true
+		b.custom_minimum_size = Vector2(60, 38)
+		b.position = Vector2(6 + i * 66, -46)
+		b.modulate = Color(1, 1, 1, 0.4)
+		b.focus_mode = Control.FOCUS_NONE
+		board_layer.add_child(b)
 
 
 ## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
@@ -264,21 +278,24 @@ func _apply_damage(waves: Array) -> void:
 	var ep := 0
 	var any_weak := false
 	var atk_mult := Balance.train_multiplier(GameState.atk_line) \
-		* Balance.atk_fruit_mult(GameState.fruits)
+		* Balance.atk_fruit_mult(GameState.fruits) * Mods.mult("battle_damage")
 	for i in waves.size():
-		var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
+		var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + Mods.add("chain_bonus")) * float(i)
 		for entry in waves[i]:
 			var m := Balance.damage_multiplier(int(entry["element"]), monster)
+			var m_final := m * Mods.mult("weakness")
 			if m > 1.0:
 				any_weak = true
 				ep += int(Balance.EP_PER_TILE * Balance.EP_WEAKNESS_MULT)
 			else:
 				ep += Balance.EP_PER_TILE
-			dmg_f += wave_mult * m * atk_mult
+			dmg_f += wave_mult * m_final * atk_mult
 	var dmg := int(ceil(dmg_f))
 	total_damage += dmg
 	monster_hp -= dmg
+	Sfx.play("monster_hit", 1.0, -4.0)  # 受击低频垫层（音效文件本身已 -9dB，再压 4dB 防吵）
 	if ep > 0:
+		ep = int(round(ep * Mods.mult("ep")))
 		session_ep += ep
 		GameState.add_essence(ep)
 	_spawn_damage_number(dmg, any_weak)
@@ -291,8 +308,9 @@ func _victory() -> void:
 	if defeated:
 		return
 	defeated = true
+	Sfx.play("monster_die")  # 击杀爆碎（胜利 jingle 在结算弹窗时另播）
 	_kill_burst()
-	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line)))
+	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)
 	_pending_result = 1  # 结果弹窗在动画结束后弹出
@@ -490,7 +508,13 @@ func _anim_clear(waves: Array) -> void:
 				best = int(elem_count[el_k])
 				main_el = int(el_k)
 		if wi == 0 and main_el >= 0:
-			Sfx.play("clear_%s" % ELEMENT_EN[main_el])
+			# 【音频拍板 2026-10-10】消除音两类制：首波含弱点块 → 克制命中音，否则普通音
+			var weak_hit := false
+			for entry2: Dictionary in wave:
+				if Balance.damage_multiplier(int(entry2["element"]), monster) > 1.0:
+					weak_hit = true
+					break
+			Sfx.play("clear_effective" if weak_hit else "clear_normal")
 		elif wi > 0:
 			Sfx.play("combo_chain", 1.0 + 0.12 * wi)
 		var tw := create_tween().set_parallel(true)

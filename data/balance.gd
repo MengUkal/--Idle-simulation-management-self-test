@@ -144,17 +144,17 @@ static func train_cost_mult(fruits: int, rebirth_count: int) -> float:
 		* pow(1.0 - REBIRTH_TRAIN_DECAY, float(rebirth_count))
 
 
-static func trade_cost(price: float, shares: int) -> Dictionary:
-	## 买入成本：含 1% 手续费
+static func trade_cost(price: float, shares: int, fee_rate: float = MARKET_FEE_RATE) -> Dictionary:
+	## 买入成本：含手续费（费率可由种族修饰符调整）
 	var gross := price * float(shares)
-	var fee := gross * MARKET_FEE_RATE
+	var fee := gross * fee_rate
 	return {"gross": gross, "fee": fee, "total": gross + fee}
 
 
-static func sell_proceeds(price: float, shares: int) -> float:
-	## 卖出到手：扣除 1% 手续费
+static func sell_proceeds(price: float, shares: int, fee_rate: float = MARKET_FEE_RATE) -> float:
+	## 卖出到手：扣除手续费（费率可由种族修饰符调整）
 	var gross := price * float(shares)
-	return gross - gross * MARKET_FEE_RATE
+	return gross - gross * fee_rate
 
 
 # ---------- 重生转生（M4，2026-10-10 六项拍板 + 数值定稿问答，详见设计文档 §14） ----------

@@ -33,10 +33,16 @@ var _toast_tween: Tween
 @onready var _rebirth_cancel_btn: Button = %RebirthCancelBtn
 @onready var _rebirth_apply_btn: Button = %RebirthApplyBtn
 @onready var _settings_button: Button = %SettingsButton
+@onready var _talents_button: Button = %TalentsButton
 @onready var _bg_art: TextureRect = %BgArt
 
 
 func _ready() -> void:
+	if GameState.needs_character_creation() and get_tree().current_scene == self:
+		# 角色系统：未选职业/种族（新档或旧档被删）→ 先去创建角色。
+		# 仅当 main 是真正的当前场景时才跳转（被测试/预览实例化为子节点时不触发）。
+		get_tree().change_scene_to_file.call_deferred("res://scenes/character/character_create.tscn")
+		return
 	_init_line_buttons()
 	_connect_signals()
 	_refresh_all()
@@ -241,10 +247,17 @@ func _refresh_all() -> void:
 	_refresh_buttons()
 	_refresh_training()
 	_refresh_rebirth()
+	_refresh_talents()
+
+
+func _refresh_talents() -> void:
+	## 天赋树预留入口：技能点随升级积累，本版本不可消费
+	_talents_button.text = "天赋 · %d 点（即将开放）" % GameState.skill_points
+	_talents_button.tooltip_text = "每升 1 级获得 1 点技能点；天赋树将在后续版本开放"
 
 
 func _refresh_buttons() -> void:
-	var cost := Balance.upgrade_cost(GameState.level)
+	var cost := GameState.upgrade_cost()
 	_upgrade_button.text = "献金升级 → Lv.%d（%s %s）" % [
 		GameState.level + 1,
 		Balance.format_number(cost),
@@ -279,7 +292,7 @@ func _refresh_training() -> void:
 
 func _update_countdown() -> void:
 	## QoL：距下次献金的预计时间（NGU 进度条文化）
-	var remain := Balance.upgrade_cost(GameState.level) - GameState.money
+	var remain := GameState.upgrade_cost() - GameState.money
 	if remain <= 0.0:
 		_countdown_label.text = "现在就能献金！"
 		return

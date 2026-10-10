@@ -3,7 +3,7 @@ extends Node
 ## 【已拍板】离线收益 MVP 不做：关游戏期间不产出，读档回到离开时的数值。
 
 const SAVE_PATH := "user://save.json"
-const SCHEMA_VERSION := 4
+const SCHEMA_VERSION := 5
 
 var _autosave_timer := 0.0
 
@@ -41,6 +41,11 @@ func save() -> void:
 		"fruits": GameState.fruits,
 		"rebirth_count": GameState.rebirth_count,
 		"rebirth_guide_shown": GameState.rebirth_guide_shown,
+		# schema v5 字段（角色系统，2026-10-11）
+		"class_id": GameState.character_class,
+		"race_id": GameState.character_race,
+		"skill_points": GameState.skill_points,
+		"talents": GameState.talents,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -61,6 +66,14 @@ func _load() -> void:
 		push_warning("存档损坏或格式不符，忽略并使用全新开局")
 		return
 	var data: Dictionary = parsed
+	# 【已拍板 D5】v5 之前的存档直接删除：角色系统上线即开新旅程（用户 2026-10-11 拍板"开新存档，删除老存档"）
+	if int(data.get("version", 0)) < SCHEMA_VERSION:
+		file.close()
+		delete_save()
+		GameState.reset()
+		Mods.recompute()
+		push_warning("检测到旧版存档（v%d < v%d），已删除并开启新旅程" % [int(data.get("version", 0)), SCHEMA_VERSION])
+		return
 	GameState.money = float(data.get("money", Balance.START_MONEY))
 	GameState.level = int(data.get("level", Balance.START_LEVEL))
 	GameState.floor_index = int(data.get("floor", 1))
@@ -79,6 +92,14 @@ func _load() -> void:
 	GameState.fruits = int(data.get("fruits", 0))
 	GameState.rebirth_count = int(data.get("rebirth_count", 0))
 	GameState.rebirth_guide_shown = bool(data.get("rebirth_guide_shown", false))
+	# schema v5 字段（角色系统）
+	GameState.character_class = str(data.get("class_id", ""))
+	GameState.character_race = str(data.get("race_id", ""))
+	GameState.skill_points = int(data.get("skill_points", 0))
+	var t: Dictionary = data.get("talents", {})
+	if typeof(t) == TYPE_DICTIONARY:
+		GameState.talents = t
+	Mods.recompute()  # 角色/天赋就绪后重算修饰符
 
 
 func delete_save() -> void:
