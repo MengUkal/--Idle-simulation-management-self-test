@@ -240,10 +240,11 @@ def run(monster, desc, seed=42, retries=2, min_trans=0.20, variant=""):
 BG_DIR = os.path.join(ROOT, "assets", "art", "bg")
 
 
-def run_scene(prompt, out_name, w=640, h=360, scale=1, seed=7, colors=48, retries=2):
-    """场景图（背景/立绘）：不抠底；scale>1 时最近邻放大保像素感。"""
-    os.makedirs(BG_DIR, exist_ok=True)
-    out_path = os.path.join(BG_DIR, out_name + ".png")
+def run_scene(prompt, out_name, w=640, h=360, scale=1, seed=7, colors=48, retries=2, out_dir=None):
+    """场景图（背景/立绘/图标）：不抠底；scale>1 时最近邻放大保像素感。"""
+    out_dir = out_dir or BG_DIR
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, out_name + ".png")
     print("生成场景 %s（%dx%d, x%d）seed=%d ..." % (out_name, w, h, scale, seed))
     for attempt in range(retries + 1):
         cur = seed + attempt * 1000

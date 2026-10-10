@@ -17,8 +17,14 @@ func _ready() -> void:
 	_new_btn.pressed.connect(_on_new_pressed)
 	%NewCancelBtn.pressed.connect(func() -> void: _new_confirm.visible = false)
 	%NewApplyBtn.pressed.connect(_on_new_confirmed)
+	Sfx.bgm("bgm_floor1")  # 标题起调（进入主界面同名 BGM 不重头播，无缝衔接）
 	if OS.get_cmdline_user_args().has("--capture-title"):
 		_debug_capture.call_deferred()
+	elif OS.get_cmdline_user_args().has("--capture-talents"):
+		# 诊断链路：标题→主界面→打开天赋面板→截屏（runner 挂 root 跨场景存活）
+		var runner := Node.new()
+		runner.set_script(load("res://tests/_talents_shot_node.gd"))
+		get_tree().root.add_child.call_deferred(runner)
 	else:
 		_play_intro.call_deferred()
 
@@ -44,6 +50,7 @@ func _play_intro() -> void:
 
 
 func _on_start() -> void:
+	Sfx.play("ui_click")
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 
