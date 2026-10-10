@@ -133,29 +133,22 @@ func _setup_skill() -> void:
 			skill_uses = int(skill_def.get("uses", 1))
 
 
-## 主动技能栏：槽 1 = 职业专属技（激活），槽 2/3 = 通用道具位（预留灰槽）
+## 主动技能栏：职业专属技按钮（通用道具系统未设计，此前预留灰槽已按拍板移除）
 func _build_skill_bar() -> void:
-	var has_skill := not skill_def.is_empty()
-	for i in 3:
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(86, 38)
-		b.position = Vector2(6 + i * 90, -46)
-		b.focus_mode = Control.FOCUS_NONE
-		b.clip_text = true
-		if i == 0 and has_skill:
-			_skill_btn = b
-			b.text = "⚡0"
-			b.add_theme_font_size_override("font_size", 14)
-			b.pressed.connect(_on_skill_pressed)
-			b.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
-			b.disabled = not skill_ready()
-		else:
-			b.text = "道具"
-			b.disabled = true
-			b.modulate = Color(1, 1, 1, 0.4)
-		board_layer.add_child(b)
-	if has_skill:
-		_refresh_skill_bar()
+	if skill_def.is_empty():
+		return
+	_skill_btn = Button.new()
+	_skill_btn.custom_minimum_size = Vector2(86, 38)
+	_skill_btn.position = Vector2(6, -46)
+	_skill_btn.focus_mode = Control.FOCUS_NONE
+	_skill_btn.clip_text = true
+	_skill_btn.text = "⚡0"
+	_skill_btn.add_theme_font_size_override("font_size", 14)
+	_skill_btn.pressed.connect(_on_skill_pressed)
+	_skill_btn.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
+	_skill_btn.disabled = not skill_ready()
+	board_layer.add_child(_skill_btn)
+	_refresh_skill_bar()
 
 
 ## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
