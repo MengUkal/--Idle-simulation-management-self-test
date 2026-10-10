@@ -19,6 +19,28 @@ func _ready() -> void:
 	%NewApplyBtn.pressed.connect(_on_new_confirmed)
 	if OS.get_cmdline_user_args().has("--capture-title"):
 		_debug_capture.call_deferred()
+	else:
+		_play_intro.call_deferred()
+
+
+## 开场动效：世界树立绘呼吸 + 文字/按钮逐个浮现
+func _play_intro() -> void:
+	var bg: TextureRect = %BgArt
+	bg.pivot_offset = bg.size / 2.0
+	var breath := create_tween().set_loops()
+	breath.tween_property(bg, "scale", Vector2(1.03, 1.03), 3.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	breath.tween_property(bg, "scale", Vector2.ONE, 3.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var box: VBoxContainer = $CenterBox
+	for i in box.get_child_count():
+		var c: Control = box.get_child(i)
+		if c == null or not c.visible:
+			continue
+		var home_y := c.position.y
+		c.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_interval(0.09 * i)
+		tw.tween_property(c, "modulate:a", 1.0, 0.35)
+		tw.parallel().tween_property(c, "position:y", home_y, 0.35).from(home_y + 20)
 
 
 func _on_start() -> void:
@@ -42,7 +64,7 @@ func _on_new_confirmed() -> void:
 ## 【诊断工具】截屏标题画面（-- --capture-title 触发，输出 tests/cap_title.png）
 func _debug_capture() -> void:
 	await get_tree().process_frame
-	await get_tree().create_timer(0.4).timeout
+	await get_tree().create_timer(1.3).timeout  # 等开场动效播完再截
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_title.png")
