@@ -264,6 +264,7 @@ func _apply_damage(waves: Array) -> void:
 		session_ep += ep
 		GameState.add_essence(ep)
 	_spawn_damage_number(dmg, any_weak)
+	_hit_flash()
 	if monster_hp <= 0:
 		_victory()
 
@@ -272,6 +273,7 @@ func _victory() -> void:
 	if defeated:
 		return
 	defeated = true
+	_kill_burst()
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line)))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)
@@ -463,6 +465,7 @@ func _anim_clear(waves: Array) -> void:
 				btn.icon = _cached_tex(TEX_BIRD)
 			else:
 				btn.icon = _tile_texture(el, Match3Board.SPECIAL_NONE)
+			_spawn_burst(cell, el)  # 元素色粒子飞溅（S3 反馈特效）
 			btn.pivot_offset = btn.size / 2.0
 			btn.z_index = 10
 			tw.tween_property(btn, "scale", Vector2(0.05, 0.05), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
@@ -521,3 +524,60 @@ func _shake_board() -> void:
 		tw.tween_property(board_layer, "position", origin + Vector2(7, 0), 0.045)
 		tw.tween_property(board_layer, "position", origin - Vector2(7, 0), 0.045)
 	tw.tween_property(board_layer, "position", origin, 0.045)
+
+
+# ---------- 反馈特效（S3，2026-10-10） ----------
+
+## 单格消除粒子：元素色小方块飞溅
+func _spawn_burst(cell: Vector2i, el: int) -> void:
+	var col := Color("ffd75e")
+	if el >= 0 and el < Balance.ELEMENT_KINDS:
+		col = Balance.ELEMENT_COLORS[el]
+	var p := CPUParticles2D.new()
+	p.position = _cell_pos(cell) + Vector2(TILE, TILE) / 2.0
+	p.amount = 8
+	p.lifetime = 0.45
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.spread = 180.0
+	p.gravity = Vector2(0, 900)
+	p.initial_velocity_min = 120.0
+	p.initial_velocity_max = 260.0
+	p.scale_amount_min = 4.0
+	p.scale_amount_max = 7.0
+	p.color = col
+	board_layer.add_child(p)
+	p.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(p.queue_free)
+
+
+## 怪物受击：头像闪白 + 缩放顿挫
+func _hit_flash() -> void:
+	if _enemy_portrait.texture == null:
+		return
+	var tw := create_tween()
+	_enemy_portrait.pivot_offset = _enemy_portrait.size / 2.0
+	tw.tween_property(_enemy_portrait, "modulate", Color(2.5, 2.5, 2.5), 0.05)
+	tw.parallel().tween_property(_enemy_portrait, "scale", Vector2(1.08, 1.08), 0.08)
+	tw.tween_property(_enemy_portrait, "modulate", Color.WHITE, 0.15)
+	tw.tween_property(_enemy_portrait, "scale", Vector2.ONE, 0.12)
+
+
+## 击杀：头像位置金色爆碎
+func _kill_burst() -> void:
+	var p := CPUParticles2D.new()
+	p.position = _enemy_portrait.global_position + _enemy_portrait.size / 2.0
+	p.amount = 26
+	p.lifetime = 0.7
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.spread = 180.0
+	p.gravity = Vector2(0, 500)
+	p.initial_velocity_min = 180.0
+	p.initial_velocity_max = 420.0
+	p.scale_amount_min = 3.0
+	p.scale_amount_max = 7.0
+	p.color = Color("ffd75e")
+	add_child(p)
+	p.emitting = true
+	get_tree().create_timer(1.2).timeout.connect(p.queue_free)
