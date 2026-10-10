@@ -1,0 +1,72 @@
+[
+ {
+  "name": "树精史莱姆",
+  "seed": 100,
+  "variant": "hurt"
+ },
+ {
+  "name": "風狼",
+  "seed": 103,
+  "variant": "hurt"
+ },
+ {
+  "name": "岩甲龟",
+  "seed": 106,
+  "variant": "hurt"
+ },
+ {
+  "name": "水妖",
+  "seed": 109,
+  "variant": "hurt"
+ },
+ {
+  "name": "光萤",
+  "seed": 112,
+  "variant": "hurt"
+ },
+ {
+  "name": "暗影鼠",
+  "seed": 115,
+  "variant": "hurt"
+ },
+ {
+  "name": "树根守卫",
+  "seed": 118,
+  "variant": "hurt"
+ },
+ {
+  "name": "荆棘树妖",
+  "seed": 121,
+  "variant": "hurt"
+ },
+ {
+  "name": "風羽隼",
+  "seed": 124,
+  "variant": "hurt"
+ },
+ {
+  "name": "苔石巨人",
+  "seed": 127,
+  "variant": "hurt"
+ },
+ {
+  "name": "沼泽水灵",
+  "seed": 130,
+  "variant": "hurt"
+ },
+ {
+  "name": "暗藤魔",
+  "seed": 133,
+  "variant": "hurt"
+ },
+ {
+  "name": "辉羽蝶",
+  "seed": 136,
+  "variant": "hurt"
+ },
+ {
+  "name": "守林古树",
+  "seed": 139,
+  "variant": "hurt"
+ }
+]

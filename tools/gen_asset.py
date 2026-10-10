@@ -8,10 +8,11 @@ r"""怪物头像生成管线（本地 ComfyUI + DreamShaper8 + PixelArtRedmond L
 
 用法（在游戏仓库根目录）：
   python tools/gen_asset.py --monster 树精史莱姆 --desc "green slime with a leaf on head"
-  python tools/gen_asset.py --batch ../monsters.json   # 批量（名字+描述列表）
-  python tools/gen_asset.py --preview                  # 拼合 assets/art/monsters 预览图
+  python tools/gen_asset.py --batch tools/batch_sample.json  # 批量：[{"name": "風狼", "seed": 7}, ...]
+  python tools/gen_asset.py --preview                       # 拼合 assets/art/monsters 预览图
+  python tools/gen_asset.py --scene "..." --out world_tree --w 768 --h 512  # 场景图
 
-输出：挂机放置增量rpg/assets/art/monsters/<名字拼音或指定id>.png（128×128 透明底）
+输出：挂机放置增量rpg/assets/art/monsters/<slug>.png（128×128 透明底）
 """
 
 import argparse
@@ -67,6 +68,11 @@ MONSTERS = {
     "暗藤魔":     ("vine",     "dark thorn vine monster, writhing black thorny vines forming a small creature, single glowing red eye"),
     "辉羽蝶":     ("butterfly","radiant butterfly, glowing white-gold wings, light dust trail"),
     "守林古树":   ("ancient",  "elite ancient forest tree boss, huge face in trunk, glowing amber eyes"),
+}
+
+# 表情变体：在怪物描述后追加的形态词（输出到 monsters/variants/）
+VARIANTS = {
+    "hurt": "hurt expression, eyes squeezed shut, wincing, recoil pose, sweat drop",
 }
 
 
@@ -199,15 +205,19 @@ def slug_ok(name):
     return True
 
 
-def run(monster, desc, seed=42, retries=2, min_trans=0.20):
-    """生成一只怪物头像。质量门：透明率 >= min_trans 才收货，否则换 seed 重出。"""
+def run(monster, desc, seed=42, retries=2, min_trans=0.20, variant=""):
+    """生成一只怪物头像。质量门：透明率 >= min_trans 才收货，否则换 seed 重出。
+    variant 非空时输出到 monsters/variants/<slug>_<variant>.png（描述追加形态词）。"""
     if monster not in MONSTERS:
         print("未知的怪物：%s（可选：%s）" % (monster, "、".join(MONSTERS)))
         return False
-    slug = MONSTERS[monster][0]
-    os.makedirs(OUT_DIR, exist_ok=True)
-    out_path = os.path.join(OUT_DIR, slug + ".png")
+    slug = MONSTERS[monster][0] + (("_" + variant) if variant else "")
+    out_dir = os.path.join(OUT_DIR, "variants") if variant else OUT_DIR
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, slug + ".png")
     print("生成 %s（%s）seed=%d ..." % (monster, slug, seed))
+    if variant in VARIANTS:
+        desc = desc + ", " + VARIANTS[variant]
     for attempt in range(retries + 1):
         cur = seed + attempt * 1000
         try:
@@ -286,10 +296,21 @@ def main():
     ap.add_argument("--w", type=int, default=640, help="场景模式宽度（默认 640）")
     ap.add_argument("--h", type=int, default=360, help="场景模式高度（默认 360）")
     ap.add_argument("--scale", type=int, default=1, help="场景模式最近邻放大倍数")
+    ap.add_argument("--batch", help="批量模式：JSON 文件 [{\"name\": \"風狼\", \"seed\": 7}, ...]")
+    ap.add_argument("--variant", help="表情变体（见 VARIANTS 表，如 hurt）；输出到 monsters/variants/")
     args = ap.parse_args()
     if args.preview:
         preview()
         return
+    if args.batch:
+        # utf-8-sig：兼容 PowerShell Out-File 产生的 BOM 头
+        with open(args.batch, encoding="utf-8-sig") as f:
+            items = json.load(f)
+        ok_all = True
+        for it in items:
+            ok_all = run(it["name"], it.get("desc", ""), int(it.get("seed", 42)),
+                         variant=it.get("variant", "")) and ok_all
+        sys.exit(0 if ok_all else 1)
     if args.scene:
         if not args.out:
             ap.error("场景模式需要 --out")
@@ -298,7 +319,7 @@ def main():
     if not args.monster:
         ap.error("需要 --monster / --scene / --preview 之一")
     desc = args.desc or MONSTERS.get(args.monster, ("", ""))[1]
-    ok = run(args.monster, desc, args.seed)
+    ok = run(args.monster, desc, args.seed, variant=args.variant)
     sys.exit(0 if ok else 1)
 
 
