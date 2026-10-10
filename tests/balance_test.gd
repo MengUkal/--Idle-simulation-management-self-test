@@ -49,6 +49,20 @@ func _init() -> void:
 	check("训练线 1→2 费用 = 25×1.35", Balance.train_cost(1), 25.0 * 1.35)
 	check("训练线 2 级倍率 = 1.10", Balance.train_multiplier(2), 1.10)
 	check("里程碑 Lv.8 奖励 30 精华", Balance.MILESTONE_EP[8], 30)
+	# 重生公式（M4，2026-10-10 六项拍板 + 数值定稿）
+	check("重生门槛：0 轮 = 40", Balance.rebirth_threshold(0), 40)
+	check("重生门槛：1 轮 = 45", Balance.rebirth_threshold(1), 45)
+	check("重生门槛：3 轮 = 55", Balance.rebirth_threshold(3), 55)
+	check("果实结算：Lv.30 = 0", Balance.fruits_for_level(30), 0)
+	check("果实结算：Lv.40 = 5", Balance.fruits_for_level(40), 5)
+	check("果实结算：Lv.45 = 10", Balance.fruits_for_level(45), 10)
+	check("果实结算：Lv.55 = 27", Balance.fruits_for_level(55), 27)
+	check("果实收入乘数：7 颗 = 1.35", Balance.income_fruit_mult(7), 1.35)
+	check("果实收入乘数：0 颗 = 1.0", Balance.income_fruit_mult(0), 1.0)
+	check("果实攻击乘数：20 颗 = 1.20", Balance.atk_fruit_mult(20), 1.20)
+	check("训练费用乘数：0 果 0 轮 = 1.0", Balance.train_cost_mult(0, 0), 1.0)
+	check("训练费用乘数：2 果 1 轮 = 0.98²×0.95", Balance.train_cost_mult(2, 1),
+		pow(0.98, 2.0) * pow(0.95, 1.0))
 	# 第二层怪物表与怪物池切换
 	check("第二层常驻怪物 6 只", Balance.MONSTERS_FLOOR2.size(), 6)
 	check("怪物池按层切换", Balance.monster_pool(2).size(), 6)

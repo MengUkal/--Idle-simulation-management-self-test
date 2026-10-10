@@ -11,3 +11,4 @@ signal save_completed()                     # 一次存档写盘完成
 signal essence_changed(total: int)          # 元素精华变化
 signal line_changed(kind: String, level: int)  # 训练线升级（atk/bounty/income）
 signal holdings_changed(idx: int, total: int)  # 标的持仓变化（交易所）
+signal rebirth_performed(gained: int, total: int, count: int)  # 重生完成（M4：本次果实/累计/轮数）

@@ -133,6 +133,37 @@ func _build_panel() -> void:
 	to_f1.pressed.connect(func() -> void: GameState.go_to_floor(1))
 	tp_row.add_child(to_f1)
 
+	# 重生（M4）
+	var rb_row := HBoxContainer.new()
+	rb_row.add_theme_constant_override("separation", 8)
+	box.add_child(rb_row)
+	var rb_lab := Label.new()
+	rb_lab.text = "重生调试"
+	rb_lab.custom_minimum_size = Vector2(92, 0)
+	rb_lab.add_theme_font_size_override("font_size", 16)
+	rb_lab.add_theme_color_override("font_color", COL_TEXT)
+	rb_row.add_child(rb_lab)
+	var fruit_input := LineEdit.new()
+	fruit_input.text = "10"
+	fruit_input.custom_minimum_size = Vector2(70, 32)
+	fruit_input.add_theme_font_size_override("font_size", 16)
+	rb_row.add_child(fruit_input)
+	var add_fruit := Button.new()
+	add_fruit.text = "果实+"
+	add_fruit.custom_minimum_size = Vector2(80, 32)
+	add_fruit.add_theme_font_size_override("font_size", 15)
+	add_fruit.pressed.connect(func() -> void:
+		GameState.debug_set_rebirth(GameState.fruits + _to_i(fruit_input.text), GameState.rebirth_count))
+	rb_row.add_child(add_fruit)
+	var set_rb := Button.new()
+	set_rb.text = "轮数设1"
+	set_rb.custom_minimum_size = Vector2(80, 32)
+	set_rb.add_theme_font_size_override("font_size", 15)
+	set_rb.tooltip_text = "把已重生轮数设为 1（模拟重生过一次的状态）"
+	set_rb.pressed.connect(func() -> void:
+		GameState.debug_set_rebirth(GameState.fruits, maxi(GameState.rebirth_count, 1)))
+	rb_row.add_child(set_rb)
+
 	# 棋盘工具（战斗界面生效）
 	var bd_row := HBoxContainer.new()
 	bd_row.add_theme_constant_override("separation", 8)
@@ -248,11 +279,12 @@ func _act_wipe() -> void:
 
 
 func _refresh_stats() -> void:
-	_stats.text = "Lv.%d ｜ 吉尔 %s ｜ 精华 %d\n收入 %s/秒 ｜ 攻/赏/收线 %d/%d/%d ｜ 所在层 %d" % [
+	_stats.text = "Lv.%d ｜ 吉尔 %s ｜ 精华 %d\n收入 %s/秒 ｜ 攻/赏/收线 %d/%d/%d ｜ 所在层 %d\n果实 %d ｜ 已重生 %d 轮 ｜ 下轮门槛 Lv.%d" % [
 		GameState.level,
 		Balance.format_number(GameState.money),
 		GameState.essence,
 		Balance.format_number(GameState.income_per_sec()),
 		GameState.atk_line, GameState.bounty_line, GameState.income_line,
 		GameState.floor_index,
+		GameState.fruits, GameState.rebirth_count, GameState.rebirth_threshold(),
 	]

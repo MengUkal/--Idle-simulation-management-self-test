@@ -108,6 +108,21 @@ theme_override_font_sizes/font_size = 16
 text = "（场景立绘占位）"
 horizontal_alignment = 1
 
+[node name="FruitsLabel" type="Label" parent="TreePanel/TreeBox" unique_id=2100000101]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 26
+text = "世界树的果实 ×0"
+horizontal_alignment = 1
+
+[node name="RebirthButton" type="Button" parent="TreePanel/TreeBox" unique_id=2100000102]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "献上等级（需 Lv.40）"
+
 [node name="RightPanel" type="VBoxContainer" parent="." unique_id=1502659765]
 layout_mode = 0
 anchor_left = 1.0
@@ -280,3 +295,54 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.5, 0.5, 1)
 theme_override_font_sizes/font_size = 20
 text = "确定重置"
+
+[node name="RebirthConfirm" type="CenterContainer" parent="." unique_id=2100000103]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="RebirthPanel" type="PanelContainer" parent="RebirthConfirm" unique_id=2100000104]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_iuonh")
+
+[node name="RebirthBox" type="VBoxContainer" parent="RebirthConfirm/RebirthPanel" unique_id=2100000105]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="RebirthTitle" type="Label" parent="RebirthConfirm/RebirthPanel/RebirthBox" unique_id=2100000106]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 28
+text = "献上等级"
+horizontal_alignment = 1
+
+[node name="RebirthInfo" type="Label" parent="RebirthConfirm/RebirthPanel/RebirthBox" unique_id=2100000107]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9098039, 0.8784314, 0.8117647, 1)
+theme_override_font_sizes/font_size = 20
+text = "……"
+horizontal_alignment = 1
+
+[node name="RebirthButtons" type="HBoxContainer" parent="RebirthConfirm/RebirthPanel/RebirthBox" unique_id=2100000108]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="RebirthCancelBtn" type="Button" parent="RebirthConfirm/RebirthPanel/RebirthBox/RebirthButtons" unique_id=2100000109]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "再练练"
+
+[node name="RebirthApplyBtn" type="Button" parent="RebirthConfirm/RebirthPanel/RebirthBox/RebirthButtons" unique_id=2100000110]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84313726, 0.36862746, 1)
+theme_override_font_sizes/font_size = 20
+text = "献上等级"

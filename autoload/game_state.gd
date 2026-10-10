@@ -11,11 +11,15 @@ var atk_line := 0                         # 攻击训练线等级
 var bounty_line := 0                      # 赏金训练线等级
 var income_line := 0                      # 收入训练线等级
 var holdings := [0, 0, 0]                 # 交易所持仓（按 Balance.MARKET_TARGETS 顺序）
+var fruits := 0                           # 世界树的果实（重生永久货币，M4）
+var rebirth_count := 0                    # 已重生轮数（M4）
+var rebirth_guide_shown := false          # Lv.38 触墙引导已弹过（M4）
 
 
 func income_per_sec() -> float:
-	# 挂机收入 = 基础公式 × 收入训练线倍率
-	return Balance.income_per_sec(level) * Balance.train_multiplier(income_line)
+	# 挂机收入 = 基础公式 × 收入训练线倍率 × 果实加成（M4：每颗 +5%）
+	return Balance.income_per_sec(level) * Balance.train_multiplier(income_line) \
+		* Balance.income_fruit_mult(fruits)
 
 
 func add_essence(amount: int) -> void:
@@ -37,8 +41,9 @@ func line_level(kind: String) -> int:
 
 
 func upgrade_line(kind: String) -> bool:
-	## 用元素精华升级训练线（NGU 式多线成长）
-	var cost := int(Balance.train_cost(line_level(kind)))
+	## 用元素精华升级训练线（NGU 式多线成长；费用乘果实折扣 × 轮数衰减，M4）
+	var cost := int(ceil(Balance.train_cost(line_level(kind)) \
+		* Balance.train_cost_mult(fruits, rebirth_count)))
 	if essence < cost:
 		return false
 	essence -= cost
@@ -54,6 +59,49 @@ func upgrade_line(kind: String) -> bool:
 	if kind == "income":
 		EventBus.income_changed.emit(income_per_sec())
 	return true
+
+
+# ---------- 重生转生（M4，2026-10-10 六项拍板） ----------
+
+func rebirth_threshold() -> int:
+	## 本轮重生所需等级（40 + 8×已重生轮数）
+	return Balance.rebirth_threshold(rebirth_count)
+
+
+func pending_fruits() -> int:
+	## 若现在重生可获得的果实数
+	return Balance.fruits_for_level(level)
+
+
+func rebirth_ready() -> bool:
+	return level >= rebirth_threshold()
+
+
+func do_rebirth() -> int:
+	## 献上等级：重置换果实。返回本次获得的果实数（未达门槛返回 -1）。
+	## 清零：等级/吉尔/精华/三训练线/所在层；保留：果实、持仓、行情、累计统计。
+	if not rebirth_ready():
+		return -1
+	var gained := pending_fruits()
+	fruits += gained
+	rebirth_count += 1
+	money = Balance.START_MONEY
+	level = Balance.START_LEVEL
+	floor_index = 1
+	essence = 0
+	atk_line = 0
+	bounty_line = 0
+	income_line = 0
+	EventBus.money_changed.emit(money)
+	EventBus.income_changed.emit(income_per_sec())
+	EventBus.level_changed.emit(level)
+	EventBus.floor_changed.emit(floor_index)
+	EventBus.essence_changed.emit(essence)
+	EventBus.line_changed.emit("atk", 0)
+	EventBus.line_changed.emit("bounty", 0)
+	EventBus.line_changed.emit("income", 0)
+	EventBus.rebirth_performed.emit(gained, fruits, rebirth_count)
+	return gained
 
 
 func can_afford(cost: float) -> bool:
@@ -104,6 +152,9 @@ func reset() -> void:
 	atk_line = 0
 	bounty_line = 0
 	income_line = 0
+	fruits = 0
+	rebirth_count = 0
+	rebirth_guide_shown = false
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())
 	EventBus.level_changed.emit(level)
@@ -184,5 +235,10 @@ func debug_set_line(kind: String, new_level: int) -> void:
 		"income":
 			income_line = lv
 	EventBus.line_changed.emit(kind, line_level(kind))
-	if kind == "income":
-		EventBus.income_changed.emit(income_per_sec())
+
+
+func debug_set_rebirth(new_fruits: int, new_count: int) -> void:
+	## 【修改器】直接设置果实与重生轮数（测试各档重生加成）
+	fruits = maxi(new_fruits, 0)
+	rebirth_count = maxi(new_count, 0)
+	EventBus.income_changed.emit(income_per_sec())

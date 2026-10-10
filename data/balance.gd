@@ -113,6 +113,37 @@ static func train_multiplier(line_level: int) -> float:
 	return 1.0 + TRAIN_EFFECT_PER_LEVEL * float(line_level)
 
 
+# ---------- 重生公式（M4） ----------
+
+static func rebirth_threshold(rebirth_count: int) -> int:
+	## 第 rebirth_count+1 轮重生所需等级：已重生 0 次 → 40，1 次 → 48…
+	return REBIRTH_LEVEL_BASE + REBIRTH_LEVEL_STEP * rebirth_count
+
+
+static func fruits_for_level(level: int) -> int:
+	## 重生瞬间按当时等级一次性结算果实【数值定稿】
+	## 曲线：Lv.40→5、Lv.45→10、Lv.50→18、Lv.55→27、Lv.60→38
+	if level <= 30:
+		return 0
+	return int(pow((float(level) - 30.0) / FRUIT_DIV, FRUIT_POW))
+
+
+static func income_fruit_mult(fruits: int) -> float:
+	## 挂机收入果实乘数：每颗 +5%
+	return 1.0 + FRUIT_INCOME_PER * float(fruits)
+
+
+static func atk_fruit_mult(fruits: int) -> float:
+	## 攻击效果果实乘数：每颗 +1%（三轨化，数值定稿 2026-10-10）
+	return 1.0 + FRUIT_ATK_PER * float(fruits)
+
+
+static func train_cost_mult(fruits: int, rebirth_count: int) -> float:
+	## 训练费用总乘数：果实折扣 × 轮数永久衰减
+	return pow(1.0 - FRUIT_TRAIN_DISCOUNT, float(fruits)) \
+		* pow(1.0 - REBIRTH_TRAIN_DECAY, float(rebirth_count))
+
+
 static func trade_cost(price: float, shares: int) -> Dictionary:
 	## 买入成本：含 1% 手续费
 	var gross := price * float(shares)
@@ -125,6 +156,17 @@ static func sell_proceeds(price: float, shares: int) -> float:
 	var gross := price * float(shares)
 	return gross - gross * MARKET_FEE_RATE
 
+
+# ---------- 重生转生（M4，2026-10-10 六项拍板 + 数值定稿问答，详见设计文档 §14） ----------
+const REBIRTH_GUIDE_LEVEL := 38     # 【已拍板】首次触墙引导等级（弹世界树引导）
+const REBIRTH_LEVEL_BASE := 40      # 【已拍板】首轮重生门槛
+const REBIRTH_LEVEL_STEP := 5       # 【已拍板 8 → 数值定稿 5】每轮门槛递增（40/45/50…）
+const FRUIT_INCOME_PER := 0.05      # 【已拍板】每颗果实：挂机收入 +5%
+const FRUIT_TRAIN_DISCOUNT := 0.02  # 【已拍板】每颗果实：训练费用 -2%
+const FRUIT_ATK_PER := 0.01         # 【数值定稿】每颗果实：攻击效果 +1%（三轨化）
+const REBIRTH_TRAIN_DECAY := 0.05   # 【已拍板】每轮重生：训练费用永久 -5%
+const FRUIT_POW := 1.8              # 【数值定稿】果实公式幂次
+const FRUIT_DIV := 4.0              # 【数值定稿】果实公式除数（等级起点固定 30）
 
 # ---------- 存档 ----------
 const AUTOSAVE_INTERVAL_SEC := 10.0

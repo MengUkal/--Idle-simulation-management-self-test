@@ -3,7 +3,7 @@ extends Node
 ## 【已拍板】离线收益 MVP 不做：关游戏期间不产出，读档回到离开时的数值。
 
 const SAVE_PATH := "user://save.json"
-const SCHEMA_VERSION := 3
+const SCHEMA_VERSION := 4
 
 var _autosave_timer := 0.0
 
@@ -37,6 +37,10 @@ func save() -> void:
 		"income_line": GameState.income_line,
 		"holdings": GameState.holdings.duplicate(),
 		"market": Market.dump_state(),
+		# schema v4 字段（重生，M4）
+		"fruits": GameState.fruits,
+		"rebirth_count": GameState.rebirth_count,
+		"rebirth_guide_shown": GameState.rebirth_guide_shown,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -71,6 +75,10 @@ func _load() -> void:
 	if h.size() == GameState.holdings.size():
 		GameState.holdings = h.duplicate()
 	Market.apply_state(data.get("market", {}))
+	# schema v4 字段（重生，M4；v3 旧档缺省为 0，天然兼容）
+	GameState.fruits = int(data.get("fruits", 0))
+	GameState.rebirth_count = int(data.get("rebirth_count", 0))
+	GameState.rebirth_guide_shown = bool(data.get("rebirth_guide_shown", false))
 
 
 func delete_save() -> void:

@@ -26,6 +26,12 @@ var _toast_tween: Tween
 @onready var _reset_confirm: Control = %ResetConfirm
 @onready var _reset_cancel_btn: Button = %ResetCancelBtn
 @onready var _reset_apply_btn: Button = %ResetApplyBtn
+@onready var _fruits_label: Label = %FruitsLabel
+@onready var _rebirth_button: Button = %RebirthButton
+@onready var _rebirth_confirm: Control = %RebirthConfirm
+@onready var _rebirth_info: Label = %RebirthInfo
+@onready var _rebirth_cancel_btn: Button = %RebirthCancelBtn
+@onready var _rebirth_apply_btn: Button = %RebirthApplyBtn
 
 
 func _ready() -> void:
@@ -50,6 +56,7 @@ func _connect_signals() -> void:
 	EventBus.save_completed.connect(_on_save_completed)
 	EventBus.essence_changed.connect(_on_essence_changed)
 	EventBus.line_changed.connect(_on_line_changed)
+	EventBus.rebirth_performed.connect(_on_rebirth_performed)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_floor2_button.pressed.connect(_on_floor2_pressed)
 	_adventure_button.pressed.connect(_on_adventure_pressed)
@@ -57,6 +64,9 @@ func _connect_signals() -> void:
 	_reset_button.pressed.connect(_on_reset_pressed)
 	_reset_cancel_btn.pressed.connect(_on_reset_cancelled)
 	_reset_apply_btn.pressed.connect(_on_reset_confirmed)
+	_rebirth_button.pressed.connect(_on_rebirth_pressed)
+	_rebirth_cancel_btn.pressed.connect(_on_rebirth_cancelled)
+	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
 	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
 	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
 	_line_income.pressed.connect(_on_line_pressed.bind("income"))
@@ -76,7 +86,9 @@ func _on_income_changed(per_sec: float) -> void:
 
 func _on_level_changed(new_level: int) -> void:
 	_refresh_buttons()
+	_refresh_rebirth()
 	_check_milestone(new_level)
+	_check_rebirth_guide(new_level)
 
 
 func _on_money_not_enough(_needed: float) -> void:
@@ -138,6 +150,56 @@ func _on_line_pressed(kind: String) -> void:
 	GameState.upgrade_line(kind)
 
 
+# ---------- 重生转生（M4） ----------
+
+func _check_rebirth_guide(new_level: int) -> void:
+	## 【已拍板】Lv.38 首次触墙：世界树引导（仅首轮回弹一次，弹过即记档）
+	if GameState.rebirth_count > 0 or GameState.rebirth_guide_shown:
+		return
+	if new_level < Balance.REBIRTH_GUIDE_LEVEL:
+		return
+	GameState.rebirth_guide_shown = true
+	_show_toast("世界树低语：献金越来越重了……把等级献给我，我将结出果实回赠")
+
+
+func _on_rebirth_pressed() -> void:
+	if not GameState.rebirth_ready():
+		return
+	var gained := GameState.pending_fruits()
+	_rebirth_info.text = "将获得世界树的果实 ×%d\n（此后每颗果实：挂机收入 +5%%、训练费用 -2%%）\n\n将失去：Lv.%d 的等级、全部吉尔、全部训练线\n（交易所持仓与行情保留）" % [
+		gained, GameState.level,
+	]
+	_rebirth_confirm.visible = true
+
+
+func _on_rebirth_cancelled() -> void:
+	_rebirth_confirm.visible = false
+
+
+func _on_rebirth_confirmed() -> void:
+	_rebirth_confirm.visible = false
+	var gained := GameState.do_rebirth()
+	if gained < 0:
+		return
+	SaveManager.save()  # 重生是关键节点，立即落盘
+	_refresh_all()
+
+
+func _on_rebirth_performed(gained: int, total: int, count: int) -> void:
+	_show_toast("献上等级！世界树结出果实 ×%d（累计 %d，第 %d 轮）" % [gained, total, count])
+
+
+func _refresh_rebirth() -> void:
+	_fruits_label.text = "世界树的果实 ×%d" % GameState.fruits
+	var threshold := GameState.rebirth_threshold()
+	if GameState.rebirth_ready():
+		_rebirth_button.disabled = false
+		_rebirth_button.text = "献上等级（可得果实 ×%d）" % GameState.pending_fruits()
+	else:
+		_rebirth_button.disabled = true
+		_rebirth_button.text = "献上等级（需 Lv.%d，当前 Lv.%d）" % [threshold, GameState.level]
+
+
 # ---------- 刷新 ----------
 
 func _refresh_all() -> void:
@@ -146,6 +208,7 @@ func _refresh_all() -> void:
 	_on_floor_changed(GameState.floor_index)
 	_refresh_buttons()
 	_refresh_training()
+	_refresh_rebirth()
 
 
 func _refresh_buttons() -> void:
@@ -173,10 +236,11 @@ func _refresh_buttons() -> void:
 
 func _refresh_training() -> void:
 	_essence_label.text = "元素精华：%d" % GameState.essence
+	var tcm := Balance.train_cost_mult(GameState.fruits, GameState.rebirth_count)
 	for kind: String in _line_buttons.keys():
 		var btn: Button = _line_buttons[kind]
 		var lv := GameState.line_level(kind)
-		var cost := int(Balance.train_cost(lv))
+		var cost := int(ceil(Balance.train_cost(lv) * tcm))
 		btn.text = "%s Lv.%d → %d（%d 精华）" % [LINE_NAMES[kind], lv, lv + 1, cost]
 		btn.disabled = GameState.essence < cost
 

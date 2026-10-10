@@ -12,6 +12,9 @@ var essence := 0
 var atk_line := 0
 var bounty_line := 0
 var income_line := 0
+var fruits := 0                # 世界树的果实（M4）
+var rebirth_count := 0         # 已重生轮数（M4）
+var milestone_taken := {}      # 本轮已领的等级里程碑（每轮重生重发）
 
 var _fails := 0
 
@@ -37,6 +40,9 @@ func _init() -> void:
 	print("")
 	print("=== 三、主动游玩 2 小时模拟（战斗 + 献金 + 训练线） ===")
 	_active_sim()
+	print("")
+	print("=== 四、重生循环模拟（M4 数值定稿：步进5+陡果实+三轨，门槛即重生） ===")
+	_rebirth_sim()
 	print("")
 	print("---")
 	print("模拟结束：%d 项标记" % _fails)
@@ -107,7 +113,7 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int) -> Dictio
 		moves_used += 1
 		var waves: Array = rep["waves"]
 		var dmg_f := 0.0
-		var atk_mult := Balance.train_multiplier(atk_line)
+		var atk_mult := Balance.train_multiplier(atk_line) * Balance.atk_fruit_mult(fruits)
 		for i in waves.size():
 			var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
 			for entry in waves[i]:
@@ -224,6 +230,7 @@ func _active_sim() -> void:
 		while level < 60 and money >= Balance.upgrade_cost(level):
 			money -= Balance.upgrade_cost(level)
 			level += 1
+			_grant_milestones()
 		# 花：训练线（策略：攻击 > 收入 > 赏金，能升就升）
 		var spent := true
 		while spent:
@@ -257,3 +264,119 @@ func _active_sim() -> void:
 	])
 	check("二层在成型练度下可正常击杀（≥60%）", floor2_battles == 0 or floor2_kills * 100 / floor2_battles >= 60,
 		"二层击杀率仅 %d%%" % (100 * floor2_kills / maxf(floor2_battles, 1)))
+
+
+# ---------- 四、重生循环模拟（M4，2026-10-10 六项拍板） ----------
+
+func _grant_milestones() -> void:
+	## 等级里程碑一次性精华【拍板：每轮重生重发，作为开局加速器】
+	for lv in Balance.MILESTONE_EP.keys():
+		if level >= int(lv) and not milestone_taken.has(lv):
+			milestone_taken[lv] = true
+			essence += int(Balance.MILESTONE_EP[lv])
+
+
+func _rebirth_sim() -> void:
+	## 策略：贪心弱属性 AI 打怪；攒够就献金；训练优先级 攻>收>赏（费用乘果实折扣×轮衰减）；
+	## 达到当轮门槛（40+5n）立刻重生。全部规则镜像 Balance 定稿公式。
+	## 【数值定稿 2026-10-10】步进 5 + 陡果实公式 + 三轨加成（收入+5%/训练-2%/攻击+1% 每颗）。
+	money = 0.0
+	level = 1
+	essence = 0
+	atk_line = 0
+	bounty_line = 0
+	income_line = 0
+	fruits = 0
+	rebirth_count = 0
+	milestone_taken = {}
+	var t := 0.0
+	var round_start := 0.0
+	var ten_min_levels: Array = []   # 每轮开局 10 分钟时的等级
+	var ten_min_marked := false
+	var reports: Array = []
+	var elite_rates: Array = []      # 每轮门槛时点的古树击杀数（/8）
+	var MAX_ROUNDS := 4
+	var TIME_CAP := 12.0 * 3600.0
+	while rebirth_count < MAX_ROUNDS and t < TIME_CAP:
+		var floor_idx := 1 if level < Balance.FLOOR_2_LEVEL_REQ else 2
+		var monster := _pick_monster(floor_idx)
+		var steps := Balance.battle_steps(level)
+		var r := _simulate_battle(floor_idx, monster, steps)
+		var duration := float(r["moves"]) * SECONDS_PER_MOVE
+		t += duration
+		if r["killed"]:
+			money += float(r["bounty"])
+		essence += r["ep"]
+		# 挂机收入照跑 ×果实加成
+		money += Balance.income_per_sec(level) * Balance.train_multiplier(income_line) \
+			* Balance.income_fruit_mult(fruits) * duration
+		# 献金连升 + 里程碑（每轮重发）
+		while level < 100 and money >= Balance.upgrade_cost(level):
+			money -= Balance.upgrade_cost(level)
+			level += 1
+			_grant_milestones()
+		# 训练（费用乘果实折扣 × 轮数永久衰减）
+		var tcm := Balance.train_cost_mult(fruits, rebirth_count)
+		var spent := true
+		while spent:
+			spent = false
+			for kind_pair in [["atk", atk_line], ["income", income_line], ["bounty", bounty_line]]:
+				var cost := int(ceil(Balance.train_cost(kind_pair[1]) * tcm))
+				if essence >= cost:
+					essence -= cost
+					match kind_pair[0]:
+						"atk": atk_line += 1
+						"income": income_line += 1
+						"bounty": bounty_line += 1
+					spent = true
+		# 10 分钟采样（按本轮起点计时，t 是绝对时间不能直接比较）
+		if not ten_min_marked and t - round_start >= 600.0:
+			ten_min_levels.append(level)
+			ten_min_marked = true
+		# 门槛即重生
+		if level >= Balance.rebirth_threshold(rebirth_count):
+			var ekills := 0
+			for i in 8:
+				if _simulate_battle(2, Balance.MONSTER_ELITE_FLOOR2, Balance.battle_steps(level))["killed"]:
+					ekills += 1
+			elite_rates.append(ekills)
+			var gained := Balance.fruits_for_level(level)
+			reports.append({
+				"round": rebirth_count, "minutes": (t - round_start) / 60.0,
+				"level": level, "gained": gained, "fruits": fruits + gained,
+				"atk": atk_line, "inc": income_line, "bounty": bounty_line,
+			})
+			fruits += gained
+			rebirth_count += 1
+			money = 0.0
+			essence = 0
+			atk_line = 0
+			bounty_line = 0
+			income_line = 0
+			milestone_taken = {}
+			round_start = t
+			ten_min_marked = false
+			level = 1
+	# ---- 报告 ----
+	for rep: Dictionary in reports:
+		print("  第 %d 轮 → Lv.%d 重生：周期 %.0f 分钟 | +果实 %d（累计 %d）| 练度 攻%d/收%d/赏%d" % [
+			rep["round"], rep["level"], rep["minutes"], rep["gained"], rep["fruits"],
+			rep["atk"], rep["inc"], rep["bounty"],
+		])
+	for i in elite_rates.size():
+		print("  第 %d 轮门槛练度：古树击杀 %d/8" % [i, elite_rates[i]])
+	for i in ten_min_levels.size():
+		print("  第 %d 轮开局 10 分钟：Lv.%d" % [i, ten_min_levels[i]])
+	# ---- 验收线【数值定稿 2026-10-10：周期收敛带 90~155 分钟；果实积累后开局变强；古树第 3 轮稳定击杀】 ----
+	for rep: Dictionary in reports:
+		check("第 %d 轮周期在验收带内（90~155 分钟）" % int(rep["round"]),
+			float(rep["minutes"]) >= 90.0 and float(rep["minutes"]) <= 155.0,
+			"实际 %.0f 分钟" % float(rep["minutes"]))
+	if ten_min_levels.size() >= 4:
+		check("果实积累后开局肉眼变强（第 3 轮 ≥ 首轮+3 级）",
+			int(ten_min_levels[3]) >= int(ten_min_levels[0]) + 3,
+			"首轮 Lv.%d vs 第 3 轮 Lv.%d" % [ten_min_levels[0], ten_min_levels[3]])
+	if elite_rates.size() >= 4:
+		# 拍板目标 62.5%（5/8），护栏取 50% 容随机波动
+		check("第 3 轮门槛练度古树稳定击杀（≥4/8 护栏）", int(elite_rates[3]) >= 4,
+			"击杀 %d/8" % int(elite_rates[3]))
