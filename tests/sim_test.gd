@@ -50,6 +50,9 @@ func _init() -> void:
 	print("=== 六、苍干栈道（P3 第三层）数值标定 ===")
 	_floor3_sim()
 	print("")
+	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
+	_full_build_sim()
+	print("")
 	print("---")
 	print("模拟结束：%d 项标记" % _fails)
 	quit(1 if _fails > 0 else 0)
@@ -487,3 +490,59 @@ func _floor3_calibrate() -> void:
 func _floor3_sim() -> void:
 	print("-- 苍干栈道草案标定（命名/弱点=设定包拍板；HP/赏金=助手草案，待用户拍板） --")
 	_floor3_calibrate()
+
+
+# ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
+
+func _talent_mods(class_id: String) -> Dictionary:
+	## 该职业天赋树全满的修饰符（镜像 mods.gd 规则：mult ×(1+per×rank)、add +per×rank）
+	var total := {"battle_damage": 1.0, "weakness": 1.0, "income": 1.0, "bounty": 1.0, "ep": 1.0, "fruit": 1.0, "steps": 0, "chain_bonus": 0.0}
+	for n: Dictionary in GameTalents.get_tree_for(class_id).get("nodes", []):
+		var rank := int(n.get("max", 1))  # 全满假设
+		var per := float(n.get("per", 0.0))
+		var mod_name := str(n.get("mod", ""))
+		if str(n.get("kind", "mult")) == "add":
+			total[mod_name] = float(total.get(mod_name, 0.0)) + per * rank
+		elif total.has(mod_name):
+			total[mod_name] *= 1.0 + per * rank
+	return total
+
+
+func _full_build_sim() -> void:
+	## 职业全满 + 种族 + 天赋全满 的总叠加标定（同 Lv.50 标定战），验证「显著档」叠加后不失衡
+	var combo := [
+		{"tag": "战士+巨人血裔", "cid": "warrior", "rid": "giantsblood"},
+		{"tag": "法师+高等精灵", "cid": "mage", "rid": "high_elf"},
+		{"tag": "盗贼+暗精灵", "cid": "rogue", "rid": "dark_elf"},
+		{"tag": "牧师+人类", "cid": "priest", "rid": "human"},
+		{"tag": "游侠+巨魔", "cid": "ranger", "rid": "troll"},
+		{"tag": "术士+兽人", "cid": "warlock", "rid": "orc"},
+	]
+	atk_line = 15
+	bounty_line = 15
+	fruits = 33
+	var dummy := {"name": "标定木桩", "hp": 450, "bounty": 0, "weak": 0}
+	print("-- 全叠加：职业满天赋 + 种族（ Lv.50 标定战 HP450，对照纯职业 6~8/8） --")
+	var kmax := 0
+	var kmin := 8
+	for c: Dictionary in combo:
+		var cm := _class_mods(c["cid"])
+		var tm := _talent_mods(c["cid"])
+		var rm: Dictionary = GameRaces.RACES[c["rid"]]["mods"]
+		var atk_m: float = float(cm["battle_damage"]) * float(tm["battle_damage"]) * float(rm.get("battle_damage", 1.0))
+		var chain: float = float(cm["chain_bonus"]) + float(tm["chain_bonus"]) + float(rm.get("chain_bonus", 0.0))
+		var steps := 35 + int(cm["steps"]) + int(tm["steps"]) + int(rm.get("steps", 0))
+		var kills := 0
+		var dmg_sum := 0
+		for t in 8:
+			var r := _simulate_battle(2, dummy, steps, atk_m, chain)
+			dmg_sum += int(r["damage"])
+			if r["killed"]:
+				kills += 1
+		kmax = maxi(kmax, kills)
+		kmin = mini(kmin, kills)
+		var inc: float = float(cm["income"]) * float(tm["income"]) * float(rm.get("income", 1.0))
+		print("  %-10s 步数%-3d 均伤%-6d 击杀%d/8 ｜ 总收入乘数 ×%.2f" % [
+			c["tag"], steps, dmg_sum / 8, kills, inc])
+	check("全叠加击杀率带宽 ≤4/8（显著但可玩）", kmax - kmin <= 4,
+		"最强 %d/8 vs 最弱 %d/8" % [kmax, kmin])
