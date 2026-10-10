@@ -122,7 +122,7 @@ const TREES := {
 		"nodes": [
 			{"id": "wrl_1", "ring": 1, "name": "血价", "kind": "mult", "mod": "battle_damage", "per": 0.04, "max": 5, "desc": "消除伤害 +4%/级"},
 			{"id": "wrl_2", "ring": 1, "name": "契约", "kind": "mult", "mod": "fruit", "per": 0.02, "max": 5, "desc": "果实获取 +2%/级"},
-			{"id": "wrl_3", "ring": 1, "name": "暗學", "kind": "mult", "mod": "weakness", "per": 0.02, "max": 5, "desc": "弱点倍率 +2%/级"},
+			{"id": "wrl_3", "ring": 1, "name": "暗学", "kind": "mult", "mod": "weakness", "per": 0.02, "max": 5, "desc": "弱点倍率 +2%/级"},
 			{"id": "wrl_4", "ring": 2, "name": "吞噬", "kind": "mult", "mod": "battle_damage", "per": 0.03, "max": 5, "desc": "消除伤害 +3%/级"},
 			{"id": "wrl_5", "ring": 2, "name": "低语", "kind": "mult", "mod": "weakness", "per": 0.02, "max": 5, "desc": "弱点倍率 +2%/级"},
 			{"id": "wrl_6", "ring": 2, "name": "魔典", "kind": "mult", "mod": "ep", "per": 0.03, "max": 5, "desc": "精华获取 +3%/级"},

@@ -4,12 +4,12 @@ class_name GameParagon
 ## 每板块结构：普通 ×4（rank 0~5）+ 稀有 ×2（rank 0~3）+ 传奇三选一（rank 0~1，互斥）。
 ## 数值 = 同级天赋的 2 倍（天赋普通 +3%/级 → 巅峰普通 +6%/级）。
 ## 解锁链：板块 N 需板块 N-1 的传奇节点已购（任选其一）。
-## 主题占位名（破坏/经济/通用）——最终命名归世界观线审定。
+## 板块主题与节点名已世界观线审定（圣经第八轮）：世界之冬 / 尼达维勒分号 / 枝务厅编制。
 
 const BOARDS := {
 	"p1": {
 		"name": "世界之冬（破坏）",
-		"desc": "世界之冬从未真正结束——只是化进了每一次撞击里。",
+		"desc": "世界之冬从未真正结束，只是化进了每一次撞击里。",
 		"requires_legendary_of": "",
 		"nodes": [
 			{"id": "p1_n1", "ring": 1, "name": "冻风磨砺", "kind": "mult", "mod": "battle_damage", "per": 0.06, "max": 5, "desc": "消除伤害 +6%/级"},
@@ -32,7 +32,7 @@ const BOARDS := {
 			{"id": "p2_n1", "ring": 1, "name": "行情特权", "kind": "mult", "mod": "income", "per": 0.06, "max": 5, "desc": "挂机收入 +6%/级"},
 			{"id": "p2_n2", "ring": 1, "name": "收购价", "kind": "mult", "mod": "bounty", "per": 0.06, "max": 5, "desc": "赏金 +6%/级"},
 			{"id": "p2_n3", "ring": 1, "name": "会员折扣", "kind": "mult", "mod": "train_cost", "per": -0.06, "max": 5, "desc": "训练费用 -6%/级"},
-			{"id": "p2_n4", "ring": 1, "name": "免申", "kind": "add", "mod": "fee", "per": -0.003, "max": 5, "desc": "手续费 -0.3%/级"},
+			{"id": "p2_n4", "ring": 1, "name": "免申特权", "kind": "add", "mod": "fee", "per": -0.003, "max": 5, "desc": "手续费 -0.3%/级"},
 			{"id": "p2_r1", "ring": 2, "name": "西迁专营", "kind": "mult", "mod": "income", "per": 0.12, "max": 3, "desc": "挂机收入 +12%/级"},
 			{"id": "p2_r2", "ring": 2, "name": "行会背书", "kind": "mult", "mod": "bounty", "per": 0.12, "max": 3, "desc": "赏金 +12%/级"},
 			{"id": "p2_key_a", "ring": 3, "name": "商会分红", "kind": "mult", "mod": "income", "per": 0.30, "max": 1, "key": true, "desc": "挂机收入 +30%"},
