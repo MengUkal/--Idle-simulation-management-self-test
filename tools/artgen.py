@@ -475,6 +475,197 @@ def make_line_income():
     return img
 
 
+# ---------- 职业/种族纹章（金环=职业，银环=种族） ----------
+
+EMBLEM_RING_CLASS = (0xF2, 0xC9, 0x4C, 255)
+EMBLEM_RING_RACE = (0xA8, 0x9F, 0xD6, 255)
+EMBLEM_BG = (0x24, 0x1D, 0x33, 255)
+UI_DIR = os.path.join(ART, "ui")
+
+
+def _emblem_base(d, ring):
+    d.ellipse([S * 0.07, S * 0.07, S * 0.93, S * 0.93], fill=EMBLEM_BG)
+    d.ellipse([S * 0.07, S * 0.07, S * 0.93, S * 0.93], outline=ring, width=px(0.05))
+
+
+def _emblem_warrior(d):
+    col = (0xD8, 0xDE, 0xE8, 255)
+    d.line([S * 0.26, S * 0.26, S * 0.72, S * 0.70], fill=col, width=7)
+    d.line([S * 0.74, S * 0.26, S * 0.28, S * 0.70], fill=col, width=7)
+    d.ellipse([S * 0.44, S * 0.42, S * 0.56, S * 0.54], fill=(0xF2, 0xC9, 0x4C, 255))
+
+
+def _emblem_mage(d):
+    d.line([S * 0.50, S * 0.34, S * 0.50, S * 0.82], fill=(0x8a, 0x5a, 0x2b, 255), width=7)
+    d.ellipse([S * 0.38, S * 0.14, S * 0.62, S * 0.38], fill=(0x8A, 0x5F, 0xBF, 255),
+              outline=(0xF2, 0xC9, 0x4C, 255), width=4)
+    d.ellipse([S * 0.45, S * 0.21, S * 0.55, S * 0.31], fill=(0xE8, 0xE0, 0xCF, 255))
+
+
+def _emblem_rogue(d):
+    col = (0xC0, 0xC8, 0xD8, 255)
+    d.polygon([(S * 0.70, S * 0.20), (S * 0.78, S * 0.28), (S * 0.46, S * 0.60),
+               (S * 0.40, S * 0.52)], fill=col)
+    d.polygon([(S * 0.36, S * 0.48), (S * 0.46, S * 0.58), (S * 0.54, S * 0.50),
+               (S * 0.44, S * 0.40)], fill=(0xF2, 0xC9, 0x4C, 255))
+    d.polygon([(S * 0.38, S * 0.58), (S * 0.46, S * 0.66), (S * 0.32, S * 0.80),
+               (S * 0.24, S * 0.72)], fill=(0x2a, 0x24, 0x38, 255))
+    d.ellipse([S * 0.26, S * 0.66, S * 0.36, S * 0.76], fill=(0xF2, 0xC9, 0x4C, 255))
+
+
+def _emblem_priest(d):
+    gold = (0xF2, 0xC9, 0x4C, 255)
+    d.arc([S * 0.34, S * 0.30, S * 0.66, S * 0.62], 0, 180, fill=gold, width=7)
+    d.line([S * 0.34, S * 0.46, S * 0.66, S * 0.46], fill=gold, width=6)
+    d.line([S * 0.50, S * 0.46, S * 0.50, S * 0.68], fill=gold, width=6)
+    d.line([S * 0.36, S * 0.72, S * 0.64, S * 0.72], fill=gold, width=6)
+    d.ellipse([S * 0.44, S * 0.14, S * 0.56, S * 0.26], outline=gold, width=4)
+
+
+def _emblem_paladin(d):
+    col = (0xE8, 0xE0, 0xCF, 255)
+    d.polygon([(S * 0.50, S * 0.12), (S * 0.78, S * 0.24), (S * 0.74, S * 0.60),
+               (S * 0.50, S * 0.86), (S * 0.26, S * 0.60), (S * 0.22, S * 0.24)],
+              fill=(0x4a, 0x3d, 0x6b, 255), outline=col, width=4)
+    d.line([S * 0.50, S * 0.24, S * 0.50, S * 0.66], fill=(0xF2, 0xC9, 0x4C, 255), width=6)
+    d.line([S * 0.34, S * 0.38, S * 0.66, S * 0.38], fill=(0xF2, 0xC9, 0x4C, 255), width=6)
+
+
+def _emblem_ranger(d):
+    col = (0x58, 0xB4, 0x6B, 255)
+    d.arc([S * 0.24, S * 0.18, S * 0.60, S * 0.82], 290, 70, fill=col, width=7)
+    d.line([S * 0.34, S * 0.20, S * 0.46, S * 0.80], fill=(0xE8, 0xE0, 0xCF, 255), width=3)
+    d.line([S * 0.28, S * 0.74, S * 0.72, S * 0.30], fill=(0xE8, 0xE0, 0xCF, 255), width=5)
+    d.polygon([(S * 0.72, S * 0.30), (S * 0.60, S * 0.30), (S * 0.70, S * 0.42)], fill=col)
+
+
+def _emblem_warlock(d):
+    col = (0x8A, 0x5F, 0xBF, 255)
+    d.polygon([(S * 0.30, S * 0.30), (S * 0.24, S * 0.12), (S * 0.44, S * 0.24)], fill=col)
+    d.polygon([(S * 0.70, S * 0.30), (S * 0.76, S * 0.12), (S * 0.56, S * 0.24)], fill=col)
+    d.arc([S * 0.28, S * 0.28, S * 0.72, S * 0.68], 20, 160, fill=col, width=6)
+    d.arc([S * 0.28, S * 0.28, S * 0.72, S * 0.68], 200, 340, fill=col, width=6)
+    d.ellipse([S * 0.44, S * 0.40, S * 0.56, S * 0.56], fill=(0xE0, 0x56, 0x4F, 255))
+
+
+def _emblem_human(d):
+    col = (0xE0, 0x56, 0x4F, 255)
+    d.line([S * 0.34, S * 0.14, S * 0.34, S * 0.86], fill=(0x8a, 0x5a, 0x2b, 255), width=6)
+    d.polygon([(S * 0.34, S * 0.16), (S * 0.76, S * 0.24), (S * 0.34, S * 0.40)], fill=col)
+
+
+def _emblem_elf(d):
+    col = (0x58, 0xB4, 0x6B, 255)
+    d.polygon([(S * 0.38, S * 0.60), (S * 0.30, S * 0.20), (S * 0.58, S * 0.48)], fill=col)
+    d.polygon([(S * 0.62, S * 0.60), (S * 0.70, S * 0.20), (S * 0.42, S * 0.48)], fill=col)
+    d.line([S * 0.34, S * 0.60, S * 0.66, S * 0.60], fill=col, width=5)
+    d.line([S * 0.50, S * 0.60, S * 0.50, S * 0.80], fill=col, width=4)
+
+
+def _emblem_dwarf(d):
+    col = (0xC2, 0x95, 0x4A, 255)
+    d.line([S * 0.50, S * 0.20, S * 0.50, S * 0.80], fill=(0x8a, 0x5a, 0x2b, 255), width=8)
+    d.polygon([(S * 0.50, S * 0.20), (S * 0.78, S * 0.28), (S * 0.78, S * 0.50),
+               (S * 0.50, S * 0.44)], fill=col)
+    d.polygon([(S * 0.50, S * 0.20), (S * 0.22, S * 0.28), (S * 0.22, S * 0.50),
+               (S * 0.50, S * 0.44)], fill=darken(col, 0.85))
+
+
+def _emblem_giantsblood(d):
+    col = (0xE0, 0x56, 0x4F, 255)
+    d.polygon([(S * 0.20, S * 0.78), (S * 0.42, S * 0.30), (S * 0.58, S * 0.60),
+               (S * 0.70, S * 0.42), (S * 0.82, S * 0.78)], fill=col)
+    d.ellipse([S * 0.62, S * 0.18, S * 0.80, S * 0.36], fill=(0xF2, 0xC9, 0x4C, 255))
+
+
+def _emblem_orc(d):
+    col = (0xE0, 0x56, 0x4F, 255)
+    d.arc([S * 0.14, S * 0.40, S * 0.62, S * 1.10], 250, 340, fill=col, width=9)
+    d.arc([S * 0.38, S * 0.40, S * 0.86, S * 1.10], 200, 290, fill=col, width=9)
+    d.line([S * 0.30, S * 0.62, S * 0.70, S * 0.62], fill=(0x3a, 0x8a, 0x4a, 255), width=8)
+
+
+def _emblem_gnome(d):
+    col = (0xF2, 0xC9, 0x4C, 255)
+    cx, cy, r1, r2 = S * 0.5, S * 0.52, S * 0.26, S * 0.36
+    for a in range(0, 360, 45):
+        rad = math.radians(a)
+        x1, y1 = cx + math.cos(rad) * r2 * 0.86, cy + math.sin(rad) * r2 * 0.86
+        x2, y2 = cx + math.cos(rad) * r2 * 1.14, cy + math.sin(rad) * r2 * 1.14
+        d.line([x1, y1, x2, y2], fill=col, width=8)
+    d.ellipse([cx - r1, cy - r1, cx + r1, cy + r1], fill=col)
+    d.ellipse([cx - S * 0.08, cy - S * 0.08, cx + S * 0.08, cy + S * 0.08], fill=EMBLEM_BG)
+
+
+def _emblem_troll(d):
+    col = (0x8a, 0x8a, 0x96, 255)
+    d.line([S * 0.30, S * 0.84, S * 0.62, S * 0.30], fill=(0x8a, 0x5a, 0x2b, 255), width=8)
+    d.rounded_rectangle([S * 0.48, S * 0.16, S * 0.84, S * 0.44], radius=10, fill=col)
+    d.ellipse([S * 0.54, S * 0.22, S * 0.62, S * 0.30], fill=darken((0x8a, 0x8a, 0x96, 255), 0.7))
+
+
+def _emblem_dark_elf(d):
+    col = (0x8A, 0x5F, 0xBF, 255)
+    r = S * 0.24
+    cx, cy = S * 0.50, S * 0.46
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=col)
+    d.ellipse([cx - r * 0.10 - r * 0.95, cy - r * 1.12, cx - r * 0.10 + r * 0.95, cy + r * 0.78],
+              fill=EMBLEM_BG)
+    d.polygon([(S * 0.60, S * 0.62), (S * 0.72, S * 0.82), (S * 0.50, S * 0.76)],
+              fill=(0xC0, 0xC8, 0xD8, 255))
+
+
+def _emblem_high_elf(d):
+    col = (0xF2, 0xC9, 0x4C, 255)
+    cx, cy = S * 0.5, S * 0.5
+    for rr, w_mul in [(S * 0.30, 4), (S * 0.16, 3)]:
+        pts = []
+        for i in range(8):
+            rad = math.radians(i * 45 - 90)
+            rr2 = rr if i % 2 == 0 else rr * 0.38
+            pts.append((cx + rr2 * math.cos(rad), cy + rr2 * math.sin(rad)))
+        d.polygon(pts, fill=col)
+    d.ellipse([cx - S * 0.05, cy - S * 0.05, cx + S * 0.05, cy + S * 0.05], fill=EMBLEM_BG)
+
+
+EMBLEM_CLASSES = {
+    "warrior": _emblem_warrior, "mage": _emblem_mage, "rogue": _emblem_rogue,
+    "priest": _emblem_priest, "paladin": _emblem_paladin, "ranger": _emblem_ranger,
+    "warlock": _emblem_warlock,
+}
+EMBLEM_RACES = {
+    "human": _emblem_human, "elf": _emblem_elf, "dwarf": _emblem_dwarf,
+    "giantsblood": _emblem_giantsblood, "orc": _emblem_orc, "gnome": _emblem_gnome,
+    "troll": _emblem_troll, "dark_elf": _emblem_dark_elf, "high_elf": _emblem_high_elf,
+}
+
+
+def make_class_emblems():
+    made = []
+    for cid, fn in EMBLEM_CLASSES.items():
+        img = Image.new("RGBA", (S, S), BG)
+        d = ImageDraw.Draw(img)
+        _emblem_base(d, EMBLEM_RING_CLASS)
+        fn(d)
+        path = os.path.join(UI_DIR, f"class_{cid}.png")
+        img.save(path)
+        made.append(path)
+    return made
+
+
+def make_race_emblems():
+    made = []
+    for rid, fn in EMBLEM_RACES.items():
+        img = Image.new("RGBA", (S, S), BG)
+        d = ImageDraw.Draw(img)
+        _emblem_base(d, EMBLEM_RING_RACE)
+        fn(d)
+        path = os.path.join(UI_DIR, f"race_{rid}.png")
+        img.save(path)
+        made.append(path)
+    return made
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -526,6 +717,10 @@ def main():
         path = os.path.join(ui_dir, name + ".png")
         img.save(path)
         made.append(path)
+
+    # 职业/种族纹章
+    made += make_class_emblems()
+    made += make_race_emblems()
 
     # 预览拼图：5 行（元素4变体）+ 1 行（鸟+UI）
     pad = px(0.06)

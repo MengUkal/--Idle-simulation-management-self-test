@@ -22,6 +22,17 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0.098, 0.075, 0.133)
 	add_child(bg)
+	# 场景背景：世界树立绘压暗（美术管线产物；缺失时留暗色底）
+	var tex_path := "res://assets/art/bg/world_tree.png"
+	if ResourceLoader.exists(tex_path):
+		var art := TextureRect.new()
+		art.texture = load(tex_path)
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.self_modulate = Color(1, 1, 1, 0.25)
+		add_child(art)
 
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -108,6 +119,17 @@ func _pick_button(text: String, id: String, is_race: bool) -> Button:
 	b.custom_minimum_size = Vector2(250, 46)
 	b.add_theme_font_size_override("font_size", 20)
 	b.toggle_mode = true
+	# 纹章图标（tools/artgen.py 职业金环/种族银环；缺失时纯文字）
+	var icon_path := "res://assets/art/ui/%s_%s.png" % ["race" if is_race else "class", id]
+	if ResourceLoader.exists(icon_path):
+		var tex: Texture2D = load(icon_path)
+		var img: Image = tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		img.resize(32, 32, Image.INTERPOLATE_NEAREST)
+		b.icon = ImageTexture.create_from_image(img)
+		b.add_theme_constant_override("h_separation", 8)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.pressed.connect(_on_pick.bind(id, is_race, b))
 	if is_race:
 		_race_buttons[id] = b
