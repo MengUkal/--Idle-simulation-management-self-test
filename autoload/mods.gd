@@ -27,8 +27,21 @@ func recompute() -> void:
 	var rid: String = GameState.character_race
 	if GameRaces.RACES.has(rid):
 		sources.append(GameRaces.RACES[rid]["mods"])
-	# ---- 预留：天赋树（每职业专属树，D1 拍板）来源在此追加 ----
-	# for node_id in GameState.talents.keys(): sources.append(Talents.mods_of(node_id))
+	# ---- 天赋树来源（data/talents.gd，rank × 每级效果）----
+	for node_id in GameState.talents.keys():
+		var rank := int(GameState.talents[node_id])
+		if rank <= 0:
+			continue
+		var def := GameTalents.get_node_def(str(node_id))
+		if def.is_empty():
+			continue
+		var per := float(def.get("per", 0.0))
+		var kind := str(def.get("kind", "mult"))
+		var mod_name := str(def.get("mod", ""))
+		if kind == "add" and _add.has(mod_name):
+			_add[mod_name] += per * rank
+		elif kind == "mult" and _mult.has(mod_name):
+			_mult[mod_name] *= 1.0 + per * rank
 	# ---- 预留：被动技能来源在此追加 ----
 	for m in sources:
 		for k: String in m.keys():

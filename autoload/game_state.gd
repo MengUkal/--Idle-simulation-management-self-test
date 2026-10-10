@@ -16,8 +16,9 @@ var rebirth_count := 0                    # 已重生轮数（M4）
 var rebirth_guide_shown := false          # Lv.38 触墙引导已弹过（M4）
 var character_class := ""                 # 职业 id（空 = 未创建，见 data/classes.gd）
 var character_race := ""                  # 种族 id（见 data/races.gd）
-var skill_points := 0                     # 天赋技能点（每级 +1；天赋树预留，本期只积累）
-var talents := {}                         # 天赋记录（预留，本期不消费）
+var skill_points := 0                     # 天赋技能点（Lv.60 前每级 +1；消费于天赋树）
+var paragon_points := 0                   # 巅峰点（Lv.60 起每级 +1；巅峰系统预留）
+var talents := {}                         # 天赋记录 {节点id: rank}（见 data/talents.gd）
 var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
 
 
@@ -57,6 +58,94 @@ func create_character(class_id: String, race_id: String) -> bool:
 	character_race = race_id
 	Mods.recompute()
 	EventBus.level_changed.emit(level)  # 广播一次，驱动各界面刷新
+	return true
+
+
+# ---------- 天赋树（二期，D4 经典被动树蓝本） ----------
+
+func talent_invested() -> int:
+	## 本职业树上已投入的总点数（层圈门槛依据）
+	var total := 0
+	for rank in talents.values():
+		total += int(rank)
+	return total
+
+
+func my_tree_nodes() -> Array:
+	## 当前职业天赋树的节点定义数组
+	return GameTalents.get_tree_for(character_class).get("nodes", [])
+
+
+func talent_buy(node_id: String) -> bool:
+	## 购买/升级 1 级天赋节点（消耗 1 技能点）。校验：树归属/层圈门槛/等级上限/关键互斥/点数
+	var def := GameTalents.get_node_def(node_id)
+	if def.is_empty():
+		return false
+	var my_ids := {}
+	for n in my_tree_nodes():
+		my_ids[n["id"]] = true
+	if not my_ids.has(node_id):
+		return false
+	if skill_points < 1:
+		return false
+	var ring := int(def.get("ring", 1))
+	if talent_invested() < int(GameTalents.TREE_GATE[clampi(ring, 1, 4) - 1]):
+		return false
+	var rank := int(talents.get(node_id, 0))
+	if rank >= int(def.get("max", 1)):
+		return false
+	# 关键天赋互斥：同树其他关键节点已点亮则拒绝（先退还）
+	if def.has("key"):
+		for n in my_tree_nodes():
+			if n.has("key") and n["id"] != node_id and int(talents.get(n["id"], 0)) > 0:
+				return false
+	skill_points -= 1
+	talents[node_id] = rank + 1
+	# 关键天赋的副作用副节点（key_of 指回）同步点亮
+	for n in my_tree_nodes():
+		if str(n.get("key_of", "")) == node_id:
+			talents[n["id"]] = 1
+	Mods.recompute()
+	EventBus.level_changed.emit(level)  # 广播刷新（天赋影响收入等实时数值）
+	return true
+
+
+func talent_refund(node_id: String) -> bool:
+	## 退还 1 级天赋节点（免费，D4 式单点退还）；关键节点退还时同步撤掉副作用
+	if not talents.has(node_id) or int(talents[node_id]) <= 0:
+		return false
+	talents[node_id] = int(talents[node_id]) - 1
+	if int(talents[node_id]) <= 0:
+		talents.erase(node_id)
+		for n in my_tree_nodes():
+			if str(n.get("key_of", "")) == node_id:
+				talents.erase(n["id"])
+	skill_points += 1
+	Mods.recompute()
+	EventBus.level_changed.emit(level)
+	return true
+
+
+func talent_respec_cost() -> int:
+	## 整树重置费用（吉尔）：随已投入点数增长
+	return talent_invested() * 50
+
+
+func talent_respec_all() -> bool:
+	## 整树重置：退还全部投入点数，收取吉尔（费用随投入增长）
+	var invested := talent_invested()
+	if invested <= 0:
+		return false
+	var cost := talent_respec_cost()
+	if money < cost:
+		EventBus.money_not_enough.emit(cost)
+		return false
+	money -= cost
+	EventBus.money_changed.emit(money)
+	talents.clear()
+	skill_points += invested
+	Mods.recompute()
+	EventBus.level_changed.emit(level)
 	return true
 
 
@@ -179,7 +268,10 @@ func upgrade_level() -> bool:
 	if not try_spend(upgrade_cost()):
 		return false
 	level += 1
-	skill_points += 1  # 天赋技能点（天赋树预留，本期只积累）
+	if level >= GameTalents.PARAGON_LEVEL:
+		paragon_points += 1  # 巅峰点分流（巅峰系统预留）
+	else:
+		skill_points += 1  # 天赋技能点
 	EventBus.level_changed.emit(level)
 	EventBus.income_changed.emit(income_per_sec())
 	if level == Balance.FLOOR_2_LEVEL_REQ:

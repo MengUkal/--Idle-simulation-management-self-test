@@ -91,6 +91,7 @@ func _connect_signals() -> void:
 	_rebirth_cancel_btn.pressed.connect(_on_rebirth_cancelled)
 	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
 	_settings_button.pressed.connect(_on_settings_pressed)
+	_talents_button.pressed.connect(_on_talents_pressed)
 	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
 	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
 	_line_income.pressed.connect(_on_line_pressed.bind("income"))
@@ -254,9 +255,16 @@ func _refresh_all() -> void:
 
 
 func _refresh_talents() -> void:
-	## 天赋树预留入口：技能点随升级积累，本版本不可消费
-	_talents_button.text = "天赋 · %d 点（即将开放）" % GameState.skill_points
-	_talents_button.tooltip_text = "每升 1 级获得 1 点技能点；天赋树将在后续版本开放"
+	_talents_button.text = "天赋 · %d 点（%s）" % [
+		GameState.skill_points + GameState.paragon_points,
+		("巅峰 %d" % GameState.paragon_points) if GameState.level >= GameTalents.PARAGON_LEVEL else "升级积累中",
+	]
+	_talents_button.disabled = false
+	_talents_button.tooltip_text = "打开天赋树：消耗技能点强化你的职业流派"
+
+
+func _on_talents_pressed() -> void:
+	add_child(TalentsPanel.new())
 
 
 func _refresh_buttons() -> void:

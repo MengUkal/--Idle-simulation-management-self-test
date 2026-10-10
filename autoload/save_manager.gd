@@ -46,6 +46,7 @@ func save() -> void:
 		"race_id": GameState.character_race,
 		"skill_points": GameState.skill_points,
 		"talents": GameState.talents,
+		"paragon_points": GameState.paragon_points,
 		"floor3_card": GameState.floor3_card,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -97,6 +98,7 @@ func _load() -> void:
 	GameState.character_class = str(data.get("class_id", ""))
 	GameState.character_race = str(data.get("race_id", ""))
 	GameState.skill_points = int(data.get("skill_points", 0))
+	GameState.paragon_points = int(data.get("paragon_points", 0))
 	var t: Dictionary = data.get("talents", {})
 	if typeof(t) == TYPE_DICTIONARY:
 		GameState.talents = t
