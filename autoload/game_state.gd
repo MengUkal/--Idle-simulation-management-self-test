@@ -17,9 +17,76 @@ var rebirth_guide_shown := false          # Lv.38 触墙引导已弹过（M4）
 var character_class := ""                 # 职业 id（空 = 未创建，见 data/classes.gd）
 var character_race := ""                  # 种族 id（见 data/races.gd）
 var skill_points := 0                     # 天赋技能点（Lv.60 前每级 +1；消费于天赋树）
-var paragon_points := 0                   # 巅峰点（Lv.60 起每级 +1；巅峰系统预留）
+var paragon_points := 0                   # 巅峰点（Lv.60 起每级 +1；消费于巅峰板块）
 var talents := {}                         # 天赋记录 {节点id: rank}（见 data/talents.gd）
+var paragon_talents := {}                 # 巅峰记录 {节点id: rank}（见 data/paragon.gd）
+var paragon_unlocked_boards := ["p1"]     # 已解锁板块（点亮传奇即永久解锁，退还不清）
 var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
+
+
+# ---------- 巅峰板块（四层系统之巅，2026-10-11 拍板） ----------
+
+func paragon_board_unlocked(board_id: String) -> bool:
+	## 板块解锁链：点亮前一板块任意传奇即永久解锁（退还不清）
+	return board_id in paragon_unlocked_boards
+
+
+func paragon_invested(board_id: String) -> int:
+	var total := 0
+	for n in GameParagon.BOARDS[board_id]["nodes"]:
+		total += int(paragon_talents.get(n["id"], 0))
+	return total
+
+
+func paragon_buy(node_id: String) -> bool:
+	## 购买/升级 1 级巅峰节点（消耗 1 巅峰点）。校验：板块解锁/等级上限/关键互斥/巅峰点
+	var def := GameParagon.get_node_def(node_id)
+	if def.is_empty():
+		return false
+	if not paragon_board_unlocked(str(def.get("board", ""))):
+		return false
+	if paragon_points < 1:
+		return false
+	var rank := int(paragon_talents.get(node_id, 0))
+	if rank >= int(def.get("max", 1)):
+		return false
+	if def.has("key"):
+		for n in GameParagon.BOARDS[str(def.get("board", ""))]["nodes"]:
+			if n.has("key") and n["id"] != node_id and int(paragon_talents.get(n["id"], 0)) > 0:
+				return false
+	paragon_points -= 1
+	paragon_talents[node_id] = rank + 1
+	for n in GameParagon.BOARDS[str(def.get("board", ""))]["nodes"]:
+		if str(n.get("key_of", "")) == node_id:
+			paragon_talents[n["id"]] = 1
+	# 解锁链：点亮传奇 → 下一板块永久解锁
+	if def.has("key"):
+		var board_id := str(def.get("board", ""))
+		var idx := GameParagon.BOARD_ORDER.find(board_id)
+		if idx >= 0 and idx + 1 < GameParagon.BOARD_ORDER.size():
+			var next_board: String = GameParagon.BOARD_ORDER[idx + 1]
+			if not (next_board in paragon_unlocked_boards):
+				paragon_unlocked_boards.append(next_board)
+	Mods.recompute()
+	EventBus.level_changed.emit(level)
+	return true
+
+
+func paragon_refund(node_id: String) -> bool:
+	## 退还 1 级巅峰节点（免费）；关键节点退还时同步撤掉副作用
+	if not paragon_talents.has(node_id) or int(paragon_talents[node_id]) <= 0:
+		return false
+	var bid := str(GameParagon.get_node_def(node_id).get("board", ""))
+	paragon_talents[node_id] = int(paragon_talents[node_id]) - 1
+	if int(paragon_talents[node_id]) <= 0:
+		paragon_talents.erase(node_id)
+		for n in GameParagon.BOARDS[bid]["nodes"]:
+			if str(n.get("key_of", "")) == node_id:
+				paragon_talents.erase(n["id"])
+	paragon_points += 1
+	Mods.recompute()
+	EventBus.level_changed.emit(level)
+	return true
 
 
 func can_go_to_floor(index: int) -> bool:
@@ -308,7 +375,10 @@ func reset() -> void:
 	character_class = ""
 	character_race = ""
 	skill_points = 0
+	paragon_points = 0
 	talents = {}
+	paragon_talents = {}
+	paragon_unlocked_boards = ["p1"]
 	floor3_card = false
 	Mods.recompute()
 	EventBus.money_changed.emit(money)

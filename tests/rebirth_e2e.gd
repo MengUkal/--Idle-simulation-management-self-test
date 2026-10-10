@@ -89,7 +89,7 @@ func _run(main: Control) -> void:
 	check("T2 按钮解锁且显示可得果实", not btn.disabled and "果实" in btn.text)
 
 	# ---- T3 重生前状态准备 ----
-	GameState.add_money(1000.0)
+	GameState.add_money(100000.0)  # 预算充足：行情价格随机波动（0.2~5 倍基准），不因高价偶发买不起
 	GameState.debug_add_line("atk", 5)
 	GameState.debug_add_line("income", 3)
 	check("T3 行情价格就绪", Market.prices.size() == 3)

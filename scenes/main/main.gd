@@ -34,6 +34,7 @@ var _toast_tween: Tween
 @onready var _rebirth_apply_btn: Button = %RebirthApplyBtn
 @onready var _settings_button: Button = %SettingsButton
 @onready var _talents_button: Button = %TalentsButton
+@onready var _paragon_button: Button = %ParagonButton
 @onready var _bg_art: TextureRect = %BgArt
 
 
@@ -92,6 +93,7 @@ func _connect_signals() -> void:
 	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_talents_button.pressed.connect(_on_talents_pressed)
+	_paragon_button.pressed.connect(_on_paragon_pressed)
 	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
 	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
 	_line_income.pressed.connect(_on_line_pressed.bind("income"))
@@ -261,10 +263,20 @@ func _refresh_talents() -> void:
 	]
 	_talents_button.disabled = false
 	_talents_button.tooltip_text = "打开天赋树：消耗技能点强化你的职业流派"
+	# 巅峰入口：Lv.60 解锁（D-P6 三板块全做）
+	var paragon_unlocked := GameState.level >= GameTalents.PARAGON_LEVEL
+	_paragon_button.disabled = not paragon_unlocked
+	_paragon_button.text = "巅峰 · %d 点" % GameState.paragon_points if paragon_unlocked \
+		else "巅峰（需 Lv.%d）" % GameTalents.PARAGON_LEVEL
+	_paragon_button.tooltip_text = "打开巅峰板块：巅峰点是后期专属的成长资源"
 
 
 func _on_talents_pressed() -> void:
 	add_child(TalentsPanel.new())
+
+
+func _on_paragon_pressed() -> void:
+	add_child(ParagonPanel.new())
 
 
 func _refresh_buttons() -> void:

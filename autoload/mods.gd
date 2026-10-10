@@ -43,6 +43,21 @@ func recompute() -> void:
 		elif kind == "mult" and _mult.has(mod_name):
 			_mult[mod_name] *= 1.0 + per * rank
 	# ---- 预留：被动技能来源在此追加 ----
+	# ---- 巅峰板块来源（data/paragon.gd，四层系统之巅）----
+	for node_id in GameState.paragon_talents.keys():
+		var prank := int(GameState.paragon_talents[node_id])
+		if prank <= 0:
+			continue
+		var pdef := GameParagon.get_node_def(str(node_id))
+		if pdef.is_empty():
+			continue
+		var pper := float(pdef.get("per", 0.0))
+		var pkind := str(pdef.get("kind", "mult"))
+		var pmod := str(pdef.get("mod", ""))
+		if pkind == "add" and _add.has(pmod):
+			_add[pmod] += pper * prank
+		elif pkind == "mult" and _mult.has(pmod):
+			_mult[pmod] *= 1.0 + pper * prank
 	for m in sources:
 		for k: String in m.keys():
 			if _mult.has(k):
