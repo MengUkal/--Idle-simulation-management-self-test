@@ -18,6 +18,27 @@ var character_class := ""                 # 职业 id（空 = 未创建，见 da
 var character_race := ""                  # 种族 id（见 data/races.gd）
 var skill_points := 0                     # 天赋技能点（每级 +1；天赋树预留，本期只积累）
 var talents := {}                         # 天赋记录（预留，本期不消费）
+var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
+
+
+func can_go_to_floor(index: int) -> bool:
+	## 层间往返的目标层是否可去：一层自由；二层 Lv.10；三层 Lv.50 + 层卡
+	match index:
+		3:
+			return level >= Balance.FLOOR_3_LEVEL_REQ and floor3_card
+		2:
+			return level >= Balance.FLOOR_2_LEVEL_REQ
+		_:
+			return index == 1
+
+
+func unlock_floor3_card() -> bool:
+	## 首杀守林古树掉落「苍干栈道层卡」；已持有返回 false
+	if floor3_card:
+		return false
+	floor3_card = true
+	EventBus.floor3_card_gained.emit()
+	return true
 
 
 func needs_character_creation() -> bool:
@@ -172,6 +193,9 @@ func upgrade_cost() -> float:
 
 
 func go_to_floor(index: int) -> void:
+	## 层间往返（一层自由；二层需 Lv.10；三层需 Lv.50 + 层卡）
+	if not can_go_to_floor(index):
+		return
 	floor_index = index
 	EventBus.floor_changed.emit(index)
 
@@ -193,6 +217,7 @@ func reset() -> void:
 	character_race = ""
 	skill_points = 0
 	talents = {}
+	floor3_card = false
 	Mods.recompute()
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())

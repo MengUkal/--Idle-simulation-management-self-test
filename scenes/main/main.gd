@@ -79,6 +79,7 @@ func _connect_signals() -> void:
 	EventBus.essence_changed.connect(_on_essence_changed)
 	EventBus.line_changed.connect(_on_line_changed)
 	EventBus.rebirth_performed.connect(_on_rebirth_performed)
+	EventBus.floor3_card_gained.connect(_refresh_buttons)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_floor2_button.pressed.connect(_on_floor2_pressed)
 	_adventure_button.pressed.connect(_on_adventure_pressed)
@@ -148,12 +149,14 @@ func _on_upgrade_pressed() -> void:
 
 
 func _on_floor2_pressed() -> void:
-	## 层间往返：一层 ↔ 二层（低练度回一层速刷，练度够了上二层）
-	Sfx.play("floor_switch")
-	if GameState.floor_index >= 2:
-		GameState.go_to_floor(1)
+	## 层间往返：循环 1→2→3→1（三层·苍干栈道需 Lv.50 + 层卡）
+	var nxt := GameState.floor_index % 3 + 1
+	if GameState.can_go_to_floor(nxt):
+		Sfx.play("floor_switch")
+		GameState.go_to_floor(nxt)
 	else:
-		GameState.go_to_floor(2)
+		Sfx.play("money_not_enough", 1.0, -6.0)
+		_flash(_floor2_button)
 
 
 func _on_adventure_pressed() -> void:
@@ -263,17 +266,24 @@ func _refresh_buttons() -> void:
 		Balance.format_number(cost),
 		Balance.CURRENCY_SHORT,
 	]
-	var at_floor2 := GameState.floor_index >= 2
-	var unlocked := GameState.level >= Balance.FLOOR_2_LEVEL_REQ
-	_floor2_button.disabled = at_floor2 or not unlocked
-	if at_floor2:
-		_floor2_button.text = "返回第一层"
-	elif unlocked:
-		_floor2_button.text = "前往第二层"
+	# 层间按钮：循环 1→2→3→1；不可去时置灰并显示条件（三层需 Lv.50 + 层卡）
+	var cur := GameState.floor_index
+	var nxt := cur % 3 + 1
+	var nxt_name: String = Balance.FLOOR_NAMES.get(nxt, "未知层")
+	if GameState.can_go_to_floor(nxt):
+		_floor2_button.disabled = false
+		_floor2_button.text = "前往%s" % nxt_name
 	else:
-		_floor2_button.text = "第二层（需 Lv.%d，当前 Lv.%d）" % [
-			Balance.FLOOR_2_LEVEL_REQ, GameState.level,
-		]
+		_floor2_button.disabled = true
+		if nxt == 3:
+			var need := "需 Lv.%d + 层卡（首杀守林古树）" % Balance.FLOOR_3_LEVEL_REQ
+			if GameState.level >= Balance.FLOOR_3_LEVEL_REQ and not GameState.floor3_card:
+				need = "需层卡（首杀守林古树）"
+			_floor2_button.text = "%s（%s，当前 Lv.%d）" % [nxt_name, need, GameState.level]
+		else:
+			_floor2_button.text = "%s（需 Lv.%d，当前 Lv.%d）" % [
+				nxt_name, Balance.FLOOR_2_LEVEL_REQ, GameState.level,
+			]
 	var market_unlocked := GameState.level >= Balance.MARKET_UNLOCK_LEVEL
 	_market_button.disabled = not market_unlocked
 	_market_button.text = "交易所" if market_unlocked else "交易所（需 Lv.%d）" % Balance.MARKET_UNLOCK_LEVEL
@@ -281,11 +291,10 @@ func _refresh_buttons() -> void:
 
 func _refresh_training() -> void:
 	_essence_label.text = "元素精华：%d" % GameState.essence
-	var tcm := Balance.train_cost_mult(GameState.fruits, GameState.rebirth_count)
 	for kind: String in _line_buttons.keys():
 		var btn: Button = _line_buttons[kind]
 		var lv := GameState.line_level(kind)
-		var cost := int(ceil(Balance.train_cost(lv) * tcm))
+		var cost := GameState.train_cost_for(kind)
 		btn.text = "%s Lv.%d → %d（%d 精华）" % [LINE_NAMES[kind], lv, lv + 1, cost]
 		btn.disabled = GameState.essence < cost
 

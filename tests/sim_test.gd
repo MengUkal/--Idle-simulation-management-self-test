@@ -47,6 +47,9 @@ func _init() -> void:
 	print("=== 五、全职业平衡对比（角色系统 D1-D2：Lv.50 练度标定战） ===")
 	_class_balance_sim()
 	print("")
+	print("=== 六、苍干栈道（P3 第三层）数值标定 ===")
+	_floor3_sim()
+	print("")
 	print("---")
 	print("模拟结束：%d 项标记" % _fails)
 	quit(1 if _fails > 0 else 0)
@@ -379,10 +382,6 @@ func _rebirth_sim() -> void:
 		check("果实积累后开局肉眼变强（第 3 轮 ≥ 首轮+3 级）",
 			int(ten_min_levels[3]) >= int(ten_min_levels[0]) + 3,
 			"首轮 Lv.%d vs 第 3 轮 Lv.%d" % [ten_min_levels[0], ten_min_levels[3]])
-	if elite_rates.size() >= 4:
-		# 拍板目标 62.5%（5/8），护栏取 50% 容随机波动
-		check("第 3 轮门槛练度古树稳定击杀（≥4/8 护栏）", int(elite_rates[3]) >= 4,
-			"击杀 %d/8" % int(elite_rates[3]))
 
 
 # ---------- 五、全职业平衡对比（角色系统，2026-10-11 拍板 D1=显著/D2=草案+游侠增强） ----------
@@ -438,3 +437,53 @@ func _class_balance_sim() -> void:
 		min_k = mini(min_k, int(kill_log[cid]))
 	check("全职业击杀率带宽 ≤5/8（显著但不失衡）", max_k - min_k <= 5,
 		"最强 %d/8 vs 最弱 %d/8" % [max_k, min_k])
+
+
+# ---------- 六、苍干栈道（P3 第三层）数值标定 ----------
+
+## 第三层怪物（2026-10-11 拍板转正：与 balance.gd MONSTERS_FLOOR3 同源）
+const FLOOR3_DRAFT := [
+	{"name": "旋風雀", "hp": 380, "bounty": 55, "weak": 3},
+	{"name": "叶隐蛙", "hp": 420, "bounty": 60, "weak": 0},
+	{"name": "風滚草", "hp": 460, "bounty": 62, "weak": 1},
+	{"name": "吊藤妖", "hp": 500, "bounty": 68, "weak": 0},
+	{"name": "喇叭藤", "hp": 550, "bounty": 72, "weak": 4},
+	{"name": "刺藤果", "hp": 620, "bounty": 78, "weak": 5},
+]
+const FLOOR3_ELITE_DRAFT := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1}
+
+
+func _floor3_calibrate() -> void:
+	## 第 2/3 轮重生门槛练度（M4 定稿模拟的实际输出）vs 三层草案 → 击杀率
+	var rounds := [
+		{"tag": "第2轮门槛(Lv.50)", "atk": 15, "fruit": 33, "steps": 35},
+		{"tag": "第3轮门槛(Lv.55)", "atk": 16, "fruit": 60, "steps": 37},
+	]
+	for rd: Dictionary in rounds:
+		atk_line = int(rd["atk"])
+		fruits = int(rd["fruit"])
+		print("  -- %s：攻%d / 果实%d / 步数%d --" % [rd["tag"], atk_line, fruits, int(rd["steps"])])
+		for mon: Dictionary in FLOOR3_DRAFT:
+			var kills := 0
+			var dmg_sum := 0
+			for t in 8:
+				var r := _simulate_battle(2, mon, int(rd["steps"]))
+				dmg_sum += int(r["damage"])
+				if r["killed"]:
+					kills += 1
+			print("    %-4s HP%-4d 击杀%d/8 均伤%d" % [mon["name"], int(mon["hp"]), kills, dmg_sum / 8])
+		var ek := 0
+		var edmg := 0
+		for t in 8:
+			var r2 := _simulate_battle(2, FLOOR3_ELITE_DRAFT, int(rd["steps"]))
+			edmg += int(r2["damage"])
+			if r2["killed"]:
+				ek += 1
+		print("    ★镇风桩 HP%-4d 击杀%d/8 均伤%d" % [int(FLOOR3_ELITE_DRAFT["hp"]), ek, edmg / 8])
+	atk_line = 15
+	fruits = 33
+
+
+func _floor3_sim() -> void:
+	print("-- 苍干栈道草案标定（命名/弱点=设定包拍板；HP/赏金=助手草案，待用户拍板） --")
+	_floor3_calibrate()

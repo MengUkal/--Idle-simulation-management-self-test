@@ -107,6 +107,7 @@ func _ready() -> void:
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	# BGM 按层：三层暂用二层曲顶替（bgm_floor3 待音频会话产出）
 	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
 	_build_skill_bar_placeholder()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
@@ -310,6 +311,11 @@ func _victory() -> void:
 	defeated = true
 	Sfx.play("monster_die")  # 击杀爆碎（胜利 jingle 在结算弹窗时另播）
 	_kill_burst()
+	# 层卡：首杀守林古树掉落「苍干栈道层卡」（P3，三层解锁凭证）
+	if str(monster.get("name", "")) == "守林古树" and monster.get("elite", false):
+		if GameState.unlock_floor3_card():
+			Sfx.play("floor_unlock")
+			_show_toast("守林古树承认了你——它吐出一枚「苍干栈道层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)

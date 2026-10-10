@@ -46,6 +46,7 @@ func save() -> void:
 		"race_id": GameState.character_race,
 		"skill_points": GameState.skill_points,
 		"talents": GameState.talents,
+		"floor3_card": GameState.floor3_card,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -99,6 +100,7 @@ func _load() -> void:
 	var t: Dictionary = data.get("talents", {})
 	if typeof(t) == TYPE_DICTIONARY:
 		GameState.talents = t
+	GameState.floor3_card = bool(data.get("floor3_card", false))
 	Mods.recompute()  # 角色/天赋就绪后重算修饰符
 
 
