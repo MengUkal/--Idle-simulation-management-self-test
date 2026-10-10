@@ -29,6 +29,7 @@ func _ready() -> void:
 	_build_chart()
 	_build_trade_panel()
 	_build_lock_panel()
+	Sfx.bgm("bgm_market")
 	Market.prices_changed.connect(_refresh_quotes)
 	Market.candle_closed.connect(_refresh_quotes)
 	_refresh_all()
@@ -141,12 +142,22 @@ func _build_target_list() -> void:
 	head.add_theme_font_size_override("font_size", 22)
 	head.add_theme_color_override("font_color", COL_GOLD)
 	box.add_child(head)
+	var icons := [
+		"res://assets/art/ui/target_huo.png",
+		"res://assets/art/ui/target_feng.png",
+		"res://assets/art/ui/target_sheng.png",
+	]
 	for i in Balance.MARKET_TARGETS.size():
 		var t: Dictionary = Balance.MARKET_TARGETS[i]
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(0, 56)
 		btn.add_theme_font_size_override("font_size", 20)
 		btn.text = t["name"]
+		# 标的小图标（tools/artgen.py 产物；缺失时无图标纯文字）
+		var icon_path: String = icons[i] if i < icons.size() else ""
+		if icon_path != "" and ResourceLoader.exists(icon_path):
+			btn.icon = load(icon_path)
+			btn.expand_icon = true
 		btn.pressed.connect(_on_target_pressed.bind(i))
 		box.add_child(btn)
 		_target_buttons.append(btn)
@@ -285,16 +296,20 @@ func _on_target_pressed(idx: int) -> void:
 
 func _act_buy() -> void:
 	if GameState.buy_stock(selected, _to_i(_amount_input.text)):
+		Sfx.play("trade_buy")
 		_show_toast("买入成功！")
 	else:
+		Sfx.play("money_not_enough")
 		_show_toast("吉尔不足或数量无效")
 	_refresh_quotes()
 
 
 func _act_sell() -> void:
 	if GameState.sell_stock(selected, _to_i(_amount_input.text)):
+		Sfx.play("trade_sell")
 		_show_toast("卖出成功！")
 	else:
+		Sfx.play("money_not_enough")
 		_show_toast("没有足够持仓")
 	_refresh_quotes()
 

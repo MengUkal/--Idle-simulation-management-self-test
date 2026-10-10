@@ -40,6 +40,7 @@ func _ready() -> void:
 	_init_line_buttons()
 	_connect_signals()
 	_refresh_all()
+	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	if OS.get_cmdline_user_args().has("--capture-main"):
@@ -83,13 +84,13 @@ func _connect_signals() -> void:
 	_rebirth_cancel_btn.pressed.connect(_on_rebirth_cancelled)
 	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
 	_settings_button.pressed.connect(_on_settings_pressed)
+	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
+	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
+	_line_income.pressed.connect(_on_line_pressed.bind("income"))
 
 
 func _on_settings_pressed() -> void:
 	SettingsOverlay.open()
-	_line_atk.pressed.connect(_on_line_pressed.bind("atk"))
-	_line_bounty.pressed.connect(_on_line_pressed.bind("bounty"))
-	_line_income.pressed.connect(_on_line_pressed.bind("income"))
 
 
 # ---------- 信号处理 ----------
@@ -112,6 +113,7 @@ func _on_level_changed(new_level: int) -> void:
 
 
 func _on_money_not_enough(_needed: float) -> void:
+	Sfx.play("money_not_enough")
 	_flash(_upgrade_button)
 
 
@@ -124,6 +126,7 @@ func _on_floor_changed(new_floor: int) -> void:
 
 
 func _on_floor_unlocked(_req_level: int) -> void:
+	Sfx.play("floor_unlock")
 	_show_toast("枝务厅通知：您的登层签证已下发。树的祝福随函附上——不用谢。")
 
 
@@ -134,11 +137,13 @@ func _on_save_completed() -> void:
 # ---------- 交互 ----------
 
 func _on_upgrade_pressed() -> void:
-	GameState.upgrade_level()
+	if GameState.upgrade_level():
+		Sfx.play("level_up")
 
 
 func _on_floor2_pressed() -> void:
 	## 层间往返：一层 ↔ 二层（低练度回一层速刷，练度够了上二层）
+	Sfx.play("floor_switch")
 	if GameState.floor_index >= 2:
 		GameState.go_to_floor(1)
 	else:
@@ -146,10 +151,12 @@ func _on_floor2_pressed() -> void:
 
 
 func _on_adventure_pressed() -> void:
+	Sfx.play("ui_click")
 	get_tree().change_scene_to_file("res://scenes/battle/battle.tscn")
 
 
 func _on_market_pressed() -> void:
+	Sfx.play("ui_click")
 	get_tree().change_scene_to_file("res://scenes/market/market.tscn")
 
 
@@ -170,7 +177,8 @@ func _on_reset_confirmed() -> void:
 
 
 func _on_line_pressed(kind: String) -> void:
-	GameState.upgrade_line(kind)
+	if GameState.upgrade_line(kind):
+		Sfx.play("line_up")
 
 
 # ---------- 重生转生（M4） ----------
@@ -209,6 +217,7 @@ func _on_rebirth_confirmed() -> void:
 
 
 func _on_rebirth_performed(gained: int, total: int, count: int) -> void:
+	Sfx.play("rebirth")
 	_show_toast("献上等级！世界树结出果实 ×%d（累计 %d，第 %d 轮）" % [gained, total, count])
 
 

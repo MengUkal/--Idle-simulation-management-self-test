@@ -107,6 +107,7 @@ func _ready() -> void:
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
 	if OS.get_cmdline_user_args().has("--capture-debug"):
 		_debug_capture.call_deferred()
 
@@ -200,14 +201,24 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	var report := board.try_swap(a, b)
 	if not report.get("ok", false):
 		_busy = true
+		Sfx.play("swap_fail")
 		await _anim_invalid_swap(a, b)
 		_busy = false
 		_refresh_board()
 		return
 	_busy = true
+	Sfx.play("swap_ok")
 	var spawned: Array = report.get("spawned", [])
 	if spawned.size() > 0:
 		_show_toast("生成特殊棋子！")
+		for sp_entry: Dictionary in spawned:
+			match int(sp_entry["special"]):
+				Match3Board.SPECIAL_LINE_H, Match3Board.SPECIAL_LINE_V:
+					Sfx.play("special_line")
+				Match3Board.SPECIAL_BOMB:
+					Sfx.play("special_bomb")
+				Match3Board.SPECIAL_BIRD:
+					Sfx.play("special_bird")
 	# 1) 交换补间。普通三连（逻辑已换位）：按钮跟随块走——滑到新格位后停住、
 	#    tiles 引用对调，之后的消除/下落/刷新全部按新映射，视觉与逻辑一致。
 	#    特效激活（逻辑不换位）：只播撞击回弹，明确"这块没有换过去"。
@@ -391,6 +402,7 @@ func _spawn_damage_number(amount: int, weak: bool) -> void:
 
 func _show_result(victory: bool) -> void:
 	battle_over = true
+	Sfx.play("battle_win" if victory else "battle_retreat")
 	var time_text := "%d:%02d" % [int(elapsed / 60.0), int(elapsed) % 60]
 	if victory:
 		_result_title.text = "战斗胜利！"
@@ -465,6 +477,22 @@ func _anim_invalid_swap(a: Vector2i, b: Vector2i) -> void:
 func _anim_clear(waves: Array) -> void:
 	for wi in waves.size():
 		var wave: Array = waves[wi]
+		# 波音：首波按主元素播 clear_*；后续波播连锁音并按波次升调
+		var elem_count := {}
+		for entry in wave:
+			var el_c := int(entry["element"])
+			if el_c >= 0:
+				elem_count[el_c] = int(elem_count.get(el_c, 0)) + 1
+		var main_el := -1
+		var best := 0
+		for el_k in elem_count.keys():
+			if int(elem_count[el_k]) > best:
+				best = int(elem_count[el_k])
+				main_el = int(el_k)
+		if wi == 0 and main_el >= 0:
+			Sfx.play("clear_%s" % ELEMENT_EN[main_el])
+		elif wi > 0:
+			Sfx.play("combo_chain", 1.0 + 0.12 * wi)
 		var tw := create_tween().set_parallel(true)
 		for entry in wave:
 			var cell: Vector2i = entry["cell"]

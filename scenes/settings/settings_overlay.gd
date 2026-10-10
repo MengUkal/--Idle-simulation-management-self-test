@@ -37,10 +37,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func open() -> void:
 	_refresh_ui()
 	visible = true
+	Sfx.play("ui_open")
 
 
 func close() -> void:
 	visible = false
+	Sfx.play("ui_close")
 
 
 func toggle() -> void:
