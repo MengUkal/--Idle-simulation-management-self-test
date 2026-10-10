@@ -88,7 +88,7 @@ func _ready() -> void:
 	detail.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	detail.offset_left = -590
 	detail.offset_right = 590
-	detail.offset_top = -176
+	detail.offset_top = -216
 	detail.offset_bottom = -56
 	add_child(detail)
 	var dbox := VBoxContainer.new()
