@@ -44,7 +44,8 @@ STYLE_POS = ("pixel art sprite, game monster avatar, one single creature, solo, 
 STYLE_NEG = ("blurry, smooth gradients, realistic, photo, text, watermark, signature, "
              "multiple creatures, two, twins, pair, group, background scenery, "
              "grey background, gradient background, frame, border, "
-             "jpeg artifacts, human, humanoid face")
+             "jpeg artifacts, human, humanoid face, hair, cat ears, kimono, dress, "
+             "clothes, humanoid body")
 
 # 场景图（背景/立绘）风格：不抠底，负面词不能含 scenery
 SCENE_STYLE_POS = ("pixel art, japanese fantasy RPG scenery, detailed, vibrant colors, "
@@ -68,6 +69,14 @@ MONSTERS = {
     "暗藤魔":     ("vine",     "dark thorn vine monster, writhing black thorny vines forming a small creature, single glowing red eye"),
     "辉羽蝶":     ("butterfly","radiant butterfly, glowing white-gold wings, light dust trail"),
     "守林古树":   ("ancient",  "elite ancient forest tree boss, huge face in trunk, glowing amber eyes"),
+    # 第三层 · 苍干栈道（風系+藤蔓寄生系，设定包命名；描述用形状硬锚防人形漂移）
+    "旋風雀":     ("gustsparrow", "small round sparrow bird with tiny swirling wind wings, chubby bird body, whirlwind feather trail"),
+    "叶隐蛙":     ("leaffrog",   "green frog crouching under a big leaf, frog body with long legs, big round eyes, leaf hat"),
+    "風滚草":     ("tumbleweed", "perfect sphere of tangled dry grass and twigs, tumbleweed ball with two tiny eyes"),
+    "吊藤妖":     ("hangvine",   "dangling curly vine tendril with a small grinning leaf face, hanging upside down, no limbs"),
+    "喇叭藤":     ("hornvine",   "single giant orange trumpet flower with curly vines, trumpet bloom pointing up, no human"),
+    "刺藤果":     ("thornfruit", "round spiky seed pod covered in thorns, small vine on top, no limbs, no face except tiny eyes"),
+    "镇风桩":     ("windstake",  "carved wooden totem pole guardian with a stern face, ropes and metal cap, standing pillar, imposing"),
 }
 
 # 表情变体：在怪物描述后追加的形态词（输出到 monsters/variants/）

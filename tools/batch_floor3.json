@@ -1,0 +1,22 @@
+[
+ {
+  "name": "旋風雀",
+  "seed": 500,
+  "desc": "small round sparrow bird creature, chubby bird body with tiny wind wings, whirlwind feathers, no hair"
+ },
+ {
+  "name": "叶隐蛙",
+  "seed": 505,
+  "desc": "green frog creature crouching with big round eyes and a leaf hat, frog legs, no hair"
+ },
+ {
+  "name": "吊藤妖",
+  "seed": 510,
+  "desc": "curly hanging vine tendril with a small grinning leaf face, dangling from a plank, no limbs, no hair"
+ },
+ {
+  "name": "镇风桩",
+  "seed": 515,
+  "desc": "carved wooden totem pillar guardian with a stern carved face, ropes and metal cap, no human"
+ }
+]
