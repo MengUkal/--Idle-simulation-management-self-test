@@ -59,6 +59,15 @@ var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹�
 @onready var _retreat_confirm_ref: Control = %RetreatConfirm
 @onready var _toast_ref: Label = %Toast
 @onready var _board_layer_ref: Control = %BoardLayer
+@onready var _enemy_portrait: TextureRect = %EnemyPortrait
+
+## 怪物名 -> 头像文件标识（assets/art/monsters/<slug>.png，与 tools/gen_asset.py 的 MONSTERS 对应）
+const MONSTER_SLUG := {
+	"树精史莱姆": "slime", "風狼": "windwolf", "岩甲龟": "turtle", "水妖": "nymph",
+	"光萤": "firefly", "暗影鼠": "rat", "树根守卫": "guardian",
+	"荆棘树妖": "thorntree", "風羽隼": "falcon", "苔石巨人": "golem",
+	"沼泽水灵": "bogspirit", "暗藤魔": "vine", "辉羽蝶": "butterfly", "守林古树": "ancient",
+}
 
 
 func _process(delta: float) -> void:
@@ -129,6 +138,10 @@ func _roll_monster() -> void:
 		monster = pool[randi() % pool.size()].duplicate()
 	monster_hp_max = int(monster["hp"])
 	monster_hp = float(monster_hp_max)
+	# 敌人头像：按怪物名加载像素风头像（tools/gen_asset.py 产物；缺失时留空）
+	var slug: String = MONSTER_SLUG.get(monster["name"], "")
+	var tex_path := "res://assets/art/monsters/%s.png" % slug
+	_enemy_portrait.texture = load(tex_path) if slug != "" and ResourceLoader.exists(tex_path) else null
 
 
 ## 棋子为运行时动态生成（49 颗，位置由棋盘算法决定），挂载到场景中的 BoardLayer 下
