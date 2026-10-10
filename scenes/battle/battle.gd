@@ -294,6 +294,7 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	await _anim_settle()
 	_refresh_board()
 	_refresh_hud()
+	_refresh_skill_bar()  # 动画结束、_busy 复位后恢复技能按钮可用状态（否则充能时被 disable 后永久灰死）
 	# 4) 结算弹窗
 	if _pending_result == 1:
 		_show_result(true)
