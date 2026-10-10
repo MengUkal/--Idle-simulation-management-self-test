@@ -267,7 +267,7 @@ func _build_lock_panel() -> void:
 	t.add_theme_color_override("font_color", COL_GOLD)
 	box.add_child(t)
 	var s := Label.new()
-	s.text = "交易所 Lv.%d 解锁——先在世界树练练级吧" % Balance.MARKET_UNLOCK_LEVEL
+	s.text = "交易所 Lv.%d 解锁，先在世界树练练级吧" % Balance.MARKET_UNLOCK_LEVEL
 	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	s.add_theme_font_size_override("font_size", 18)
 	s.add_theme_color_override("font_color", COL_DIM)
