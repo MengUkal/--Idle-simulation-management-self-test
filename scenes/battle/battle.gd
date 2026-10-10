@@ -232,7 +232,8 @@ func _apply_damage(waves: Array) -> void:
 	var dmg_f := 0.0
 	var ep := 0
 	var any_weak := false
-	var atk_mult := Balance.train_multiplier(GameState.atk_line)
+	var atk_mult := Balance.train_multiplier(GameState.atk_line) \
+		* Balance.atk_fruit_mult(GameState.fruits)
 	for i in waves.size():
 		var wave_mult := 1.0 + Balance.CHAIN_BONUS_PER_WAVE * float(i)
 		for entry in waves[i]:
