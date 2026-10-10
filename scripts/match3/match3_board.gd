@@ -204,18 +204,19 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	var waves_n: Array = []
 	_process_match_wave(matches, waves_n)
 	_cascade(waves_n)
-	return _report(waves_n)
+	return _report(waves_n, true)
 
 
 # ---------- 解析内部 ----------
 
-func _report(waves: Array) -> Dictionary:
+func _report(waves: Array, swapped := false) -> Dictionary:
 	var total := {}
 	for w in waves:
 		for e in w:
 			total[e["cell"]] = true
 	return {
-		"ok": true, "cleared": total.keys(), "chains": waves.size(),
+		"ok": true, "swapped": swapped, "cleared": total.keys(),
+		"chains": waves.size(),
 		"waves": waves, "spawned": spawned_last_move.duplicate(),
 		"moves": last_moves.duplicate(), "refills": last_refills.duplicate(),
 	}

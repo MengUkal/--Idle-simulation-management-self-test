@@ -99,6 +99,7 @@ func _test_resolve() -> void:
 	_grid_only(b, [[4, 4, 5], [1, 2, 4], [2, 1, 2]])
 	var rep: Dictionary = b.try_swap(Vector2i(2, 0), Vector2i(2, 1))
 	check("有效交换返回 ok=true", rep.get("ok", false), true)
+	check("普通三连标记 swapped=true（逻辑确已换位）", rep.get("swapped", false), true)
 	var cleared: Array = rep["cleared"]
 	check("消除格数 ≥ 3", cleared.size() >= 3, true)
 	var first_row_cleared := true
@@ -156,6 +157,7 @@ func _test_specials() -> void:
 	b4.specials[0][0] = Match3Board.SPECIAL_LINE_H
 	var rep_line: Dictionary = b4.try_swap(Vector2i(0, 0), Vector2i(1, 0))
 	check("直线特效激活 ok", rep_line.get("ok", false), true)
+	check("特效激活不换位（swapped=false，UI 分支依据）", rep_line.get("swapped", true), false)
 	var line_cleared: Array = rep_line["cleared"]
 	var row0_gone := true
 	for cell in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)]:

@@ -197,8 +197,15 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	var spawned: Array = report.get("spawned", [])
 	if spawned.size() > 0:
 		_show_toast("生成特殊棋子！")
-	# 1) 交换补间
+	# 1) 交换补间；逻辑确已换位（普通三连）时同步两格纹理，
+	#    否则后续消除动画会拿交换前的旧颜色去消（玩家看到"消错颜色"）
 	await _anim_swap_move(a, b)
+	if report.get("swapped", false):
+		var ba2: Button = tiles[a.y][a.x]
+		var bb2: Button = tiles[b.y][b.x]
+		var swapped_icon := ba2.icon
+		ba2.icon = bb2.icon
+		bb2.icon = swapped_icon
 	steps_left -= 1
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
@@ -208,8 +215,8 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 		_pending_result = 1
 	elif steps_left <= 0:
 		_pending_result = 2
-	# 2) 消除：闪白 + 缩小消失
-	await _anim_clear(report["cleared"])
+	# 2) 消除：按连锁波分批播（每格用逻辑记录的元素渲染，颜色与实际消除一致）
+	await _anim_clear(report["waves"])
 	# 3) 重力下落 + 补牌空降
 	_refresh_board()
 	_apply_motion_targets(report)
@@ -440,34 +447,42 @@ func _anim_invalid_swap(a: Vector2i, b: Vector2i) -> void:
 	await tw2.finished
 
 
-## 消除：闪白 + 向心缩小消失
-func _anim_clear(cleared: Array) -> void:
-	if cleared.is_empty():
-		return
-	var tw := create_tween().set_parallel(true)
-	for e in cleared:
-		var cell: Vector2i = e
-		var btn: Button = tiles[cell.y][cell.x]
-		btn.pivot_offset = btn.size / 2.0
-		btn.z_index = 10
-		tw.tween_property(btn, "scale", Vector2(0.05, 0.05), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(btn, "modulate:a", 0.15, 0.16)
-	await tw.finished
-	for e in cleared:
-		var cell: Vector2i = e
-		var btn: Button = tiles[cell.y][cell.x]
-		btn.scale = Vector2.ONE
-		btn.modulate = Color.WHITE
-		btn.z_index = 0
+## 消除：按连锁波分批播（缩小消失）。每格纹理用 waves 里记录的逻辑元素，
+## 不信按钮上的旧纹理——修复"消掉的块颜色和预期不一样"的视觉错位。
+func _anim_clear(waves: Array) -> void:
+	for wi in waves.size():
+		var wave: Array = waves[wi]
+		var tw := create_tween().set_parallel(true)
+		for entry in wave:
+			var cell: Vector2i = entry["cell"]
+			var btn: Button = tiles[cell.y][cell.x]
+			var el: int = int(entry["element"])
+			if el == Match3Board.BIRD_ELEM:
+				btn.icon = _cached_tex(TEX_BIRD)
+			else:
+				btn.icon = _tile_texture(el, Match3Board.SPECIAL_NONE)
+			btn.pivot_offset = btn.size / 2.0
+			btn.z_index = 10
+			tw.tween_property(btn, "scale", Vector2(0.05, 0.05), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+			tw.parallel().tween_property(btn, "modulate:a", 0.15, 0.16)
+		await tw.finished
+		for entry in wave:
+			var cell2: Vector2i = entry["cell"]
+			var btn2: Button = tiles[cell2.y][cell2.x]
+			btn2.scale = Vector2.ONE
+			btn2.modulate = Color.WHITE
+			btn2.z_index = 0
+			btn2.icon = null  # 已消除：视觉清空，待本步末尾 refresh 补上落定后的块
+		if wi < waves.size() - 1:
+			await get_tree().create_timer(0.06).timeout  # 波间停顿：连锁节奏可见
 
 
 ## 按重力记录设置下落/补牌的起始位置
 func _apply_motion_targets(report: Dictionary) -> void:
 	var drop_from := {}
 	for mv in report["moves"]:
-		var to: Vector2i = mv["to"]
-		if not drop_from.has(to):
-			drop_from[to] = mv["from"]
+		# 同一格在多波连锁里会被多次搬运，取最后一次（最终占据者的真实起点）
+		drop_from[mv["to"]] = mv["from"]
 	for to: Vector2i in drop_from.keys():
 		var btn: Button = tiles[to.y][to.x]
 		btn.position = _cell_pos(drop_from[to])
