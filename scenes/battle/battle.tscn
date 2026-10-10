@@ -211,6 +211,7 @@ horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="RetreatBtn" type="Button" parent="SidePanel" unique_id=1410823337]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(380, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20

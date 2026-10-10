@@ -138,12 +138,13 @@ func _build_skill_bar() -> void:
 	var has_skill := not skill_def.is_empty()
 	for i in 3:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(64, 38)
-		b.position = Vector2(6 + i * 68, -46)
+		b.custom_minimum_size = Vector2(86, 38)
+		b.position = Vector2(6 + i * 90, -46)
 		b.focus_mode = Control.FOCUS_NONE
+		b.clip_text = true
 		if i == 0 and has_skill:
 			_skill_btn = b
-			b.text = str(skill_def.get("name", "技能"))
+			b.text = "⚡0"
 			b.add_theme_font_size_override("font_size", 14)
 			b.pressed.connect(_on_skill_pressed)
 			b.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
@@ -217,6 +218,7 @@ func _connect_button_signals() -> void:
 	%RetreatStayBtn.pressed.connect(_on_retreat_stay)
 	%RetreatLeaveBtn.pressed.connect(_leave_battle)
 	%ResultBackBtn.pressed.connect(_on_retreat_pressed)
+	%RetreatBtn.pressed.connect(_on_retreat_pressed)
 
 
 # ---------- 交互 ----------
@@ -793,11 +795,15 @@ func _refresh_skill_bar() -> void:
 		return
 	match str(skill_def.get("resource", "")):
 		"charge":
-			_skill_btn.text = "⚡%d+%d" % [skill_energy, skill_frac]
+			_skill_btn.text = "⚡%d" % skill_energy
+			_skill_btn.tooltip_text = "%s\n能量 %d+%d 格（每消除 %d 块 +1）" % [
+				skill_def.get("name", ""), skill_energy, skill_frac, int(skill_def.get("charge_per", 8))]
 			_skill_btn.disabled = not skill_ready()
 		"fixed":
 			_skill_btn.text = "×%d" % skill_uses
+			_skill_btn.tooltip_text = "%s\n剩余次数 %d" % [skill_def.get("name", ""), skill_uses]
 			_skill_btn.disabled = not skill_ready()
 		"steps":
-			_skill_btn.text = "-%d 步" % int(skill_def.get("step_cost", 2))
+			_skill_btn.text = "-%d步" % int(skill_def.get("step_cost", 2))
+			_skill_btn.tooltip_text = "%s\n释放消耗 %d 步" % [skill_def.get("name", ""), int(skill_def.get("step_cost", 2))]
 			_skill_btn.disabled = not skill_ready()
