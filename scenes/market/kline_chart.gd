@@ -1,5 +1,8 @@
 extends Control
-## K 线图自绘控件：红涨绿跌 + 影线。数据源为 Market 自动加载单例。
+## K 线图自绘控件：红涨绿跌 + 影线 + 网格/现价虚线/右侧价格刻度。数据源为 Market 自动加载单例。
+
+const AXIS_W := 52.0  # 右侧价格刻度区宽度
+const GRID_LINES := 4
 
 var source: Node
 var target_idx := 0
@@ -28,8 +31,32 @@ func _draw() -> void:
 	var pad := (hi - lo) * 0.1 + 0.001
 	lo -= pad
 	hi += pad
+	var chart_w := size.x - AXIS_W
+	var font := get_theme_default_font()
+
+	# 网格线 + 右侧价格刻度
+	for i in range(GRID_LINES + 1):
+		var fy := size.y * i / GRID_LINES
+		draw_line(Vector2(0, fy), Vector2(chart_w, fy), Color(1, 1, 1, 0.06), 1.0)
+		if font:
+			var val: float = hi - (hi - lo) * i / GRID_LINES
+			draw_string(font, Vector2(chart_w + 6, minf(fy + 4, size.y - 4)), "%.1f" % val,
+				HORIZONTAL_ALIGNMENT_LEFT, AXIS_W, 12, Color(0.66, 0.62, 0.55, 0.9))
+
+	# 现价虚线 + 金底价签
+	var last: float = series[-1][3]
+	var ly := _y_of(last, lo, hi)
+	_draw_dashed(Vector2(0, ly), Vector2(chart_w, ly), Color("ffd75e", 0.55), 7.0, 5.0, 1.2)
+	if font:
+		var tag := "%.1f" % last
+		var tag_rect := Rect2(Vector2(chart_w + 2, clampf(ly - 9, 0, size.y - 18)), Vector2(AXIS_W - 4, 18))
+		draw_rect(tag_rect, Color("ffd75e"), true)
+		draw_string(font, tag_rect.position + Vector2(3, 13), tag,
+			HORIZONTAL_ALIGNMENT_LEFT, AXIS_W, 12, Color("191322"))
+
+	# 蜡烛
 	var count := series.size()
-	var slot := size.x / float(count)
+	var slot := chart_w / float(count)
 	var bw := maxf(slot * 0.6, 2.0)
 	for i in count:
 		var cd: Array = series[i]
@@ -44,3 +71,15 @@ func _draw() -> void:
 
 func _y_of(v: float, lo: float, hi: float) -> float:
 	return size.y - (v - lo) / (hi - lo) * size.y
+
+
+func _draw_dashed(from: Vector2, to: Vector2, col: Color, dash: float, gap: float, width: float) -> void:
+	var total := from.distance_to(to)
+	if total <= 0:
+		return
+	var dir := (to - from) / total
+	var t := 0.0
+	while t < total:
+		var end := minf(t + dash, total)
+		draw_line(from + dir * t, from + dir * end, col, width)
+		t = end + gap

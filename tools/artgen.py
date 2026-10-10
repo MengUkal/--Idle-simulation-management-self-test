@@ -341,6 +341,73 @@ def make_essence():
     return img
 
 
+# ---------- 交易所标的图标（透明底小图标） ----------
+
+def _shard(d, cx, cy, w, h, col, lean=0.0):
+    """单个竖菱形晶柱"""
+    pts = [(cx + lean * h, cy - h / 2), (cx + lean * h + w / 2, cy),
+           (cx, cy + h / 2), (cx - w / 2 + lean * h, cy)]
+    d.polygon(pts, fill=col)
+    d.line([pts[0], pts[2]], fill=light_up(col, 1.35), width=3)
+
+
+def make_target_huo():
+    """火晶石：红色晶簇"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    red, red_d = (0xE0, 0x56, 0x4F, 255), (0xA8, 0x36, 0x30, 255)
+    _shard(d, S * 0.36, S * 0.56, S * 0.22, S * 0.52, red_d, lean=-0.12)
+    _shard(d, S * 0.62, S * 0.60, S * 0.24, S * 0.62, red, lean=0.10)
+    _shard(d, S * 0.52, S * 0.34, S * 0.20, S * 0.42, light_up(red, 1.15), lean=0.0)
+    d.line([(S * 0.52, S * 0.18), (S * 0.52, S * 0.44)], fill=(255, 255, 255, 200), width=3)
+    return img
+
+
+def make_target_feng():
+    """風羽绢：青绿羽绢（羽毛形 + 羽肋）"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    teal, teal_d = (0x58, 0xB4, 0x6B, 255), (0x3A, 0x8A, 0x4A, 255)
+    # 羽片：两条贝塞尔围出的月牙羽形
+    tip, base = (S * 0.74, S * 0.20), (S * 0.28, S * 0.80)
+    side_a = cubic(base, (S * 0.22, S * 0.46), (S * 0.40, S * 0.20), tip)
+    side_b = cubic(tip, (S * 0.66, S * 0.42), (S * 0.46, S * 0.72), base)[1:]
+    d.polygon(side_a + side_b, fill=teal)
+    # 羽肋
+    d.line([base, tip], fill=(255, 255, 255, 210), width=4)
+    # 缺口（羽枝分叉感）：底色斜切两刀
+    d.line([(S * 0.40, S * 0.30), (S * 0.52, S * 0.42)], fill=BG, width=5)
+    d.line([(S * 0.52, S * 0.52), (S * 0.64, S * 0.64)], fill=BG, width=5)
+    # 羽根
+    d.line([base, (S * 0.18, S * 0.92)], fill=teal_d, width=5)
+    return img
+
+
+def make_target_sheng():
+    """生命露：青露水滴 + 嫩叶 + 星光"""
+    img = Image.new("RGBA", (S, S), BG)
+    d = ImageDraw.Draw(img)
+    teal = (0x5F, 0xD3, 0xC9, 255)
+    r = S * 0.28
+    bc = (S * 0.52, S * 0.62)
+    tip = (S * 0.52, S * 0.14)
+    L, R = (bc[0] - r, bc[1]), (bc[0] + r, bc[1])
+    right = cubic(tip, (tip[0] + S * 0.03, tip[1] + S * 0.14), (bc[0] + r * 1.02, bc[1] - r * 0.5), R)
+    bottom = arc_pts(bc[0], bc[1], r, r * 0.96, 0, 180)[1:]
+    left = cubic(L, (bc[0] - r * 1.02, bc[1] - r * 0.5), (tip[0] - S * 0.03, tip[1] + S * 0.14), tip)[1:]
+    d.polygon(right + bottom + left, fill=teal)
+    d.ellipse([bc[0] - r * 0.40, bc[1] + r * 0.08, bc[0] - r * 0.06, bc[1] + r * 0.52],
+              fill=light_up(teal, 1.4))
+    # 嫩叶
+    d.polygon([(tip[0], tip[1] - S * 0.02), (tip[0] + S * 0.16, tip[1] - S * 0.10),
+               (tip[0] + S * 0.06, tip[1] - S * 0.16)], fill=(0x58, 0xB4, 0x6B, 255))
+    # 星光
+    for x, y, ss in [(S * 0.24, S * 0.26, S * 0.05), (S * 0.78, S * 0.42, S * 0.04)]:
+        d.polygon([(x, y - ss), (x + ss * 0.3, y), (x, y + ss), (x - ss * 0.3, y)],
+                  fill=(255, 255, 255, 220))
+    return img
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -376,6 +443,14 @@ def main():
     ess = make_essence()
     ess.save(os.path.join(ui_dir, "ui_essence.png"))
     made += [gil, ess]
+
+    # 交易所标的图标
+    targets = {"target_huo": make_target_huo(), "target_feng": make_target_feng(),
+               "target_sheng": make_target_sheng()}
+    for name, img in targets.items():
+        path = os.path.join(ui_dir, name + ".png")
+        img.save(path)
+        made.append(path)
 
     # 预览拼图：5 行（元素4变体）+ 1 行（鸟+UI）
     pad = px(0.06)

@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" uid="uid://b4xyay6bsj2os" path="res://scenes/market/market.gd" id="1_market"]
 [ext_resource type="Script" uid="uid://nr88shpfxiai" path="res://scenes/market/kline_chart.gd" id="2_uiuro"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/target_huo.png" id="3_th"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/target_feng.png" id="4_tf"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/target_sheng.png" id="5_ts"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_apks8"]
 content_margin_left = 20.0
@@ -114,6 +117,8 @@ modulate = Color(1.35, 1.35, 1.05, 1)
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
+icon = ExtResource("3_th")
+expand_icon = true
 text = "火晶石  56.9 G  ↓19.7%"
 
 [node name="Target1" type="Button" parent="TargetList/TargetListBox" unique_id=104687399]
@@ -121,6 +126,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
+icon = ExtResource("4_tf")
+expand_icon = true
 text = "風羽绢  72.0 G  ↓19.8%"
 
 [node name="Target2" type="Button" parent="TargetList/TargetListBox" unique_id=1495806032]
@@ -128,6 +135,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
+icon = ExtResource("5_ts")
+expand_icon = true
 text = "生命露  96.2 G  ↑8.5%"
 
 [node name="HoldLabel" type="Label" parent="TargetList/TargetListBox" unique_id=1395875617]

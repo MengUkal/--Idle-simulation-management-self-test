@@ -153,11 +153,16 @@ func _build_target_list() -> void:
 		btn.custom_minimum_size = Vector2(0, 56)
 		btn.add_theme_font_size_override("font_size", 20)
 		btn.text = t["name"]
-		# 标的小图标（tools/artgen.py 产物；缺失时无图标纯文字）
+		# 标的小图标（tools/artgen.py 产物；缺失时无图标纯文字）。40px 最近邻缩放 + 左对齐行
 		var icon_path: String = icons[i] if i < icons.size() else ""
 		if icon_path != "" and ResourceLoader.exists(icon_path):
-			btn.icon = load(icon_path)
-			btn.expand_icon = true
+			var tex: Texture2D = load(icon_path)
+			var img: Image = tex.get_image()
+			if img.is_compressed():
+				img.decompress()
+			img.resize(40, 40, Image.INTERPOLATE_NEAREST)
+			btn.icon = ImageTexture.create_from_image(img)
+			btn.add_theme_constant_override("h_separation", 10)
 		btn.pressed.connect(_on_target_pressed.bind(i))
 		box.add_child(btn)
 		_target_buttons.append(btn)
