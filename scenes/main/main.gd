@@ -287,24 +287,24 @@ func _refresh_buttons() -> void:
 		Balance.format_number(cost),
 		Balance.CURRENCY_SHORT,
 	]
-	# 层间按钮：循环 1→2→3→1；不可去时置灰并显示条件（三层需 Lv.50 + 层卡）
+	# 层间按钮：循环 1→2→3→1；不可去时置灰，完整条件放悬停提示（按钮文字保持一行内）
 	var cur := GameState.floor_index
 	var nxt := cur % 3 + 1
 	var nxt_name: String = Balance.FLOOR_NAMES.get(nxt, "未知层")
 	if GameState.can_go_to_floor(nxt):
 		_floor2_button.disabled = false
 		_floor2_button.text = "前往%s" % nxt_name
+		_floor2_button.tooltip_text = "前往%s" % nxt_name
 	else:
 		_floor2_button.disabled = true
 		if nxt == 3:
-			var need := "需 Lv.%d + 层卡（首杀守林古树）" % Balance.FLOOR_3_LEVEL_REQ
-			if GameState.level >= Balance.FLOOR_3_LEVEL_REQ and not GameState.floor3_card:
-				need = "需层卡（首杀守林古树）"
-			_floor2_button.text = "%s（%s，当前 Lv.%d）" % [nxt_name, need, GameState.level]
-		else:
-			_floor2_button.text = "%s（需 Lv.%d，当前 Lv.%d）" % [
-				nxt_name, Balance.FLOOR_2_LEVEL_REQ, GameState.level,
+			_floor2_button.text = "前往第三层（需层卡）"
+			_floor2_button.tooltip_text = "第三层 · 苍干栈道：需 Lv.%d + 层卡（首杀守林古树掉落），当前 Lv.%d" % [
+				Balance.FLOOR_3_LEVEL_REQ, GameState.level,
 			]
+		else:
+			_floor2_button.text = "前往第二层（需 Lv.%d）" % Balance.FLOOR_2_LEVEL_REQ
+			_floor2_button.tooltip_text = "第二层 · 翠枝回廊：当前 Lv.%d" % GameState.level
 	var market_unlocked := GameState.level >= Balance.MARKET_UNLOCK_LEVEL
 	_market_button.disabled = not market_unlocked
 	_market_button.text = "交易所" if market_unlocked else "交易所（需 Lv.%d）" % Balance.MARKET_UNLOCK_LEVEL

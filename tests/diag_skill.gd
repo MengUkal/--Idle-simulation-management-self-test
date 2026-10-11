@@ -32,17 +32,23 @@ func _ready() -> void:
 	print("== 覆盖嫌疑 %d 个 ==" % suspects.size())
 	for s in suspects:
 		print("  %s" % s)
-	print("== 修复验证（充能时 disabled → 解除后恢复 → 点击释放） ==")
-	battle_scene.skill_energy = 1
-	battle_scene._busy = true
+	print("== 修复验证（真实存档角色，连放两次） ==")
+	battle_scene.skill_energy = 3
+	battle_scene.skill_uses = 9
+	var res0: int = battle_scene.steps_left
+	var uses0: int = battle_scene.skill_uses
+	var en0: int = battle_scene.skill_energy
+	battle_scene._on_skill_pressed()
+	await get_tree().process_frame
 	battle_scene._refresh_skill_bar()
-	print("  动画中(_busy) disabled=%s（期望 true）" % btn.disabled)
-	battle_scene._busy = false
+	print("  第一次：disabled=%s uses=%d steps=%d energy=%d" % [
+		btn.disabled, battle_scene.skill_uses, battle_scene.steps_left, battle_scene.skill_energy])
+	battle_scene._on_skill_pressed()
+	await get_tree().process_frame
 	battle_scene._refresh_skill_bar()
-	print("  解除后 disabled=%s（期望 false）" % btn.disabled)
-	battle_scene._cast_skill(Vector2i(3, 3))
-	await get_tree().create_timer(1.5).timeout
-	print("  释放后能量=%d（期望 0）_busy=%s（期望 false）" % [battle_scene.skill_energy, battle_scene._busy])
+	print("  第二次：disabled=%s uses=%d steps=%d energy=%d" % [
+		btn.disabled, battle_scene.skill_uses, battle_scene.steps_left, battle_scene.skill_energy])
+	print("  （牧师期望：uses 2→0、steps +%d；charge 期望：energy 递减）" % (int(battle_scene.skill_def.get("step_cost", 2)) * 2))
 	get_tree().quit(0)
 
 

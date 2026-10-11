@@ -304,7 +304,8 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	await _anim_settle()
 	_refresh_board()
 	_refresh_hud()
-	_refresh_skill_bar()  # 动画结束、_busy 复位后恢复技能按钮可用状态（否则充能时被 disable 后永久灰死）
+	_busy = false
+	_refresh_skill_bar()  # _busy 复位后再刷新（否则动画中 skill_ready=false 会把按钮误灰且无人恢复）
 	# 4) 结算弹窗
 	if _pending_result == 1:
 		_show_result(true)
@@ -790,28 +791,30 @@ func _cast_skill(cell: Vector2i) -> void:
 		_pending_result = 2
 	_refresh_board()
 	_refresh_hud()
+	_busy = false
 	_refresh_skill_bar()
 	if _pending_result == 1:
 		_show_result(true)
 	elif _pending_result == 2:
 		_show_result(false)
-	_busy = false
 
 
 func _refresh_skill_bar() -> void:
 	if _skill_btn == null or skill_def.is_empty():
 		return
+	# 灰/亮只由资源够不够决定（_busy 动画期间的拦截交给 skill_ready）——
+	# 否则刷新落在动画中时按钮被误灰且无人恢复（圣光祈祷"只能用一次"事故）
 	match str(skill_def.get("resource", "")):
 		"charge":
 			_skill_btn.text = "⚡%d" % skill_energy
 			_skill_btn.tooltip_text = "%s\n能量 %d+%d 格（每消除 %d 块 +1）" % [
 				skill_def.get("name", ""), skill_energy, skill_frac, int(skill_def.get("charge_per", 8))]
-			_skill_btn.disabled = not skill_ready()
+			_skill_btn.disabled = skill_energy < 1
 		"fixed":
 			_skill_btn.text = "×%d" % skill_uses
 			_skill_btn.tooltip_text = "%s\n剩余次数 %d" % [skill_def.get("name", ""), skill_uses]
-			_skill_btn.disabled = not skill_ready()
+			_skill_btn.disabled = skill_uses < 1
 		"steps":
 			_skill_btn.text = "-%d步" % int(skill_def.get("step_cost", 2))
 			_skill_btn.tooltip_text = "%s\n释放消耗 %d 步" % [skill_def.get("name", ""), int(skill_def.get("step_cost", 2))]
-			_skill_btn.disabled = not skill_ready()
+			_skill_btn.disabled = steps_left < int(skill_def.get("step_cost", 2))
