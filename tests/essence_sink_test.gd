@@ -65,6 +65,11 @@ func _ready() -> void:
 		and int(d.get("glue", -1)) == GameState.glue
 		and int(d.get("stars", -1)) == GameState.stars)
 
+	# 结算秀赏金雨：层缩放函数（一层≈3.17G/颗，四层≈70.4G/颗，锚定本层均赏金×0.5）
+	check("结算秀一层 3.17G/颗", absf(Balance.showcase_reward_per(1) - 3.1667) < 0.01)
+	check("结算秀四层 70.4G/颗", absf(Balance.showcase_reward_per(4) - 70.4167) < 0.1)
+	check("结算秀随层递增", Balance.showcase_reward_per(4) > Balance.showcase_reward_per(1) * 10.0)
+
 	print("---")
 	print("结果：%d 项失败" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)

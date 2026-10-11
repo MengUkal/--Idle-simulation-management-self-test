@@ -42,12 +42,12 @@ const BATTLE_STEPS_PER_LEVEL := 0.5 # 【已拍板】每级 +0.5 步（即每 2 
 # 第一层怪物表（2026-10-09 草案落地；数值直接改这里，不用动代码）
 # 元素索引：0火 1水 2風 3土 4光 5闇；克制：火克風、風克土、土克水、水克火、光闇互克
 const MONSTERS_FLOOR1 := [
-	{"name": "树精史莱姆", "hp": 30, "bounty": 5, "weak": 0, "atk": 12, "speed": 6},
-	{"name": "風狼", "hp": 45, "bounty": 8, "weak": 3, "atk": 16, "speed": 6},
-	{"name": "岩甲龟", "hp": 70, "bounty": 12, "weak": 1, "atk": 20, "speed": 6},
-	{"name": "水妖", "hp": 55, "bounty": 10, "weak": 3, "atk": 14, "speed": 6},
-	{"name": "光萤", "hp": 40, "bounty": 9, "weak": 5, "atk": 12, "speed": 6},
-	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4, "atk": 12, "speed": 6},
+	{"name": "树精史莱姆", "hp": 30, "bounty": 4, "weak": 0, "atk": 12, "speed": 6},
+	{"name": "風狼", "hp": 45, "bounty": 6, "weak": 3, "atk": 16, "speed": 6},
+	{"name": "岩甲龟", "hp": 70, "bounty": 9, "weak": 1, "atk": 20, "speed": 6},
+	{"name": "水妖", "hp": 55, "bounty": 7, "weak": 3, "atk": 14, "speed": 6},
+	{"name": "光萤", "hp": 40, "bounty": 6, "weak": 5, "atk": 12, "speed": 6},
+	{"name": "暗影鼠", "hp": 40, "bounty": 6, "weak": 4, "atk": 12, "speed": 6},
 ]
 const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4, "atk": 30, "speed": 4}
 # 第二层怪物表（2026-10-09 草案落地；数值直接改这里）
@@ -149,6 +149,16 @@ const TRAIN_COST_BASE := 25.0       # 训练线 0→1 级费用（精华）
 const TRAIN_COST_GROWTH := 1.35     # 训练线每级费用倍率
 const TRAIN_EFFECT_PER_LEVEL := 0.05 # 每级 +5%（攻击/赏金/收入三线通用）
 const MILESTONE_EP := {2: 10, 4: 15, 6: 20, 8: 30}  # 等级里程碑一次性精华
+
+static func showcase_reward_per(floor_index: int) -> float:
+	## 结算秀每颗特殊棋子的赏金雨 = 当前层均怪物赏金 × 0.5（2026-10-12 经济审计：
+	## 原 25G/颗 固定值失控——首战 4 颗白拿 100G；改层缩放后一层≈3G/颗、四层≈616G/颗，
+	## 永远锚定本层战斗收益参照系）
+	var pool := monster_pool(floor_index)
+	var sum := 0.0
+	for m in pool:
+		sum += float(m["bounty"])
+	return sum / pool.size() * 0.5
 
 # ---------- 交易所（M3，2026-10-09 拍板） ----------
 const MARKET_UNLOCK_LEVEL := 15    # 【已拍板】Lv.15 解锁
