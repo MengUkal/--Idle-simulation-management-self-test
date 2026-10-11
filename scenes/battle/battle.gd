@@ -37,7 +37,6 @@ var _skill_overlay: Control    # 瞄准范围提示层（受影响格子高亮�
 var _skill_hover := Vector2i(-1, -1)  # 瞄准模式下鼠标悬停的格子
 var _btn_pulse: Tween          # 技能就绪呼吸脉冲
 var _skill_btn: Button
-var _skill_up_btn: Button
 var _drag_cell := Vector2i(-1, -1)   # 滑动交换：按住的格位（手机版，2026-10-12 拍板）
 var _drag_pos := Vector2.ZERO
 var _drag_used := false
@@ -173,16 +172,6 @@ func _ready() -> void:
 		_newbie_hints.call_deferred()
 
 
-func _newbie_hints() -> void:
-	## 首次战斗提示三连（顶部横幅逐条弹出，避开底部玩家 HP 条）
-	var hints := [
-		"消除就是攻击。一次消得越多，连锁越痛。",
-		"打弱点色：伤害与精华双双倍。",
-		"技能充能靠消除；打不过，撤退不丢人。",
-	]
-	for h in hints:
-		_show_banner(str(h), Color(0.65, 0.9, 1.0))
-		await get_tree().create_timer(2.6).timeout
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# 右栏信息间距（S 系列后内容变多，拉开统计/说明/按钮的呼吸感）
@@ -194,6 +183,18 @@ func _newbie_hints() -> void:
 	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
 		_debug_capture.call_deferred()
+
+
+## 首次战斗提示三连（顶部横幅逐条弹出，避开底部玩家 HP 条）
+func _newbie_hints() -> void:
+	var hints := [
+		"消除就是攻击。一次消得越多，连锁越痛。",
+		"打弱点色：伤害与精华双双倍。",
+		"技能充能靠消除；打不过，撤退不丢人。",
+	]
+	for h in hints:
+		_show_banner(str(h), Color(0.65, 0.9, 1.0))
+		await get_tree().create_timer(2.6).timeout
 
 
 func _setup_skill() -> void:
@@ -234,40 +235,10 @@ func _build_skill_bar() -> void:
 	board_layer.add_child(_skill_overlay)
 	_skill_btn.disabled = not skill_ready()
 	board_layer.add_child(_skill_btn)
-	# 技能强化按钮（精华购买技能等级，2026-10-12 拍板 A）
-	_skill_up_btn = Button.new()
-	_skill_up_btn.custom_minimum_size = Vector2(86, 38)
-	_skill_up_btn.position = Vector2(96, -46)
-	_skill_up_btn.focus_mode = Control.FOCUS_NONE
-	_skill_up_btn.clip_text = true
-	_skill_up_btn.add_theme_font_size_override("font_size", 12)
-	_skill_up_btn.pressed.connect(_on_skill_upgrade)
-	board_layer.add_child(_skill_up_btn)
-	_update_skill_up_btn()
 	_refresh_skill_bar()
 
 
-func _on_skill_upgrade() -> void:
-	Sfx.play("ui_click")
-	if GameState.skill_upgrade():
-		Sfx.play("line_up")
-		_show_toast("技能强化 Lv.%d！" % GameState.skill_lv)
-	else:
-		Sfx.play("money_not_enough", 1.0, -6.0)
-	_update_skill_up_btn()
 	_refresh_skill_bar()
-
-
-func _update_skill_up_btn() -> void:
-	if _skill_up_btn == null:
-		return
-	var lv := GameState.skill_lv
-	if lv >= GameState.SKILL_LV_MAX:
-		_skill_up_btn.text = "强化 MAX"
-		_skill_up_btn.disabled = true
-		return
-	_skill_up_btn.text = "强化 Lv.%d (%d精华)" % [lv + 1, GameState.skill_upgrade_cost()]
-	_skill_up_btn.disabled = GameState.essence < GameState.skill_upgrade_cost()
 
 
 ## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
@@ -891,9 +862,6 @@ func _refresh_hud() -> void:
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
 	_update_player_hud()
 	_update_charge_hud()
-	_update_player_hud()
-	_update_skill_up_btn()
-	_update_player_hud()
 
 
 # ---------- 棋子图标（tools/artgen.py 程序化生成，见 docs/游戏设计文档.md §13） ----------

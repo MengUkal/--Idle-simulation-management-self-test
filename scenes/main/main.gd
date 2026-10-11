@@ -127,6 +127,13 @@ func _init_line_buttons() -> void:
 	body_btn.position = _line_income.position + Vector2(0, 52)
 	body_btn.pressed.connect(_on_line_pressed.bind("body"))
 	_line_buttons["body"] = body_btn
+	# 技能强化（第五条训练位，精华；主动技能主数值升级，10 级封顶）
+	var skill_btn := Button.new()
+	skill_btn.text = "技能强化"
+	_line_buttons["body"].add_sibling(skill_btn)
+	skill_btn.position = _line_buttons["body"].position + Vector2(0, 52)
+	skill_btn.pressed.connect(_on_skill_upgrade_pressed)
+	_line_buttons["skill"] = skill_btn
 
 
 func _connect_signals() -> void:
@@ -252,6 +259,14 @@ func _on_reset_confirmed() -> void:
 	# （修复 2026-10-12：旧版停留在主界面，玩家以无职业状态打完战斗才被拦截）
 	if GameState.needs_character_creation():
 		get_tree().change_scene_to_file.call_deferred("res://scenes/character/character_create.tscn")
+
+
+func _on_skill_upgrade_pressed() -> void:
+	if GameState.skill_upgrade():
+		Sfx.play("line_up")
+		_refresh_training()
+	else:
+		Sfx.play("money_not_enough", 1.0, -6.0)
 
 
 func _on_line_pressed(kind: String) -> void:
@@ -389,6 +404,15 @@ func _refresh_training() -> void:
 	_essence_label.text = "元素精华：%d" % GameState.essence
 	for kind: String in _line_buttons.keys():
 		var btn: Button = _line_buttons[kind]
+		if kind == "skill":
+			# 技能强化（第五条训练位）：精华升级主动技能主数值，10 级封顶
+			var lv := GameState.skill_lv
+			var maxed := lv >= GameState.SKILL_LV_MAX
+			var cost := GameState.skill_upgrade_cost()
+			btn.text = "技能强化 Lv.%d → %d（%d 精华）" % [lv, lv + 1, cost] if not maxed \
+				else "技能强化 已满级（Lv.%d）" % lv
+			btn.disabled = maxed or GameState.essence < cost
+			continue
 		var lv := GameState.line_level(kind)
 		var cost := GameState.train_cost_for(kind)
 		btn.text = "%s Lv.%d → %d（%d 精华）" % [LINE_NAMES[kind], lv, lv + 1, cost]
