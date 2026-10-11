@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/cap_guard.gd" id="1_capguard"]
+
+[node name="CapGuard" type="Node"]
+script = ExtResource("1_capguard")

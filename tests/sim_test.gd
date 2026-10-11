@@ -73,6 +73,7 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 	board.setup()
 	board.ensure_playable()
 	var hp := float(int(monster["hp"]))
+	var guard := GuardKit.new(str(monster.get("name", "")))  # 层守机制镜像（与 battle.gd 共用）
 	var total_dmg := 0
 	var ep := 0
 	var moves_used := 0
@@ -123,19 +124,30 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 		var waves: Array = rep["waves"]
 		var dmg_f := 0.0
 		var atk_mult := Balance.train_multiplier(atk_line) * Balance.atk_fruit_mult(fruits) * atk_mod
+		# 层守机制镜像（与 battle.gd 共用 GuardKit，保证模拟与实装不漂移）
+		var mods: Dictionary = guard.move_modifiers(waves.size(), false)
 		for i in waves.size():
 			var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + chain_mod) * float(i)
 			for entry in waves[i]:
 				var m := Balance.damage_multiplier(int(entry["element"]), monster)
-				if m > 1.0:
+				var m_eff := 1.0 if bool(mods["sealed"]) else m
+				if m > 1.0 and not bool(mods["sealed"]):
 					ep += int(Balance.EP_PER_TILE * Balance.EP_WEAKNESS_MULT)
 				else:
 					ep += Balance.EP_PER_TILE
-				dmg_f += wave_mult * m * atk_mult
+				dmg_f += wave_mult * m_eff * atk_mult
+		if bool(mods["blocked"]):
+			dmg_f = 0.0  # 连击盾：单消无效
+		else:
+			dmg_f *= float(mods["mult"])
 		total_dmg += int(ceil(dmg_f))
 		hp -= dmg_f
 		if hp <= 0.0:
-			break
+			if guard.has_kit() and guard.on_lethal():
+				hp = 1.0  # 根性：首次致死锁 1 HP
+			else:
+				break
+		guard.after_move(hp / float(int(monster["hp"])))
 		board.ensure_playable()
 	var killed := hp <= 0.0
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(bounty_line)))

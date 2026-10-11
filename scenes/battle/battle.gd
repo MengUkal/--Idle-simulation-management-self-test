@@ -52,6 +52,8 @@ var _toast: Label
 var _toast_tween: Tween
 var _busy := false
 var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹结算）
+var guard := GuardKit.new("")  # 层守机制包（2026-10-11 拍板；非层守 = 空包全直通）
+var _banner: Label             # 当前层守机制横幅（新顶旧，防叠加）
 
 @onready var _steps_label_ref: Label = %StepsLabel
 @onready var _stat_cleared_ref: Label = %StatCleared
@@ -118,6 +120,8 @@ func _ready() -> void:
 	if monster.get("elite", false):
 		Sfx.play("elite_appear")  # 精英登场：暗钟压迫感（音频会话 2026-10-11）
 		_show_toast("遭遇精英：%s！" % monster["name"])
+	if guard.has_kit() and guard.opener().size() > 0:
+		_show_banner(str(guard.opener().get("tag", "先制")), Color(0.95, 0.8, 0.35))  # 层守先制横幅
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
@@ -196,6 +200,8 @@ func _roll_monster() -> void:
 	var slug: String = MONSTER_SLUG.get(monster["name"], "")
 	var tex_path := "res://assets/art/monsters/%s.png" % slug
 	_enemy_portrait.texture = load(tex_path) if slug != "" and ResourceLoader.exists(tex_path) else null
+	# 层守机制包按怪物名装载（守林古树/镇风桩有专属机制，其余为空包）
+	guard = GuardKit.new(str(monster.get("name", "")))
 
 
 ## 棋子为运行时动态生成（49 颗，位置由棋盘算法决定），挂载到场景中的 BoardLayer 下
@@ -316,24 +322,33 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	_busy = false
 
 
-func _apply_damage(waves: Array) -> void:
+func _apply_damage(waves: Array, from_skill := false) -> void:
 	var dmg_f := 0.0
 	var ep := 0
 	var any_weak := false
 	var atk_mult := Balance.train_multiplier(GameState.atk_line) \
 		* Balance.atk_fruit_mult(GameState.fruits) * Mods.mult("battle_damage")
+	# 层守机制修正（封印/单消盾/蓄力易伤/狂暴减伤/树皮硬化；普通怪直通）
+	var mods: Dictionary = guard.move_modifiers(waves.size(), from_skill)
 	for i in waves.size():
 		var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + Mods.add("chain_bonus")) * float(i)
 		for entry in waves[i]:
 			var m := Balance.damage_multiplier(int(entry["element"]), monster)
 			var m_final := m * Mods.mult("weakness")
-			if m > 1.0:
+			if bool(mods["sealed"]):
+				m_final = 1.0  # 弱点封印：克制 ×2 与弱点精华加成失效
+			elif m > 1.0:
 				any_weak = true
 				ep += int(Balance.EP_PER_TILE * Balance.EP_WEAKNESS_MULT)
 			else:
 				ep += Balance.EP_PER_TILE
 			dmg_f += wave_mult * m_final * atk_mult
-	var dmg := int(ceil(dmg_f))
+	var dmg := 0
+	if bool(mods["blocked"]):
+		dmg = 0  # 连击盾：单波消除无效（主动技能不受盾影响，是解法）
+	else:
+		dmg_f *= float(mods["mult"])  # 蓄力易伤 ×2 / 狂暴减伤 / 树皮硬化
+		dmg = int(ceil(dmg_f))
 	total_damage += dmg
 	monster_hp -= dmg
 	# 充能型技能：按消除块数积能量（资源模型 charge）
@@ -350,15 +365,36 @@ func _apply_damage(waves: Array) -> void:
 		if not was_ready and skill_energy >= 1:
 			Sfx.play("skill_ready")  # 充能完成提示：跨过可用线的瞬间只响一次（音频会话 2026-10-11）
 		_refresh_skill_bar()
-	Sfx.play("monster_hit", 1.0, -4.0)  # 受击低频垫层（音效文件本身已 -9dB，再压 4dB 防吵）
+	if bool(mods["blocked"]):
+		_spawn_damage_number(0, false, true)  # 「盾」提示（精华照常结算，进度不白费）
+	else:
+		Sfx.play("monster_hit", 1.0, -4.0)  # 受击低频垫层（音效文件本身已 -9dB，再压 4dB 防吵）
 	if ep > 0:
 		ep = int(round(ep * Mods.mult("ep")))
 		session_ep += ep
 		GameState.add_essence(ep)
-	_spawn_damage_number(dmg, any_weak)
-	_hit_flash()
+	if not bool(mods["blocked"]):
+		_spawn_damage_number(dmg, any_weak)
+		_hit_flash()
 	if monster_hp <= 0:
-		_victory()
+		if guard.has_kit() and guard.on_lethal():
+			# 根性：首次致死锁 1 HP 生还（限一次）——层守的最后一道门
+			monster_hp = 1.0
+			_show_banner("根性！", Color(0.75, 0.6, 1.0))
+			Sfx.play("level_up")
+		else:
+			_victory()
+	else:
+		# 血量阶段推进（横幅 + 音效）
+		for e in guard.after_move(float(monster_hp) / float(monster_hp_max)):
+			if str(e) == "charge":
+				_show_banner("%s！%d 步内受伤翻倍" % [
+					str(guard.def.get("charge", {}).get("tag", "蓄力")),
+					int(guard.def.get("charge", {}).get("steps", 3))], Color(0.55, 0.9, 0.6))
+				Sfx.play("skill_ready")
+			elif str(e) == "rage":
+				_show_banner("狂暴！受到的伤害大幅降低", Color(1.0, 0.5, 0.4))
+				Sfx.play("elite_appear")
 
 
 func _victory() -> void:
@@ -431,7 +467,7 @@ func _refresh_hud() -> void:
 	_stat_ep.text = "本局精华：+%d" % session_ep
 	var weak_name: String = Balance.ELEMENT_NAMES[int(monster.get("weak", 0))]
 	var elite_tag: String = "★精英 " if monster.get("elite", false) else ""
-	_enemy_name.text = "%s%s（弱点：%s）" % [elite_tag, monster["name"], weak_name]
+	_enemy_name.text = "%s%s（弱点：%s）%s" % [elite_tag, monster["name"], weak_name, guard.state_tag()]
 	_hp_bar.max_value = monster_hp_max
 	_hp_bar.value = maxf(monster_hp, 0.0)
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
@@ -465,13 +501,49 @@ func _cached_tex(path: String) -> Texture2D:
 	return _tex_cache[path]
 
 
-func _spawn_damage_number(amount: int, weak: bool) -> void:
+## 层守机制大横幅（先制/蓄力/狂暴/根性）：棋盘上方居中，弹入-停留-淡出（拍板：大幅度提示）
+func _show_banner(text: String, color: Color = Color(0.95, 0.8, 0.35)) -> void:
+	if _banner and is_instance_valid(_banner):
+		_banner.queue_free()  # 新横幅顶掉旧横幅，避免叠加
+	var l := Label.new()
+	_banner = l
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 46)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	l.add_theme_constant_override("outline_size", 12)
+	var w := 760.0
+	var board_w := Balance.BOARD_SIZE * STEP
+	l.size = Vector2(w, 90)
+	# board_layer 是手工布局容器（size 恒 0），以棋子实际像素宽度求中心
+	l.position = Vector2(board_layer.position.x + board_w / 2.0 - w / 2.0, board_layer.position.y + 10.0)
+	l.pivot_offset = Vector2(w / 2.0, 45.0)
+	l.scale = Vector2(1.5, 1.5)
+	l.modulate.a = 0.0
+	l.z_index = 60
+	add_child(l)
+	var tw := create_tween()
+	tw.tween_property(l, "modulate:a", 1.0, 0.15)
+	tw.parallel().tween_property(l, "scale", Vector2.ONE, 0.3) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.3)
+	tw.tween_property(l, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(l.queue_free)
+
+
+func _spawn_damage_number(amount: int, weak: bool, blocked := false) -> void:
 	if not Settings.get_value("fx_damage_numbers"):
 		return
 	var label := Label.new()
-	label.text = "-%d" % amount
-	label.add_theme_font_size_override("font_size", 36)
-	label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4) if weak else Color(1.0, 0.85, 0.5))
+	if blocked:
+		label.text = "盾！"
+		label.add_theme_font_size_override("font_size", 30)
+		label.add_theme_color_override("font_color", Color(0.62, 0.76, 0.96))
+	else:
+		label.text = "-%d" % amount
+		label.add_theme_font_size_override("font_size", 36)
+		label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4) if weak else Color(1.0, 0.85, 0.5))
 	label.position = Vector2(250, 470)
 	add_child(label)
 	var tw := create_tween()
@@ -777,7 +849,7 @@ func _cast_skill(cell: Vector2i) -> void:
 			var r := board.skill_plague()
 			waves = r["waves"]
 	if waves.size() > 0:
-		_apply_damage(waves)
+		_apply_damage(waves, true)  # 技能伤害：穿透连击盾（盾挡普消不挡技能）
 		_refresh_board()
 		await _anim_clear(waves)
 		_refresh_board()
