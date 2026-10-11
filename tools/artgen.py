@@ -668,16 +668,20 @@ def make_race_emblems():
 
 # ---------- 天赋节点效果图标（按 mods 键，透明底） ----------
 
+def _icon_canvas():
+    i = Image.new("RGBA", (S, S), BG)
+    return i, ImageDraw.Draw(i)
+
+
 def make_effect_icons():
     """9 种效果图标：键名 → PNG（eff_*.png），天赋节点按 mod 键引用。"""
     out = {}
 
     def new():
-        i = Image.new("RGBA", (S, S), BG)
-        return i, ImageDraw.Draw(i)
+        return _icon_canvas()
 
     # 伤害：红剑
-    i, d = new()
+    i, d = _icon_canvas()
     d.polygon([(S * 0.80, S * 0.12), (S * 0.88, S * 0.20), (S * 0.46, S * 0.62),
                (S * 0.38, S * 0.54)], fill=(0xE0, 0x56, 0x4F, 255))
     d.polygon([(S * 0.36, S * 0.52), (S * 0.48, S * 0.64), (S * 0.30, S * 0.82),
@@ -685,7 +689,7 @@ def make_effect_icons():
     out["eff_damage"] = i
 
     # 弱点：紫色裂星
-    i, d = new()
+    i, d = _icon_canvas()
     col = (0x8A, 0x5F, 0xBF, 255)
     cx, cy = S * 0.5, S * 0.52
     pts = []
@@ -699,7 +703,7 @@ def make_effect_icons():
     out["eff_weakness"] = i
 
     # 收入：金币叠 + 上升箭
-    i, d = new()
+    i, d = _icon_canvas()
     gold = (0xF2, 0xC9, 0x4C, 255)
     d.ellipse([S * 0.16, S * 0.56, S * 0.60, S * 0.84], fill=gold,
               outline=(0xC0, 0x8A, 0x28, 255), width=3)
@@ -712,7 +716,7 @@ def make_effect_icons():
     out["eff_income"] = i
 
     # 训练：翻开的书
-    i, d = new()
+    i, d = _icon_canvas()
     cover = (0x8A, 0x5F, 0xBF, 255)
     d.polygon([(S * 0.50, S * 0.30), (S * 0.20, S * 0.36), (S * 0.20, S * 0.72),
                (S * 0.50, S * 0.78)], fill=(0x3a, 0x2f, 0x55, 255), outline=cover, width=3)
@@ -729,7 +733,7 @@ def make_effect_icons():
     out["eff_bounty"] = make_line_bounty()
 
     # 精华：青水晶滴（复用露滴形，去星光）
-    i, d = new()
+    i, d = _icon_canvas()
     teal = (0x5F, 0xD3, 0xC9, 255)
     r = S * 0.26
     bc = (S * 0.5, S * 0.62)
@@ -744,7 +748,7 @@ def make_effect_icons():
     out["eff_ep"] = i
 
     # 步数：靴子
-    i, d = new()
+    i, d = _icon_canvas()
     boot = (0xE8, 0xE0, 0xCF, 255)
     d.polygon([(S * 0.30, S * 0.20), (S * 0.46, S * 0.20), (S * 0.46, S * 0.56),
                (S * 0.72, S * 0.56), (S * 0.78, S * 0.72), (S * 0.78, S * 0.80),
@@ -753,7 +757,7 @@ def make_effect_icons():
     out["eff_steps"] = i
 
     # 连锁：三环斜链
-    i, d = new()
+    i, d = _icon_canvas()
     col = (0x58, 0xB4, 0x6B, 255)
     for k, (cx, cy) in enumerate([(S * 0.28, S * 0.68), (S * 0.50, S * 0.50), (S * 0.72, S * 0.32)]):
         rr = S * 0.13
@@ -761,7 +765,7 @@ def make_effect_icons():
     out["eff_chain"] = i
 
     # 果实：橙果 + 叶
-    i, d = new()
+    i, d = _icon_canvas()
     d.ellipse([S * 0.24, S * 0.36, S * 0.76, S * 0.88], fill=(0xE8, 0x9A, 0x4C, 255))
     d.line([S * 0.50, S * 0.36, S * 0.54, S * 0.22], fill=(0x8a, 0x5a, 0x2b, 255), width=5)
     d.polygon([(S * 0.54, S * 0.24), (S * 0.72, S * 0.14), (S * 0.62, S * 0.30)],
@@ -839,6 +843,87 @@ def make_board_emblems():
     return made
 
 
+# ---------- 职业主动技能图标（技能栏用，透明底） ----------
+
+def make_skill_icons():
+    """7 职业主动技能图标：skill_<class_id>.png（对齐 data/skills.gd）。"""
+    out = {}
+
+    # 战士 · 破城锤：红棕重型撞锤
+    i, d = _icon_canvas()
+    d.rounded_rectangle([S * 0.14, S * 0.38, S * 0.80, S * 0.62], radius=10,
+                        fill=(0xA8, 0x36, 0x30, 255), outline=(0x6b, 0x1f, 0x1a, 255), width=4)
+    for kx in (S * 0.24, S * 0.42, S * 0.60):
+        d.line([kx, S * 0.38, kx, S * 0.62], fill=(0x6b, 0x1f, 0x1a, 255), width=4)
+    d.rounded_rectangle([S * 0.06, S * 0.32, S * 0.16, S * 0.68], radius=6,
+                        fill=(0xC0, 0xC8, 0xD8, 255), outline=(0x6b, 0x1f, 0x1a, 255), width=3)
+    out["skill_warrior"] = i
+
+    # 法师 · 元素嬗变：双色漩涡 + 六芒
+    i, d = _icon_canvas()
+    cx, cy = S * 0.5, S * 0.5
+    for a, col in [(0, (0x8A, 0x5F, 0xBF, 255)), (120, (0x5F, 0xD3, 0xC9, 255)), (240, (0xF2, 0xC9, 0x4C, 255))]:
+        pts = []
+        for k in range(24):
+            rad = math.radians(a + k * 15)
+            rr = S * 0.34 * (1 - k / 24.0)
+            pts.append((cx + rr * math.cos(rad), cy + rr * math.sin(rad)))
+        d.line(pts, fill=col, width=6)
+    d.ellipse([cx - S * 0.08, cy - S * 0.08, cx + S * 0.08, cy + S * 0.08],
+              fill=(0xE8, 0xE0, 0xCF, 255))
+    out["skill_mage"] = i
+
+    # 盗贼 · 偷天换日：两张对调的卡
+    i, d = _icon_canvas()
+    card = (0x24, 0x1D, 0x33, 255)
+    d.polygon([(S * 0.20, S * 0.30), (S * 0.52, S * 0.24), (S * 0.48, S * 0.74),
+               (S * 0.16, S * 0.70)], fill=card, outline=(0xF2, 0xC9, 0x4C, 255), width=3)
+    d.polygon([(S * 0.80, S * 0.30), (S * 0.48, S * 0.24), (S * 0.52, S * 0.74),
+               (S * 0.84, S * 0.70)], fill=(0x4a, 0x3d, 0x6b, 255),
+              outline=(0x5F, 0xD3, 0xC9, 255), width=3)
+    d.line([S * 0.34, S * 0.52, S * 0.66, S * 0.48], fill=(0xF2, 0xC9, 0x4C, 255), width=4)
+    d.polygon([(S * 0.62, S * 0.42), (S * 0.72, S * 0.48), (S * 0.60, S * 0.54)],
+              fill=(0x5F, 0xD3, 0xC9, 255))
+    out["skill_rogue"] = i
+
+    # 牧师 · 圣光祈祷：合十手 + 光柱
+    i, d = _icon_canvas()
+    d.polygon([(S * 0.50, S * 0.10), (S * 0.36, S * 0.52), (S * 0.36, S * 0.86),
+               (S * 0.64, S * 0.86), (S * 0.64, S * 0.52)], fill=(0xF2, 0xC9, 0x4C, 160))
+    d.line([S * 0.50, S * 0.16, S * 0.50, S * 0.80], fill=(0xFF, 0xE9, 0xA8, 255), width=6)
+    d.line([S * 0.36, S * 0.50, S * 0.64, S * 0.50], fill=(0xFF, 0xE9, 0xA8, 255), width=4)
+    out["skill_priest"] = i
+
+    # 圣骑士 · 祝圣之槌：金柄圣锤（锤头发光）
+    i, d = _icon_canvas()
+    d.rounded_rectangle([S * 0.26, S * 0.14, S * 0.74, S * 0.42], radius=8,
+                        fill=(0xF2, 0xC9, 0x4C, 255), outline=(0xC0, 0x8A, 0x28, 255), width=4)
+    d.ellipse([S * 0.36, S * 0.20, S * 0.50, S * 0.36], fill=(0xFF, 0xF3, 0xC4, 255))
+    d.line([S * 0.50, S * 0.42, S * 0.50, S * 0.84], fill=(0xC0, 0x8A, 0x28, 255), width=8)
+    out["skill_paladin"] = i
+
+    # 游侠 · 穿透箭：箭穿三横线
+    i, d = _icon_canvas()
+    d.line([S * 0.20, S * 0.30, S * 0.80, S * 0.30], fill=(120, 110, 130, 255), width=5)
+    d.line([S * 0.20, S * 0.50, S * 0.80, S * 0.50], fill=(120, 110, 130, 255), width=5)
+    d.line([S * 0.20, S * 0.70, S * 0.80, S * 0.70], fill=(120, 110, 130, 255), width=5)
+    d.line([S * 0.16, S * 0.80, S * 0.80, S * 0.20], fill=(0xF2, 0xC9, 0x4C, 255), width=6)
+    d.polygon([(S * 0.84, S * 0.16), (S * 0.62, S * 0.22), (S * 0.78, S * 0.38)],
+              fill=(0xF2, 0xC9, 0x4C, 255))
+    out["skill_ranger"] = i
+
+    # 术士 · 暗影瘟疫：暗紫瘟疫泡群
+    i, d = _icon_canvas()
+    for bx, by, br, a in [(S * 0.36, S * 0.62, S * 0.16, 230), (S * 0.60, S * 0.46, S * 0.12, 200),
+                          (S * 0.66, S * 0.70, S * 0.10, 170), (S * 0.46, S * 0.30, S * 0.09, 150)]:
+        d.ellipse([bx - br, by - br, bx + br, by + br], fill=(0x6A, 0x3D, 0x8A, a))
+        d.ellipse([bx - br * 0.35, by - br * 0.35, bx - br * 0.05, by - br * 0.05],
+                  fill=(0xB8, 0x8A, 0xE0, 200))
+    out["skill_warlock"] = i
+
+    return out
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -900,6 +985,13 @@ def main():
 
     # 巅峰板块纹章
     made += make_board_emblems()
+
+    # 职业主动技能图标
+    skills = make_skill_icons()
+    for name, img in skills.items():
+        path = os.path.join(ui_dir, name + ".png")
+        img.save(path)
+        made.append(path)
 
     # 预览拼图：5 行（元素4变体）+ 1 行（鸟+UI）
     pad = px(0.06)
