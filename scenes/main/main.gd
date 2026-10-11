@@ -3,7 +3,7 @@ extends Control
 ## 场景化迁移完成：节点结构见 main.tscn（编辑器内可拖动调整），
 ## 脚本通过 %唯一名 绑定节点——重命名/移动节点不会破坏引用，删除才会。
 
-const LINE_NAMES := {"atk": "攻击训练", "bounty": "赏金训练", "income": "收入训练"}
+const LINE_NAMES := {"atk": "攻击训练", "bounty": "赏金训练", "income": "收入训练", "body": "体魄训练"}
 
 var _line_buttons := {}
 var _toast_tween: Tween
@@ -116,6 +116,13 @@ func _debug_capture() -> void:
 
 func _init_line_buttons() -> void:
 	_line_buttons = {"atk": _line_atk, "bounty": _line_bounty, "income": _line_income}
+	# 体魄训练线（第四线，精华；代码生成按钮——生命上限 +8%/级）
+	var body_btn := Button.new()
+	body_btn.text = "体魄训练"
+	_line_income.add_sibling(body_btn)
+	body_btn.position = _line_income.position + Vector2(0, 52)
+	body_btn.pressed.connect(_on_line_pressed.bind("body"))
+	_line_buttons["body"] = body_btn
 
 
 func _connect_signals() -> void:

@@ -17,6 +17,8 @@ var rebirth_guide_shown := false          # Lv.38 触墙引导已弹过（M4）
 var character_class := ""                 # 职业 id（空 = 未创建，见 data/classes.gd）
 var character_race := ""                  # 种族 id（见 data/races.gd）
 var skill_points := 0                     # 天赋技能点（Lv.60 前每级 +1；消费于天赋树）
+var skill_lv := 0                         # 主动技能强化等级（精华购买，转生保留——职业永久）
+var body_line := 0                        # 体魄训练线（生命上限 +8%/级，精华）
 var paragon_points := 0                   # 巅峰点（Lv.60 起每级 +1；消费于巅峰板块）
 var talents := {}                         # 天赋记录 {节点id: rank}（见 data/talents.gd）
 var paragon_talents := {}                 # 巅峰记录 {节点id: rank}（见 data/paragon.gd）
@@ -362,6 +364,30 @@ func tip_once(key: String, text: String = "") -> bool:
 	return true
 
 
+# ---------- 技能强化与体魄训练线（精华新消耗口，2026-10-12 拍板 A+D） ----------
+
+const SKILL_LV_MAX := 10
+const SKILL_LV_BASE_COST := 50
+const SKILL_LV_GROWTH := 1.6
+const BODY_LINE_HP_PER_LEVEL := 0.08
+
+
+func skill_upgrade_cost() -> int:
+	return int(ceil(float(SKILL_LV_BASE_COST) * pow(SKILL_LV_GROWTH, skill_lv)))
+
+
+func skill_upgrade() -> bool:
+	## 主动技能强化：精华购买技能等级（主数值成长；转生保留——职业永久）
+	if skill_lv >= SKILL_LV_MAX:
+		return false
+	var cost := skill_upgrade_cost()
+	if essence < cost:
+		return false
+	essence -= cost
+	skill_lv += 1
+	return true
+
+
 # ---------- 星辰宝箱（S1 产星 / S2 祭品箱，第十五轮拍板） ----------
 
 const CHEST_EVERY := 9                    # 每 9 星开一箱（落英花冠祭品箱）
@@ -511,11 +537,11 @@ func income_per_sec() -> float:
 		* Balance.income_fruit_mult(fruits) * Mods.mult("income")
 
 
-## 玩家生命上限（P-a 拍板 D9 全构成：基础+等级成长+职业修正+装备词条）
+## 玩家生命上限（P-a 拍板 D9 全构成：基础+等级成长+职业修正+装备词条+体魄训练线）
 func player_max_hp() -> int:
 	var base := Balance.PLAYER_HP_BASE + Balance.PLAYER_HP_PER_LEVEL * level
 	var cm: float = Balance.CLASS_HP_MOD.get(character_class, 1.0)
-	return int(ceil(base * cm * Mods.mult("max_hp")))
+	return int(ceil(base * cm * Mods.mult("max_hp") * (1.0 + BODY_LINE_HP_PER_LEVEL * body_line)))
 
 
 func train_cost_for(kind: String) -> int:
@@ -542,6 +568,8 @@ func line_level(kind: String) -> int:
 			return bounty_line
 		"income":
 			return income_line
+		"body":
+			return body_line
 	return 0
 
 
@@ -559,6 +587,8 @@ func upgrade_line(kind: String) -> bool:
 			bounty_line += 1
 		"income":
 			income_line += 1
+		"body":
+			body_line += 1
 	EventBus.line_changed.emit(kind, line_level(kind))
 	if kind == "income":
 		EventBus.income_changed.emit(income_per_sec())
@@ -596,6 +626,7 @@ func do_rebirth() -> int:
 	atk_line = 0
 	bounty_line = 0
 	income_line = 0
+	body_line = 0
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())
 	EventBus.level_changed.emit(level)
@@ -733,6 +764,8 @@ func reset() -> void:
 	chests_opened = 0
 	tips_seen = {}
 	pending_tips = []
+	skill_lv = 0
+	body_line = 0
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()

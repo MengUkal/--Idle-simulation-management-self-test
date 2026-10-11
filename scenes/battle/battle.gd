@@ -37,6 +37,7 @@ var _skill_overlay: Control    # 瞄准范围提示层（受影响格子高亮�
 var _skill_hover := Vector2i(-1, -1)  # 瞄准模式下鼠标悬停的格子
 var _btn_pulse: Tween          # 技能就绪呼吸脉冲
 var _skill_btn: Button
+var _skill_up_btn: Button
 
 var board_layer: Control
 var _steps_label: Label
@@ -220,7 +221,40 @@ func _build_skill_bar() -> void:
 	board_layer.add_child(_skill_overlay)
 	_skill_btn.disabled = not skill_ready()
 	board_layer.add_child(_skill_btn)
+	# 技能强化按钮（精华购买技能等级，2026-10-12 拍板 A）
+	_skill_up_btn = Button.new()
+	_skill_up_btn.custom_minimum_size = Vector2(86, 38)
+	_skill_up_btn.position = Vector2(96, -46)
+	_skill_up_btn.focus_mode = Control.FOCUS_NONE
+	_skill_up_btn.clip_text = true
+	_skill_up_btn.add_theme_font_size_override("font_size", 12)
+	_skill_up_btn.pressed.connect(_on_skill_upgrade)
+	board_layer.add_child(_skill_up_btn)
+	_update_skill_up_btn()
 	_refresh_skill_bar()
+
+
+func _on_skill_upgrade() -> void:
+	Sfx.play("ui_click")
+	if GameState.skill_upgrade():
+		Sfx.play("line_up")
+		_show_toast("技能强化 Lv.%d！" % GameState.skill_lv)
+	else:
+		Sfx.play("money_not_enough", 1.0, -6.0)
+	_update_skill_up_btn()
+	_refresh_skill_bar()
+
+
+func _update_skill_up_btn() -> void:
+	if _skill_up_btn == null:
+		return
+	var lv := GameState.skill_lv
+	if lv >= GameState.SKILL_LV_MAX:
+		_skill_up_btn.text = "强化 MAX"
+		_skill_up_btn.disabled = true
+		return
+	_skill_up_btn.text = "强化 Lv.%d (%d精华)" % [lv + 1, GameState.skill_upgrade_cost()]
+	_skill_up_btn.disabled = GameState.essence < GameState.skill_upgrade_cost()
 
 
 ## 【诊断工具】自动生成特效、自动走一步并分段截屏（-- --capture-debug 触发）
@@ -753,6 +787,8 @@ func _refresh_hud() -> void:
 	_hp_bar.value = maxf(monster_hp, 0.0)
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
 	_update_player_hud()
+	_update_skill_up_btn()
+	_update_player_hud()
 
 
 # ---------- 棋子图标（tools/artgen.py 程序化生成，见 docs/游戏设计文档.md §13） ----------
@@ -1142,30 +1178,50 @@ func _cast_skill(cell: Vector2i) -> void:
 			skill_uses -= 1
 		"steps":
 			steps_left -= int(skill_def.get("step_cost", 2))
+	var slv := GameState.skill_lv
 	var waves: Array = []
 	match GameState.character_class:
 		"warrior":
-			var r := board.skill_smash([cell,
+			var cells: Array = [cell,
 				cell + Vector2i(1, 0), cell + Vector2i(-1, 0),
-				cell + Vector2i(0, 1), cell + Vector2i(0, -1)])
+				cell + Vector2i(0, 1), cell + Vector2i(0, -1)]
+			if slv >= 1:
+				cells.append_array([cell + Vector2i(1, 1), cell + Vector2i(-1, -1),
+					cell + Vector2i(1, -1), cell + Vector2i(-1, 1)])
+			if slv >= 2:
+				cells.append_array([cell + Vector2i(2, 0), cell + Vector2i(-2, 0),
+					cell + Vector2i(0, 2), cell + Vector2i(0, -2)])
+			var r := board.skill_smash(cells)
 			waves = r["waves"]
 		"mage":
 			var weak := int(monster.get("weak", -1))
 			if weak < 0:
 				weak = board.rng.randi_range(0, Balance.ELEMENT_KINDS - 1)
-			var r := board.skill_transform_random(weak, 6)
+			var r := board.skill_transform_random(weak, 6 + 2 * slv)
 			waves = r["waves"]
 		"rogue":
 			board.skill_shuffle()
+			if slv > 0:
+				board.grant_plus_random(2 * slv)  # 偷天换日·强化：洗牌后点化强化珠
 		"priest":
-			steps_left += 3
+			steps_left += 3 + slv
 		"paladin":
 			board.skill_bless(cell)
+			if slv > 0:
+				for d0: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					board.skill_bless(cell + d0)  # 祝圣扩散：每级 +1 临格
 		"ranger":
 			var r := board.skill_pierce_col(cell.x)
 			waves = r["waves"]
+			if slv > 0:
+				var extra: Array = []
+				for i2 in slv * 2:
+					extra.append(Vector2i(board.rng.randi_range(0, board.size - 1),
+						board.rng.randi_range(0, board.size - 1)))
+				var r2 := board.skill_smash(extra)
+				waves.append_array(r2["waves"])
 		"warlock":
-			var r := board.skill_plague()
+			var r := board.skill_plague(2 * slv)
 			waves = r["waves"]
 	if waves.size() > 0:
 		_apply_damage(waves, true)  # 技能伤害：穿透连击盾（盾挡普消不挡技能）

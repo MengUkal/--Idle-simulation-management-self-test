@@ -58,6 +58,8 @@ func save() -> void:
 		"leg_claimed": GameState.leg_claimed,
 		"killed_once": GameState.killed_once,
 		"glue": GameState.glue,
+		"skill_lv": GameState.skill_lv,
+		"body_line": GameState.body_line,
 		"stars": GameState.stars,
 		"chests_opened": GameState.chests_opened,
 		"tips_seen": GameState.tips_seen,
@@ -143,6 +145,8 @@ func _load() -> void:
 	GameState.glue = int(data.get("glue", 0))
 	GameState.stars = int(data.get("stars", 0))
 	GameState.chests_opened = int(data.get("chests_opened", 0))
+	GameState.skill_lv = int(data.get("skill_lv", 0))
+	GameState.body_line = int(data.get("body_line", 0))
 	var tips_dict: Dictionary = data.get("tips_seen", {})
 	if typeof(tips_dict) == TYPE_DICTIONARY:
 		GameState.tips_seen = tips_dict

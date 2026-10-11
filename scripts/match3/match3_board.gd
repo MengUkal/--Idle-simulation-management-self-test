@@ -605,15 +605,15 @@ func skill_bless(cell: Vector2i) -> bool:
 	return true
 
 
-## 瘟疫：约一半非空方块随机变为其他颜色（术士·暗影瘟疫），随后正常连锁。返回 {waves, changed}
-func skill_plague() -> Dictionary:
+## 瘟疫：约一半非空方块随机变为其他颜色（术士·暗影瘟疫），额外 +extra 个（技能强化），随后正常连锁。返回 {waves, changed}
+func skill_plague(extra: int = 0) -> Dictionary:
 	var targets := []
 	for r in size:
 		for c in size:
 			if grid[r][c] >= 0:
 				targets.append(Vector2i(c, r))
 	targets.shuffle()
-	var half := int(ceil(targets.size() / 2.0))
+	var half := int(ceil(targets.size() / 2.0)) + extra
 	var changed := 0
 	for cell in targets.slice(0, half):
 		var old: int = grid[cell.y][cell.x]
@@ -642,6 +642,18 @@ func seal_obstacles(k: int) -> Array:
 		plus[cell.y][cell.x] = false
 		out.append(cell)
 	return out
+
+
+## 偷天换日·强化（P-b 配套）：随机 n 个普通棋子点化为强化珠（+珠）。
+func grant_plus_random(n: int) -> void:
+	var cands := []
+	for r in size:
+		for c in size:
+			if grid[r][c] >= 0 and not plus[r][c]:
+				cands.append(Vector2i(c, r))
+	cands.shuffle()
+	for cell in cands.slice(0, n):
+		plus[cell.y][cell.x] = true
 
 
 func _apply_gravity_and_refill() -> void:

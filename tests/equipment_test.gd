@@ -249,7 +249,25 @@ func _run() -> void:
 	check("T14 星星/箱数落盘", int(d14.get("stars", -1)) == GameState.stars
 		and int(d14.get("chests_opened", -1)) == GameState.chests_opened)
 	GameState.reset()
-	check("T14 reset 清星", GameState.stars == 0 and GameState.chests_opened == 0)
+	check("T15 reset 清标记", not GameState.tips_seen.has("t_a"))
+
+	# T16 技能强化 + 体魄训练线（精华新消耗口 A+D）
+	GameState.reset()
+	GameState.create_character("warrior", "human")
+	GameState.essence = 100000
+	check("T16 首级费用 50", GameState.skill_upgrade_cost() == 50)
+	check("T16 升级成功", GameState.skill_upgrade() and GameState.skill_lv == 1)
+	check("T16 二级费用 80", GameState.skill_upgrade_cost() == 80)
+	GameState.skill_lv = GameState.SKILL_LV_MAX
+	check("T16 上限 10 级封顶", not GameState.skill_upgrade())
+	GameState.skill_lv = 0
+	var body_before: int = GameState.player_max_hp()
+	check("T16 体魄升级", GameState.upgrade_line("body"))
+	check("T16 生命 +8%（ceil 后）",
+		GameState.player_max_hp() == int(ceil(body_before * 1.08)))
+	GameState.atk_line = GameState.body_line
+	check("T16 体魄费用公式同训练线",
+		GameState.train_cost_for("body") == GameState.train_cost_for("atk"))
 
 	# T15 新手提示（引导链清单实装）
 	GameState.reset()
