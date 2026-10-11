@@ -33,6 +33,9 @@ var skill_energy := 0          # 充能池（charge 型）
 var skill_frac := 0            # 充能余数（已消除但不足一格的块数）
 var skill_uses := 0            # 固定次数余量（fixed 型）
 var skill_targeting := false   # 瞄准模式（需选格/列的技能）
+var _skill_overlay: Control    # 瞄准范围提示层（受影响格子高亮）
+var _skill_hover := Vector2i(-1, -1)  # 瞄准模式下鼠标悬停的格子
+var _btn_pulse: Tween          # 技能就绪呼吸脉冲
 var _skill_btn: Button
 
 var board_layer: Control
@@ -92,6 +95,17 @@ const MONSTER_SLUG := {
 func _process(delta: float) -> void:
 	if not battle_over:
 		elapsed += delta
+	# 技能瞄准：悬停格追踪 + 提示层脉冲重绘
+	if skill_targeting and board_layer != null:
+		var m := board_layer.get_local_mouse_position()
+		var c := Vector2i(clampi(int(floor(m.x / STEP)), 0, Balance.BOARD_SIZE - 1),
+			clampi(int(floor(m.y / STEP)), 0, Balance.BOARD_SIZE - 1))
+		if c != _skill_hover:
+			_skill_hover = c
+			if _skill_overlay:
+				_skill_overlay.queue_redraw()
+		if _skill_overlay and _skill_overlay.visible:
+			_skill_overlay.queue_redraw()  # 呼吸脉冲需要每帧重绘
 
 
 func _ready() -> void:
@@ -164,6 +178,14 @@ func _build_skill_bar() -> void:
 		_skill_btn.expand_icon = true
 	_skill_btn.pressed.connect(_on_skill_pressed)
 	_skill_btn.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
+	# 瞄准范围提示层（覆盖整个棋盘，受影响格子高亮）
+	_skill_overlay = Control.new()
+	_skill_overlay.position = Vector2.ZERO
+	_skill_overlay.size = Vector2(STEP, STEP) * Balance.BOARD_SIZE
+	_skill_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_overlay.draw.connect(_on_skill_overlay_draw)
+	_skill_overlay.visible = false
+	board_layer.add_child(_skill_overlay)
 	_skill_btn.disabled = not skill_ready()
 	board_layer.add_child(_skill_btn)
 	_refresh_skill_bar()
@@ -187,6 +209,20 @@ func _debug_capture() -> void:
 		var img := get_viewport().get_texture().get_image()
 		img.save_png("F:/放置测试/挂机放置增量rpg/tests/%s.png" % step[1])
 		print("[capture] %s saved" % step[1])
+	# 技能瞄准范围提示演示（瞄准型职业才可演示；warrior=十字范围）
+	if bool(skill_def.get("targeting", false)):
+		skill_energy = maxi(skill_energy, 1)
+		_refresh_skill_bar()
+		_on_skill_pressed()
+		var center := board_layer.get_global_transform() * (Vector2(3, 3) * STEP + Vector2(TILE, TILE) / 2.0)
+		Input.warp_mouse(center)
+		await get_tree().create_timer(0.5).timeout
+		await RenderingServer.frame_post_draw
+		var img2 := get_viewport().get_texture().get_image()
+		img2.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_targeting.png")
+		print("[capture] cap_targeting saved")
+		skill_targeting = false
+		_skill_overlay.visible = false
 	get_tree().quit()
 
 
@@ -807,13 +843,18 @@ func skill_ready() -> bool:
 func _on_skill_pressed() -> void:
 	if skill_targeting:
 		skill_targeting = false
+		_skill_overlay.visible = false
+		Sfx.play("ui_open", 0.7)
 		_show_toast("已取消瞄准")
 		return
 	if not skill_ready():
 		return
 	if bool(skill_def.get("targeting", false)):
 		skill_targeting = true
-		_show_toast("选择目标（点击棋盘格子；再按技能键取消）")
+		_skill_hover = Vector2i(-1, -1)
+		_skill_overlay.visible = true
+		Sfx.play("ui_open", 0.9)
+		_show_toast("瞄准中：移动查看范围，左键确认 · 右键取消")
 		return
 	_cast_skill(Vector2i(-1, -1))
 
@@ -824,6 +865,7 @@ func _cast_skill(cell: Vector2i) -> void:
 		return
 	_busy = true
 	skill_targeting = false
+	_skill_overlay.visible = false
 	Sfx.play("skill_cast")  # 职业技能施法音（七职业通用；此前技能全程无声，音频会话补齐 2026-10-11）
 	match str(skill_def.get("resource", "")):
 		"charge":
@@ -859,12 +901,14 @@ func _cast_skill(cell: Vector2i) -> void:
 			waves = r["waves"]
 	if waves.size() > 0:
 		_apply_damage(waves, true)  # 技能伤害：穿透连击盾（盾挡普消不挡技能）
+		_cast_skill_fx(cell, waves)
 		_refresh_board()
 		await _anim_clear(waves)
 		_refresh_board()
 		board.ensure_playable()
 		await _anim_settle()
 	else:
+		_cast_skill_fx(cell, waves)
 		board.ensure_playable()  # 洗牌/祝圣后同样防死局
 	if defeated:
 		_pending_result = 1
@@ -899,3 +943,176 @@ func _refresh_skill_bar() -> void:
 			_skill_btn.text = "-%d步" % int(skill_def.get("step_cost", 2))
 			_skill_btn.tooltip_text = "%s\n释放消耗 %d 步" % [skill_def.get("name", ""), int(skill_def.get("step_cost", 2))]
 			_skill_btn.disabled = steps_left < int(skill_def.get("step_cost", 2))
+	# 就绪呼吸脉冲：资源足够时轻微提亮循环（瞄准中保持高亮）
+	if _btn_pulse:
+		_btn_pulse.kill()
+		_btn_pulse = null
+	if not _skill_btn.disabled:
+		if skill_targeting:
+			_skill_btn.modulate = Color(1.35, 1.3, 1.05)
+		else:
+			_btn_pulse = create_tween().set_loops()
+			_btn_pulse.tween_property(_skill_btn, "modulate", Color(1.22, 1.18, 1.02), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			_btn_pulse.tween_property(_skill_btn, "modulate", Color.WHITE, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	else:
+		_skill_btn.modulate = Color(0.62, 0.62, 0.68)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# 瞄准模式：右键取消（左键确认在棋子点击流里）
+	if skill_targeting and event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		skill_targeting = false
+		_skill_overlay.visible = false
+		Sfx.play("ui_open", 0.7)
+		_show_toast("已取消瞄准")
+		get_viewport().set_input_as_handled()
+
+
+# ---------- 技能瞄准提示与释放特效（2026-10-11） ----------
+
+## 当前职业在 cell 处释放会影响的格子
+func _skill_affected_cells(cell: Vector2i) -> Array:
+	match GameState.character_class:
+		"warrior":
+			return [cell, cell + Vector2i(1, 0), cell + Vector2i(-1, 0),
+				cell + Vector2i(0, 1), cell + Vector2i(0, -1)]
+		"ranger":
+			var col_out: Array = []
+			for r in Balance.BOARD_SIZE:
+				col_out.append(Vector2i(cell.x, r))
+			return col_out
+		"paladin":
+			return [cell]
+	return []
+
+
+func _on_skill_overlay_draw() -> void:
+	if not skill_targeting:
+		return
+	var pulse := 0.28 + 0.10 * sin(Time.get_ticks_msec() / 170.0)
+	for c in _skill_affected_cells(_skill_hover):
+		if c.x < 0 or c.y < 0 or c.x >= Balance.BOARD_SIZE or c.y >= Balance.BOARD_SIZE:
+			continue
+		var r := Rect2(_cell_pos(c) + Vector2(2, 2), Vector2(TILE, TILE) - Vector2(4, 4))
+		_skill_overlay.draw_rect(r, Color(0.40, 0.75, 1.0, pulse), true)
+		_skill_overlay.draw_rect(r, Color(0.55, 0.85, 1.0, 0.85), false, 2.0)
+	if _skill_hover.x >= 0:
+		var rr := Rect2(_cell_pos(_skill_hover), Vector2(TILE, TILE))
+		_skill_overlay.draw_rect(rr, Color(1, 0.843, 0.369, 0.95), false, 3.0)
+
+
+func _wave_cells(waves: Array) -> Array:
+	var out: Array = []
+	for w in waves:
+		for e in w:
+			out.append(e["cell"])
+	return out
+
+
+## 释放特效入口：按职业分派（纯视觉，不影响结算）
+func _cast_skill_fx(cell: Vector2i, waves: Array) -> void:
+	match GameState.character_class:
+		"warrior":
+			var cells: Array = [cell, cell + Vector2i(1, 0), cell + Vector2i(-1, 0),
+				cell + Vector2i(0, 1), cell + Vector2i(0, -1)]
+			_fx_flash_cells(cells, Color(1.0, 0.5, 0.4), 0.22)
+			_burst_cells(cells, Color("e0564f"), 6)
+			if Settings.get_value("fx_screen_shake"):
+				_shake_board()
+		"mage":
+			var cells := _wave_cells(waves)
+			_fx_flash_cells(cells, Color(0.72, 0.45, 1.0), 0.3)
+			_burst_cells(cells, Color("8a5fbf"), 5)
+		"rogue":
+			_fx_board_shimmer()
+		"priest":
+			_fx_float_text("+3 步", Vector2(960.0, 380.0), Color("ffd75e"))
+		"paladin":
+			_fx_flash_cells([cell], Color("ffd75e"), 0.35)
+			_burst_cells([cell], Color("ffd75e"), 10)
+		"ranger":
+			_fx_column_flash(cell.x)
+		"warlock":
+			var cells := _wave_cells(waves)
+			_fx_flash_cells(cells, Color(0.55, 0.3, 0.75), 0.32)
+			_burst_cells(cells, Color("8a5fbf"), 4)
+
+
+func _fx_flash_cells(cells: Array, col: Color, dur := 0.25) -> void:
+	for c in cells:
+		if c.x < 0 or c.y < 0 or c.x >= Balance.BOARD_SIZE or c.y >= Balance.BOARD_SIZE:
+			continue
+		var r := ColorRect.new()
+		r.color = Color(col.r, col.g, col.b, 0.5)
+		r.position = _cell_pos(c) + Vector2(2, 2)
+		r.size = Vector2(TILE, TILE) - Vector2(4, 4)
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		r.z_index = 20
+		board_layer.add_child(r)
+		var tw := create_tween()
+		tw.tween_property(r, "modulate:a", 0.0, dur)
+		tw.tween_callback(r.queue_free)
+
+
+func _fx_column_flash(x: int) -> void:
+	var r := ColorRect.new()
+	r.color = Color(1.0, 0.9, 0.5, 0.4)
+	r.position = _cell_pos(Vector2i(x, 0))
+	r.size = Vector2(TILE, STEP * Balance.BOARD_SIZE)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.z_index = 20
+	board_layer.add_child(r)
+	var tw := create_tween()
+	tw.tween_property(r, "modulate:a", 0.0, 0.32)
+	tw.tween_callback(r.queue_free)
+
+
+func _burst_cells(cells: Array, col: Color, amount := 6) -> void:
+	for c in cells:
+		if c.x < 0 or c.y < 0 or c.x >= Balance.BOARD_SIZE or c.y >= Balance.BOARD_SIZE:
+			continue
+		var p := CPUParticles2D.new()
+		p.position = _cell_pos(c) + Vector2(TILE, TILE) / 2.0
+		p.amount = amount
+		p.lifetime = 0.5
+		p.one_shot = true
+		p.explosiveness = 1.0
+		p.spread = 180.0
+		p.gravity = Vector2(0, 500)
+		p.initial_velocity_min = 100.0
+		p.initial_velocity_max = 240.0
+		p.scale_amount_min = 3.0
+		p.scale_amount_max = 6.0
+		p.color = col
+		board_layer.add_child(p)
+		p.emitting = true
+		get_tree().create_timer(1.0).timeout.connect(p.queue_free)
+
+
+func _fx_board_shimmer() -> void:
+	for r in Balance.BOARD_SIZE:
+		for c in Balance.BOARD_SIZE:
+			var btn: Button = tiles[r][c]
+			var tw := create_tween()
+			tw.tween_property(btn, "modulate:a", 0.25, 0.12)
+			tw.tween_property(btn, "modulate:a", 1.0, 0.14)
+
+
+func _fx_float_text(text: String, pos: Vector2, col: Color) -> void:
+	if not Settings.get_value("fx_damage_numbers"):
+		return
+	var l := Label.new()
+	l.text = text
+	l.position = pos
+	l.add_theme_font_size_override("font_size", 28)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	l.add_theme_constant_override("shadow_offset_x", 2)
+	l.add_theme_constant_override("shadow_offset_y", 2)
+	l.z_index = 30
+	add_child(l)
+	var tw := create_tween()
+	tw.tween_property(l, "position:y", pos.y - 50.0, 0.9)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.9)
+	tw.tween_callback(l.queue_free)
