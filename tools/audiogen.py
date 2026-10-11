@@ -1321,6 +1321,79 @@ def s_decompose_glue():
     return normalize(buf, -8)
 
 
+def s_chest_open():
+    """S2 星辰祭品箱开箱：箱盖吱呀 + 星尘迸出前奏（奖励揭示音紧随其后由调用方接）。"""
+    buf = np.zeros(int(0.5 * SR))
+    creak = osc(140, 0.18, "saw", vib_hz=23, vib_amt=70)
+    creak = bp(creak, 120, 800) * adsr(int(0.18 * SR), 0.03, 0.05, 0.6, 0.08)
+    place(buf, creak, 0.0, 0.8)
+    pop = sweep(220, 480, 0.08, curve=1.6) * np.exp(-30 * t_axis(0.08))
+    place(buf, pop, 0.18, 0.9)
+    st = sparkle(0.25, base=2637, n=3, level=0.5)
+    i = int(0.22 * SR)
+    buf[i: i + len(st)] += st[: len(buf) - i]
+    return normalize(buf, -7)
+
+
+def _bgm_floor5():
+    """五层·云顶鹰巢（工程会话需求单：五层暂用 floor4 顶替）：D 多利亚，84bpm，16 小节 45.7s。
+    云海之上的守望者鹰巢：长笛高远长句 + 周期鹰唳（高频滑音）+ 更大的混响空间感 + 低频威严鼓点。"""
+    bpm = 84
+    q = 60.0 / bpm
+    Dm, C, Gm, Am = [50, 53, 57], [48, 52, 55], [55, 58, 62], [57, 60, 64]
+    bars = [Dm, C, Gm, Am] * 4
+
+    def arp(chord, bar_idx, r):
+        order = (0, 2, 1, 3, 2, 3, 1, 2)
+        out = []
+        for i in range(8):
+            d = order[i]
+            m = chord[d % len(chord)] + 12 * (1 if d >= len(chord) else 0) + 12
+            out.append((i * 2, m, 0.55))
+        return out
+
+    def sec(events):
+        return [(st, m, b * q) for st, m, b in events]
+
+    mel = [[] for _ in range(16)]
+    mel[0] = sec([(0, 77, 1.5), (6, 79, 1.0), (12, 77, 1.8)])
+    mel[1] = sec([(0, 76, 1.5), (8, 72, 2.4)])
+    mel[2] = sec([(0, 74, 1.5), (8, 71, 2.4)])
+    mel[3] = sec([(0, 73, 3.5)])
+    mel[4] = sec([(0, 77, 1.5), (6, 81, 1.0), (12, 79, 1.8)])
+    mel[5] = sec([(0, 76, 1.5), (8, 72, 2.4)])
+    mel[6] = sec([(0, 74, 1.0), (6, 79, 1.0), (12, 74, 2.4)])
+    mel[7] = sec([(0, 73, 3.5)])
+    mel[8] = sec([(0, 77, 1.5), (6, 79, 1.0), (12, 81, 1.8)])
+    mel[9] = sec([(0, 79, 1.5), (8, 76, 2.4)])
+    mel[10] = sec([(0, 77, 1.0), (6, 74, 1.0), (12, 71, 2.4)])
+    mel[11] = sec([(0, 72, 3.5)])
+    mel[12] = sec([(0, 77, 1.5), (6, 81, 1.0), (12, 84, 1.8)])
+    mel[13] = sec([(0, 81, 1.5), (8, 79, 2.4)])
+    mel[14] = sec([(0, 77, 1.0), (6, 74, 1.0), (12, 71, 2.4)])
+    mel[15] = sec([(0, 69, 4.0)])
+
+    def eagle(bar_idx, chord, t0, buf, ctx):
+        # 鹰唳：高频颤音滑降两声（远、清、凉，每 8 小节一轮）
+        if bar_idx % 8 == 4:
+            t = t_axis(0.6)
+            f = 1250 * (0.78 + 0.22 * np.sin(2 * np.pi * 6 * t)) * (1 - 0.22 * t / 0.6)
+            cry = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-2.6 * t)
+            cry = hp(cry, 700) * adsr(len(cry), 0.05, 0.1, 0.8, 0.25)
+            place(buf, pan(cry, -0.35), t0 + ctx["bar_sec"] * 0.25, 0.13)
+
+    layers = [
+        _layer_pad(lambda c: c, gain=0.15),
+        _layer_bass(levels=(1, 3)),
+        _layer_guitar_arp(arp),
+        _layer_melody(mel, "flute", gain=0.46, pan_p=-0.2),
+        eagle,
+        _layer_perc("shaker", (0, 4, 8, 12), 0.07),
+        _layer_kick((0, 8), 0.26),
+    ]
+    return dict(bpm=bpm, bars=bars, layers=layers, name="bgm_floor5", desc="五层·云顶鹰巢")
+
+
 def gen_ambience(sid, outdir, sub="ambience"):
     """环境音：30s 无缝循环（尾巴折回 + 整周期 LFO），双声道独立实现去相关，
     响度固定很低（RMS≈0.045，垫底用）。demo 输出样张区（sub=ambience）；--all 转正（sub=amb）。"""
@@ -1377,6 +1450,7 @@ CATALOG = {
     "praise_3":         (s_praise_3,         "sfx/praise_3.wav",         "P1", "S3③ 屏幕字·漂亮（3 连）"),
     "praise_4":         (s_praise_4,         "sfx/praise_4.wav",         "P1", "S3③ 屏幕字·惊人（4 连）"),
     "praise_5":         (s_praise_5,         "sfx/praise_5.wav",         "P1", "S3③ 屏幕字·传说（5 连+）"),
+    "chest_open":       (s_chest_open,       "sfx/chest_open.wav",       "P1", "S2 星辰祭品箱开箱（奖励揭示音紧随）"),
     "plus_tick":        (s_plus_tick,        "sfx/plus_tick.wav",        "P1", "强化珠消除微光（+6% 正反馈）"),
     "equip_on":         (s_equip_on,         "sfx/equip_on.wav",         "P1", "装备上身（扣具双响+暖木确认）"),
     "equip_off":        (s_equip_off,        "sfx/equip_off.wav",        "P1", "装备卸下（布料软扑）"),
@@ -1403,8 +1477,8 @@ VARIANTS = {
     "swap_ok": ("s_swap_ok_b",),
 }
 
-SONG_BUILDERS = {"bgm_floor1": _bgm_floor1, "bgm_floor2": _bgm_floor2, "bgm_market": _bgm_market, "bgm_floor3": _bgm_floor3, "bgm_floor4": _bgm_floor4}
-SONG_PRIO = {"bgm_floor1": "P0", "bgm_floor2": "P0", "bgm_market": "P0", "bgm_floor3": "P0", "bgm_floor4": "P2 预备"}
+SONG_BUILDERS = {"bgm_floor1": _bgm_floor1, "bgm_floor2": _bgm_floor2, "bgm_market": _bgm_market, "bgm_floor3": _bgm_floor3, "bgm_floor4": _bgm_floor4, "bgm_floor5": _bgm_floor5}
+SONG_PRIO = {"bgm_floor1": "P0", "bgm_floor2": "P0", "bgm_market": "P0", "bgm_floor3": "P0", "bgm_floor4": "P0", "bgm_floor5": "P0"}
 
 DEMO = [
     "ui_click", "level_up", "money_not_enough", "floor_unlock", "rebirth",
@@ -1534,7 +1608,7 @@ def main():
     jobs = []
     if args.demo:
         outdir = os.path.join(proj, "docs", "音频样张")
-        jobs = [("sfx", s) for s in DEMO] + [("bgm", s) for s in ("bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4")]
+        jobs = [("sfx", s) for s in DEMO] + [("bgm", s) for s in ("bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5")]
     elif args.all:
         outdir = os.path.join(proj, "assets", "audio")
         jobs = [("sfx", s) for s in CATALOG] + [("bgm", s) for s in SONG_BUILDERS]
