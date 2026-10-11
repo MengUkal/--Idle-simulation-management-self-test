@@ -27,6 +27,7 @@ var bag: Array = []                       # 装备背包（≤30 件实例，E1�
 var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
 var killed_once: Dictionary = {}          # 击杀过的目标 {名字: true}（传奇首杀判定）
+var glue := 0                             # 树胶（洗练货币，分解粗品/普通获得，E2）
 var last_seen := 0.0                      # 最近一次存档的 Unix 时间戳（0 = 从未存过，离线收益用）
 var pending_offline := {}                 # 待展示的离线收益报告（主界面弹窗消费，不落盘）
 
@@ -130,6 +131,88 @@ func unlock_floor4_card() -> bool:
 # ---------- 装备（E1，2026-10-11 22 项拍板 + 内容包 v2） ----------
 
 const BAG_CAPACITY := 30
+const DECOMPOSE_GLUE := [5, 15]           # 粗品/普通分解得树胶（洗练货币，内容包 v2）
+const DECOMPOSE_ESSENCE := [30, 80]       # 精良/史诗分解得元素精华
+const WASH_BASE_COST := 10                # 洗练基础树胶价
+const WASH_COST_GROWTH := 2.0             # 账单制：同一件每洗一次 ×2（拍板 D5.2 递增）
+
+
+## 分解背包第 idx 件。返回 {"ok", "glue", "essence", "name"}。
+func decompose(idx: int) -> Dictionary:
+	if idx < 0 or idx >= bag.size():
+		return {"ok": false}
+	var item: Dictionary = bag[idx]
+	if str(item.get("legendary", "")) != "":
+		return {"ok": false, "reason": "传奇不可分解"}
+	var q := int(item.get("quality", 0))
+	var out := {"ok": true, "glue": 0, "essence": 0, "name": str(item.get("name", ""))}
+	if q <= 1:
+		var g: int = DECOMPOSE_GLUE[q]
+		glue += g
+		out["glue"] = g
+	else:
+		var e: int = DECOMPOSE_ESSENCE[q - 2]
+		add_essence(e)
+		out["essence"] = e
+	bag.remove_at(idx)
+	return out
+
+
+## 一键分解全部粗品/普通。返回分解件数。
+func decompose_all_common() -> int:
+	var n := 0
+	for i in range(bag.size() - 1, -1, -1):
+		if int(bag[i].get("quality", 0)) <= 1 and str(bag[i].get("legendary", "")) == "":
+			var r: Dictionary = decompose(i)
+			if bool(r.get("ok", false)):
+				n += 1
+	return n
+
+
+## 洗练账单价：同一件每洗一次翻倍（树胶）
+func wash_cost(item: Dictionary) -> int:
+	return int(ceil(WASH_BASE_COST * pow(WASH_COST_GROWTH, int(item.get("wash_count", 0)))))
+
+
+## 账单制洗 1：重 roll 装备实例的第 affix_idx 条词条（同槽位池、不与现存重复、
+## 档位 T1~T5 独立 roll、太古只能发现不能洗出）。返回错误文本（空 = 成功）。
+func wash_affix(idx: int, affix_idx: int) -> String:
+	if idx < 0 or idx >= bag.size():
+		return "无效的背包格"
+	var item: Dictionary = bag[idx]
+	var affixes: Array = item.get("affixes", [])
+	if affix_idx < 0 or affix_idx >= affixes.size():
+		return "无效的词条"
+	var cost := wash_cost(item)
+	if glue < cost:
+		return "树胶不足（需 %d）" % cost
+	var old_id := str(affixes[affix_idx]["id"])
+	var slot := str(item["slot"])
+	var pool := []
+	for a in GameEquipment.AFFIXES:
+		if slot in a["slots"] and (affixes.size() >= 2 or not a.has("effects")) \
+				and str(a["id"]) != old_id:
+			var dup := false
+			for other in affixes:
+				if other is Dictionary and int(affixes.find(other)) != affix_idx \
+						and str(other.get("id", "")) == str(a["id"]):
+					dup = true
+			if not dup:
+				pool.append(a)
+	if pool.is_empty():
+		return "该槽位无可替换词条"
+	pool.shuffle()
+	var pick: Dictionary = pool[0]
+	var fresh := {"id": str(pick["id"]), "tier": randi_range(1, 5), "ancient": false}
+	if pick.has("effects"):
+		fresh["tier"] = 0
+	affixes[affix_idx] = fresh
+	item["affixes"] = affixes
+	item["wash_count"] = int(item.get("wash_count", 0)) + 1
+	glue -= cost
+	Mods.recompute()
+	EventBus.money_changed.emit(money)  # 刷新面板数值（词条可能含经济键）
+	return ""
 
 
 ## 战斗掉落结算（在赏金之后调用）。返回 toast 文本（空 = 无可展示掉落）。
@@ -150,7 +233,7 @@ func battle_drop(monster: Dictionary, is_elite: bool) -> String:
 		var item := GameEquipment.roll_item(floor_index, rebirth_count, character_class, monster)
 		var q := int(item.get("quality", 0))
 		if q <= 1:
-			add_essence(GameEquipment.DECOMPOSE_ESSENCE[q])
+			glue += DECOMPOSE_GLUE[q]  # 粗品/普通自动分解得树胶（内容包 v2）
 		elif _add_to_bag(item) == "":
 			toasts.append("获得 %s（%s）" % [str(item["name"]), GameEquipment.QUALITY_NAMES[q]])
 	if toasts.is_empty():
@@ -509,6 +592,7 @@ func reset() -> void:
 	equipped = {}
 	leg_claimed = []
 	killed_once = {}
+	glue = 0
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()

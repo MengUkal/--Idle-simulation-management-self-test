@@ -34,7 +34,7 @@ const QUALITY_RB_CAP := 60.0           # 精良+史诗合计权重上限
 const ANCIENT_CHANCE := 0.08           # 太古形态概率（数值 ×1.5）
 const ANCIENT_MULT := 1.5
 const DROP_BASE_CHANCE := 0.08         # 全战斗基础掉落概率（× drop_rate 修饰符）
-const DECOMPOSE_ESSENCE := [5, 15]     # 粗品/普通自动分解回精华（精良/史诗入包）
+## 分解产出在 GameState（DECOMPOSE_GLUE/DECOMPOSE_ESSENCE，E2：树胶/精华）
 
 # ---------- 内在属性维度（2026-10-12 拍板：层级 1~N 永续成长的三条公式轴） ----------
 ## 与品级（词条栏数）正交：品级管词条数量，层级管这三条内在属性的数值。

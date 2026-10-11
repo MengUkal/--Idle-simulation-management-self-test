@@ -225,3 +225,50 @@ func _run() -> void:
 		(data.get("leg_claimed", []) as Array).size() == GameState.leg_claimed.size())
 	check("T11 击杀记录落盘",
 		(data.get("killed_once", {}) as Dictionary).size() == GameState.killed_once.size())
+
+	# T12 分解与树胶（E2）
+	GameState.reset()
+	GameState.create_character("warrior", "human")
+	GameState.glue = 0
+	GameState.bag.append({"id": "t_a", "name": "粗品件", "slot": "ring", "type": "ring",
+		"tier": 1, "weight": "", "quality": 0, "ancient": false, "affixes": [], "legendary": ""})
+	var r12: Dictionary = GameState.decompose(0)
+	check("T12 粗品分解得树胶 5", bool(r12["ok"]) and int(r12["glue"]) == 5 and GameState.glue == 5)
+	GameState.bag.append({"id": "t_b", "name": "精良件", "slot": "ring", "type": "ring",
+		"tier": 2, "weight": "", "quality": 2, "ancient": false,
+		"affixes": [{"id": "af_sharp", "tier": 1, "ancient": false}], "legendary": ""})
+	var ess_before := GameState.essence
+	var r12b: Dictionary = GameState.decompose(0)
+	check("T12 精良分解得精华 30", bool(r12b["ok"]) and int(r12b["essence"]) == 30
+		and GameState.essence == ess_before + 30)
+	GameState.bag.append({"id": "t_l", "name": "传奇件", "slot": "ring", "type": "ring",
+		"tier": 1, "weight": "", "quality": 3, "ancient": false, "affixes": [], "legendary": "leg_twin_ring"})
+	check("T12 传奇不可分解", not bool(GameState.decompose(0)["ok"]))
+	check("T12 树胶落盘", true)  # 与 T13 合并验证
+
+	# T13 账单制洗练：锁1洗1、成本翻倍、不产太古
+	GameState.reset()
+	GameState.create_character("warrior", "human")
+	GameState.glue = 1000
+	var wash_item := {"id": "main_sword_L3", "name": "精钢长剑", "slot": "main", "type": "sword",
+		"tier": 3, "weight": "", "quality": 2, "ancient": false,
+		"affixes": [{"id": "af_sharp", "tier": 5, "ancient": false},
+			{"id": "af_plunder", "tier": 2, "ancient": false}], "legendary": ""}
+	GameState.bag.append(wash_item)
+	check("T13 首洗成本 10", GameState.wash_cost(GameState.bag[0]) == 10)
+	var err13: String = GameState.wash_affix(0, 0)
+	check("T13 洗练成功", err13 == "" and GameState.glue == 990)
+	var affs: Array = GameState.bag[0]["affixes"]
+	check("T13 目标词条已换（不与现存重复）", str(affs[0]["id"]) != "af_sharp"
+		and str(affs[1]["id"]) == "af_plunder")
+	check("T13 洗练不产太古", not bool(affs[0].get("ancient", false)))
+	check("T13 二洗成本 20", GameState.wash_cost(GameState.bag[0]) == 20)
+	var glue13 := GameState.glue
+	GameState.wash_affix(0, 1)
+	check("T13 账单递增扣费", GameState.glue == glue13 - 20)
+	check("T13 树胶落盘一致", true)
+	SaveManager.save()
+	var f13 := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var d13: Dictionary = JSON.parse_string(f13.get_as_text())
+	f13.close()
+	check("T13 树胶数值落盘", int(d13.get("glue", -1)) == GameState.glue)

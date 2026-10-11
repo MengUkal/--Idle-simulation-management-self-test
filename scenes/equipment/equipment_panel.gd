@@ -14,6 +14,11 @@ var _equip_btns := {}          # slot → 按钮
 var _detail_name: Label
 var _detail_body: RichTextLabel
 var _bag_title: Label
+var _glue_label: Label         # 树胶/精华持有（E2）
+var _affix_box: VBoxContainer  # 洗练目标选择（E2 账单制锁1洗1）
+var _wash_btn: Button
+var _decompose_btn: Button
+var _wash_sel := -1
 var _sel_bag := -1
 var _sel_slot := ""
 
@@ -114,6 +119,31 @@ func _build_ui() -> void:
 	off_btn.custom_minimum_size = Vector2(0, 40)
 	off_btn.pressed.connect(_on_unequip_pressed)
 	act_row.add_child(off_btn)
+	# E2：分解 + 洗练（账单制锁1洗1）
+	var dec_row := HBoxContainer.new()
+	detail.add_child(dec_row)
+	_decompose_btn = Button.new()
+	_decompose_btn.text = "分 解"
+	_decompose_btn.custom_minimum_size = Vector2(0, 36)
+	_decompose_btn.pressed.connect(_on_decompose_pressed)
+	dec_row.add_child(_decompose_btn)
+	var dec_all := Button.new()
+	dec_all.text = "一键分解粗/普"
+	dec_all.custom_minimum_size = Vector2(0, 36)
+	dec_all.pressed.connect(func() -> void:
+		var n: int = GameState.decompose_all_common()
+		Sfx.play("trade_sell" if n > 0 else "money_not_enough", 1.0, -4.0)
+		_sel_bag = -1
+		_refresh())
+	dec_row.add_child(dec_all)
+	_affix_box = VBoxContainer.new()
+	_affix_box.add_theme_constant_override("separation", 4)
+	detail.add_child(_affix_box)
+	_wash_btn = Button.new()
+	_wash_btn.text = "洗 练"
+	_wash_btn.custom_minimum_size = Vector2(0, 36)
+	_wash_btn.pressed.connect(_on_wash_pressed)
+	detail.add_child(_wash_btn)
 
 	# ---- 右：背包 6×5 ----
 	var bag_box := VBoxContainer.new()
@@ -123,6 +153,11 @@ func _build_ui() -> void:
 	_bag_title.text = "背包（0/%d）" % GameState.BAG_CAPACITY
 	_bag_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bag_box.add_child(_bag_title)
+	_glue_label = Label.new()
+	_glue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_glue_label.add_theme_font_size_override("font_size", 14)
+	_glue_label.add_theme_color_override("font_color", Color(0.65, 0.8, 0.6))
+	bag_box.add_child(_glue_label)
 	var grid := GridContainer.new()
 	grid.columns = 6
 	grid.add_theme_constant_override("h_separation", 8)
@@ -176,18 +211,28 @@ func _refresh() -> void:
 		_show_detail(GameState.bag[_sel_bag], false)
 	elif _sel_slot != "" and GameState.equipped.has(_sel_slot):
 		_show_detail(GameState.equipped[_sel_slot], true)
-	# 背包计数
+	# 背包计数与货币
 	_bag_title.text = "背包（%d/%d）" % [GameState.bag.size(), GameState.BAG_CAPACITY]
+	_glue_label.text = "树胶 %d ｜ 精华 %d" % [GameState.glue, GameState.essence]
+	# 洗练/分解可用性（仅背包件；洗练需选中一条词条）
+	var bag_sel := _sel_bag >= 0 and _sel_bag < GameState.bag.size()
+	_decompose_btn.visible = bag_sel
+	_wash_btn.visible = bag_sel and _wash_sel >= 0
+	if bag_sel:
+		var wi: Dictionary = GameState.bag[_sel_bag]
+		_wash_btn.text = "洗练该词条（树胶 %d）" % GameState.wash_cost(wi)
+		_wash_btn.disabled = GameState.glue < GameState.wash_cost(wi)
+	_rebuild_affix_buttons()
 
 
 func _show_detail(item: Dictionary, worn: bool) -> void:
 	var q := int(item.get("quality", 0))
 	var qname: String = GameEquipment.QUALITY_NAMES[q]
 	var col: Color = GameEquipment.QUALITY_COLORS[q]
-	var tag := "  [color=#c0b080][已穿戴][/color]" if worn else ""
-	_detail_name.text = "%s\n[color=%s]%s%s[/color]" % [
-		str(item.get("name", "?")), col.to_html(false), qname,
-		"  太古" if bool(item.get("ancient", false)) else "", ]
+	var tag := "  已穿戴" if worn else ""
+	_detail_name.text = "%s\n%s%s" % [
+		str(item.get("name", "?")), qname, "  太古" if bool(item.get("ancient", false)) else ""]
+	_detail_name.add_theme_color_override("font_color", col)
 	var lines := []
 	lines.append("部位：%s ｜ 层级 L%d" % [SLOT_NAMES.get(str(item["slot"]), str(item["slot"])), int(item.get("tier", 1))])
 	for af in item.get("affixes", []):
@@ -201,8 +246,12 @@ func _show_detail(item: Dictionary, worn: bool) -> void:
 	if worn:
 		lines.append("")
 		lines.append("[color=#8a93ad]点击「卸下」放回背包[/color]")
-	elif not GameEquipment.can_wear(GameState.character_class, item):
-		lines.append("[color=#ff8080]与当前职业不符，无法穿戴[/color]")
+	else:
+		var affixes_n := (item.get("affixes", []) as Array).size()
+		if not GameEquipment.can_wear(GameState.character_class, item):
+			lines.append("[color=#ff8080]与当前职业不符，无法穿戴[/color]")
+		if affixes_n > 0:
+			lines.append("[color=#8a93ad]点下方词条选中后可洗练（树胶账单制 ×2）｜ 分解换树胶/精华[/color]")
 	_detail_body.text = "\n".join(lines)
 
 
@@ -239,12 +288,14 @@ func _icon_for(item: Dictionary) -> Texture2D:
 func _on_bag_pressed(idx: int) -> void:
 	_sel_bag = idx
 	_sel_slot = ""
+	_wash_sel = -1
 	_refresh()
 
 
 func _on_equip_slot(slot: String) -> void:
 	_sel_slot = slot
 	_sel_bag = -1
+	_wash_sel = -1
 	_refresh()
 
 
@@ -255,6 +306,8 @@ func _on_wear_pressed() -> void:
 	var err: String = GameState.equip_from_bag(_sel_bag)
 	if err != "":
 		Sfx.play("money_not_enough", 1.0, -6.0)
+	else:
+		Sfx.play("equip_on")  # 装备上身专属音（音频会话 2026-10-11）
 	_sel_bag = -1
 	_refresh()
 
@@ -262,7 +315,60 @@ func _on_wear_pressed() -> void:
 func _on_unequip_pressed() -> void:
 	if _sel_slot == "":
 		return
-	Sfx.play("ui_click")
+	Sfx.play("equip_off")  # 卸下布料软扑（音频会话 2026-10-11）
 	GameState.unequip(_sel_slot)
 	_sel_slot = ""
+	_refresh()
+
+
+## 洗练目标选择：为选中背包件的每条词条生成按钮（E2 账单制锁1洗1；太古不可洗）
+func _rebuild_affix_buttons() -> void:
+	for c in _affix_box.get_children():
+		c.queue_free()
+	if not (_sel_bag >= 0 and _sel_bag < GameState.bag.size()):
+		return
+	var item: Dictionary = GameState.bag[_sel_bag]
+	var affixes: Array = item.get("affixes", [])
+	for i in affixes.size():
+		var idx := i
+		var af: Dictionary = affixes[i]
+		var btn := Button.new()
+		btn.text = "%d. %s%s" % [i + 1, GameEquipment.affix_text(af),
+			"  [太古·不可洗]" if bool(af.get("ancient", false)) else ""]
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.disabled = bool(af.get("ancient", false))
+		if _wash_sel == idx and not btn.disabled:
+			btn.modulate = Color(0.6, 1.0, 0.6)
+		btn.pressed.connect(_on_affix_pick.bind(idx))
+		_affix_box.add_child(btn)
+
+
+func _on_affix_pick(idx: int) -> void:
+	_wash_sel = idx if _wash_sel != idx else -1
+	_refresh()
+
+
+func _on_wash_pressed() -> void:
+	if _wash_sel < 0:
+		return
+	Sfx.play("ui_click")
+	var err: String = GameState.wash_affix(_sel_bag, _wash_sel)
+	if err != "":
+		Sfx.play("money_not_enough", 1.0, -6.0)
+	else:
+		Sfx.play("line_up")  # 洗练完成（复用训练线上行拨弦）
+	_wash_sel = -1
+	_refresh()
+
+
+func _on_decompose_pressed() -> void:
+	if _sel_bag < 0:
+		return
+	Sfx.play("trade_sell")
+	var r: Dictionary = GameState.decompose(_sel_bag)
+	if not bool(r.get("ok", false)):
+		Sfx.play("money_not_enough", 1.0, -6.0)
+	_sel_bag = -1
+	_wash_sel = -1
 	_refresh()
