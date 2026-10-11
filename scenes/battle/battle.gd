@@ -353,6 +353,12 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 			_charge = int(monster.get("speed", 6))
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
+	# S3③ 屏幕字（拍板第十五轮）：连锁夸赞 + 凯旋音
+	var chains_now := int(report["chains"])
+	if chains_now >= 2 and not defeated:
+		var words := ["不错！", "漂亮！", "惊人！", "传说！！"]
+		_show_banner(words[clampi(chains_now - 2, 0, 3)], Color(0.65, 0.9, 1.0))
+		Sfx.play("praise_%d" % clampi(chains_now, 2, 5))
 	_apply_damage(report["waves"])
 	var reshuffled := board.ensure_playable()
 	if defeated:
@@ -525,7 +531,47 @@ func _victory() -> void:
 			Sfx.play("rarity_epic")
 		else:
 			Sfx.play("drop_common")
+	# S1 结算秀：有剩余步数 → 逐颗转特殊棋子连爆后弹出结果（拍板第十五轮）
+	if steps_left > 0:
+		_pending_result = 0  # 结算秀结束后再弹
+		_showcase_and_finish.call_deferred()
+		return
+	_award_stars()
 	_pending_result = 1  # 结果弹窗在动画结束后弹出
+
+
+## S1 结算秀（Sugar Crush 式，拍板第十五轮）：剩余步数逐颗转特殊棋子自动引爆 → 赏金/精华雨 → 产星
+func _showcase_and_finish() -> void:
+	var converted := mini(steps_left, 12)
+	var show_steps := steps_left
+	for i in converted:
+		steps_left -= 1
+		var cell := Vector2i(randi() % Balance.BOARD_SIZE, randi() % Balance.BOARD_SIZE)
+		board.grid[cell.y][cell.x] = randi_range(0, Balance.ELEMENT_KINDS - 1)
+		var kinds := [Match3Board.SPECIAL_LINE_H, Match3Board.SPECIAL_LINE_V, Match3Board.SPECIAL_BOMB]
+		board.specials[cell.y][cell.x] = kinds[randi() % kinds.size()]
+		Sfx.play("special_spawn", 1.0 + 0.1 * i)
+		_refresh_board()
+		board.skill_smash([cell])  # 自动引爆（走重力+连锁）
+		GameState.add_money(25.0)
+		session_ep += 6
+		GameState.add_essence(6)
+		_refresh_hud()
+		await get_tree().create_timer(0.2).timeout
+	_award_stars(show_steps)
+	_refresh_board()
+	_refresh_hud()
+	_show_result(true)
+
+
+## 产星（S2 星辰宝箱进度）：胜利 1 星 + 剩余步数每 10 步加 1 星，上限 3
+func _award_stars(remaining := 0) -> void:
+	var stars := 1 + mini(int(remaining / 10.0), 2)
+	var chests: int = GameState.add_stars(stars)
+	for c in chests:
+		var reward: String = GameState.open_chest()
+		_show_toast("★ 祭品箱开启：%s！" % reward)
+		Sfx.play("rarity_epic")
 
 
 # ---------- 玩家生命与怪物蓄力（P-a，2026-10-11 拍板 D7~D10） ----------

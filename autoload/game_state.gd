@@ -28,6 +28,8 @@ var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
 var killed_once: Dictionary = {}          # 击杀过的目标 {名字: true}（传奇首杀判定）
 var glue := 0                             # 树胶（洗练货币，分解粗品/普通获得，E2）
+var stars := 0                            # 累计星星（S1 结算秀产星，S2 星辰宝箱）
+var chests_opened := 0                    # 已开启的祭品箱数（每 9 星一箱）
 var pets: Dictionary = {}                 # 伙伴图鉴 {怪物名: {count, quality}}（P-b）
 var pet_board := ""                       # 看板位怪物名（其被动 ×2）
 var last_seen := 0.0                      # 最近一次存档的 Unix 时间戳（0 = 从未存过，离线收益用）
@@ -330,6 +332,42 @@ func pet_passive_per(monster_name: String) -> float:
 	if rec.is_empty():
 		return 0.0
 	return GamePets.passive_per(monster_name, int(rec.get("quality", 0)), str(pet_board) == monster_name)
+
+
+# ---------- 星辰宝箱（S1 产星 / S2 祭品箱，第十五轮拍板） ----------
+
+const CHEST_EVERY := 9                    # 每 9 星开一箱（落英花冠祭品箱）
+
+
+## 产星。返回本次触发的宝箱数（由调用方逐个开启并展示）。
+func add_stars(n: int) -> int:
+	stars += n
+	var chests := 0
+	while stars >= CHEST_EVERY * (chests_opened + 1):
+		chests_opened += 1
+		chests += 1
+	return chests
+
+
+## 开祭品箱：60% 精华 / 30% 装备(保底精良) / 10% 伙伴蛋(精良)。返回奖励描述。
+func open_chest() -> String:
+	var roll := randf()
+	if roll < 0.6:
+		add_essence(150)
+		return "精华 ×150"
+	elif roll < 0.9:
+		var it := GameEquipment.roll_item(clampi(floor_index, 2, 5), rebirth_count, character_class, {"name": "祭品箱"})
+		if int(it["quality"]) < 2:
+			it["quality"] = 2
+			it["affixes"] = GameEquipment.roll_affixes(str(it["slot"]), 2)
+		if _add_to_bag(it) != "":
+			add_essence(100)
+			return "装备「%s」（背包满折算精华 100）" % str(it["name"])
+		return "装备「%s」" % str(it["name"])
+	var species := GamePets.PETS.keys()
+	var mname: String = species[randi() % species.size()]
+	hatch_egg(mname, 2)
+	return "伙伴蛋「%s」" % mname
 
 
 func needs_character_creation() -> bool:
@@ -654,6 +692,8 @@ func reset() -> void:
 	glue = 0
 	pets = {}
 	pet_board = ""
+	stars = 0
+	chests_opened = 0
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()

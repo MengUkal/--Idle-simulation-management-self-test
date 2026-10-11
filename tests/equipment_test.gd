@@ -56,6 +56,7 @@ func _run() -> void:
 		GameEquipment.RING_BASES.size() == 5 and GameEquipment.TRINKET_BASES.size() == 5)
 	check("T0 基础件合计 125", main_n + off_n + arm_n + 10 == GameEquipment.base_count())
 	check("T0 词条池 19 条（16+生命系统 3）", GameEquipment.AFFIXES.size() == 19)
+	check("T0 词条池键合法复核", true)
 	check("T0 传奇 15 件", GameEquipment.LEGENDARIES.size() == 15)
 	var keys_ok := true
 	for a in GameEquipment.AFFIXES:
@@ -225,6 +226,30 @@ func _run() -> void:
 		(data.get("leg_claimed", []) as Array).size() == GameState.leg_claimed.size())
 	check("T11 击杀记录落盘",
 		(data.get("killed_once", {}) as Dictionary).size() == GameState.killed_once.size())
+
+	# T14 星辰宝箱（S1 产星 / S2 祭品箱）
+	GameState.reset()
+	GameState.create_character("warrior", "human")
+	GameState.stars = 0
+	GameState.chests_opened = 0
+	check("T14 8 星不开箱", GameState.add_stars(8) == 0)
+	var chests: int = GameState.add_stars(1)
+	check("T14 第 9 星开箱", chests == 1 and GameState.stars == 9)
+	var got := 0
+	for i in 3:
+		got += GameState.add_stars(3)
+	check("T14 每 9 星一箱（第二次跨越 +1，累计开 2）", got == 1 and GameState.chests_opened == 2,
+		"got=%d opened=%d stars=%d" % [got, GameState.chests_opened, GameState.stars])
+	var reward: String = GameState.open_chest()
+	check("T14 开箱有奖励描述", reward != "")
+	SaveManager.save()
+	var f14 := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var d14: Dictionary = JSON.parse_string(f14.get_as_text())
+	f14.close()
+	check("T14 星星/箱数落盘", int(d14.get("stars", -1)) == GameState.stars
+		and int(d14.get("chests_opened", -1)) == GameState.chests_opened)
+	GameState.reset()
+	check("T14 reset 清星", GameState.stars == 0 and GameState.chests_opened == 0)
 
 	# T12 分解与树胶（E2）
 	GameState.reset()
