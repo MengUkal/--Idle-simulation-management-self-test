@@ -6,6 +6,13 @@ extends CanvasLayer
 
 var _board_list_box: VBoxContainer
 var _points_label: Label
+# mods 键 → 效果图标名（与 talents_panel 同源，artgen.py eff_* 产物）
+const EFF_ICON_NAMES := {
+	"battle_damage": "eff_damage", "weakness": "eff_weakness", "income": "eff_income",
+	"train_cost": "eff_train", "upgrade_cost": "eff_train", "bounty": "eff_bounty",
+	"ep": "eff_ep", "steps": "eff_steps", "chain_bonus": "eff_chain",
+	"fruit": "eff_fruit", "fee": "eff_bounty",
+}
 
 
 func _ready() -> void:
@@ -148,6 +155,24 @@ func _node_row(n: Dictionary, board: Dictionary) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 12)
 	var rank := int(GameState.paragon_talents.get(n["id"], 0))
 	var max_r := int(n.get("max", 1))
+
+	# 效果图标（tools/artgen.py eff_*，按 mods 键；与天赋面板同源）
+	var eff_name: String = EFF_ICON_NAMES.get(str(n.get("mod", "")), "")
+	if eff_name != "":
+		var icon_path := "res://assets/art/ui/%s.png" % eff_name
+		if ResourceLoader.exists(icon_path):
+			var tex: Texture2D = load(icon_path)
+			var img: Image = tex.get_image()
+			if img.is_compressed():
+				img.decompress()
+			img.resize(32, 32, Image.INTERPOLATE_NEAREST)
+			var icon := TextureRect.new()
+			icon.texture = ImageTexture.create_from_image(img)
+			icon.custom_minimum_size = Vector2(32, 32)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			row.add_child(icon)
 
 	var name_l := Label.new()
 	name_l.text = "%s（%d/%d）" % [n["name"], rank, max_r]
