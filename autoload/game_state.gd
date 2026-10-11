@@ -245,7 +245,7 @@ func battle_drop(monster: Dictionary, is_elite: bool) -> String:
 	for drop in GameEquipment.roll_legendary(monster, is_elite, is_first, leg_claimed, floor_index):
 		leg_claimed.append(str(drop["id"]))
 		if _add_to_bag(drop) == "":
-			toasts.append("✦ 传奇「%s」掉落！" % str(drop["name"]))
+			toasts.append("★ 传奇「%s」掉落！" % str(drop["name"]))
 		else:
 			add_essence(50)
 			toasts.append("背包已满，「%s」折算 50 精华" % str(drop["name"]))

@@ -167,15 +167,15 @@ func _ready() -> void:
 
 
 func _newbie_hints() -> void:
-	## 首次战斗提示三连（间隔弹出）
+	## 首次战斗提示三连（顶部横幅逐条弹出，避开底部玩家 HP 条）
 	var hints := [
 		"消除就是攻击。一次消得越多，连锁越痛。",
 		"打弱点色：伤害与精华双双倍。",
 		"技能充能靠消除；打不过，撤退不丢人。",
 	]
 	for h in hints:
-		_show_toast(str(h))
-		await get_tree().create_timer(3.2).timeout
+		_show_banner(str(h), Color(0.65, 0.9, 1.0))
+		await get_tree().create_timer(2.6).timeout
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
@@ -687,20 +687,18 @@ func _award_stars(remaining := 0) -> void:
 # ---------- 玩家生命与怪物蓄力（P-a，2026-10-11 拍板 D7~D10） ----------
 
 func _build_player_hud() -> void:
-	## 玩家 HP 条（棋盘下方居中）
-	var board_w := Balance.BOARD_SIZE * STEP
+	## 玩家 HP 条（屏幕底部中央，横贯信息区——2026-10-12 修复定位：不依赖 board_layer.position）
 	var bg := ColorRect.new()
 	bg.color = Color(0, 0, 0, 0.55)
-	bg.position = Vector2(board_layer.position.x + board_w / 2.0 - 240.0,
-		board_layer.position.y + board_w + 14.0)
-	bg.size = Vector2(480, 22)
+	bg.position = Vector2(960.0 - 240.0, 1080.0 - 44.0)
+	bg.size = Vector2(480, 24)
 	add_child(bg)
 	_player_hp_bar = ProgressBar.new()
 	_player_hp_bar.max_value = player_hp_max
 	_player_hp_bar.value = player_hp
 	_player_hp_bar.show_percentage = false
 	_player_hp_bar.position = Vector2(4, 4)
-	_player_hp_bar.size = Vector2(472, 14)
+	_player_hp_bar.size = Vector2(472, 16)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Color(0.35, 0.85, 0.5)
 	_player_hp_bar.add_theme_stylebox_override("fill", fill)
@@ -720,8 +718,8 @@ func _update_player_hud() -> void:
 		return
 	_player_hp_bar.max_value = player_hp_max
 	_player_hp_bar.value = maxf(player_hp, 0.0)
-	_player_hp_label.text = "HP %d / %d ｜ 怪物蓄力 %s" % [
-		ceili(maxf(player_hp, 0.0)), player_hp_max, "▮".repeat(clampi(_charge, 0, 9))]
+	_player_hp_label.text = "HP %d / %d ｜ 怪物蓄力 %d 步" % [
+		ceili(maxf(player_hp, 0.0)), player_hp_max, maxi(_charge, 0)]
 
 
 func _monster_attack(opened: bool) -> void:
