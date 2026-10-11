@@ -1,6 +1,7 @@
 extends Node
 ## 存档管理：JSON 落盘 + 定时自动保存 + 关窗前保存。
-## 【已拍板】离线收益 MVP 不做：关游戏期间不产出，读档回到离开时的数值。
+## 【已拍板 2026-10-11】离线收益上线：只结算金币（挂机收入线），上限 8 小时，效率 60%，
+## 回归弹窗展示（见 GameState.settle_offline，在读档末尾自动结算）。
 
 const SAVE_PATH := "user://save.json"
 const SCHEMA_VERSION := 5
@@ -50,6 +51,8 @@ func save() -> void:
 		"paragon_talents": GameState.paragon_talents,
 		"paragon_unlocked_boards": GameState.paragon_unlocked_boards,
 		"floor3_card": GameState.floor3_card,
+		# schema v5 追加（离线收益，2026-10-11）：旧档缺省 0 = 首次升级后才开始计离线
+		"last_seen": Time.get_unix_time_from_system(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -111,7 +114,9 @@ func _load() -> void:
 	if typeof(t) == TYPE_DICTIONARY:
 		GameState.talents = t
 	GameState.floor3_card = bool(data.get("floor3_card", false))
+	GameState.last_seen = float(data.get("last_seen", 0.0))
 	Mods.recompute()  # 角色/天赋就绪后重算修饰符
+	GameState.settle_offline()  # 离线收益结算（依赖完整修饰符，必须在 recompute 之后）
 
 
 func delete_save() -> void:

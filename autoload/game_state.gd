@@ -22,6 +22,8 @@ var talents := {}                         # 天赋记录 {节点id: rank}（见 
 var paragon_talents := {}                 # 巅峰记录 {节点id: rank}（见 data/paragon.gd）
 var paragon_unlocked_boards := ["p1"]     # 已解锁板块（点亮传奇即永久解锁，退还不清）
 var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
+var last_seen := 0.0                      # 最近一次存档的 Unix 时间戳（0 = 从未存过，离线收益用）
+var pending_offline := {}                 # 待展示的离线收益报告（主界面弹窗消费，不落盘）
 
 
 # ---------- 巅峰板块（四层系统之巅，2026-10-11 拍板） ----------
@@ -309,6 +311,42 @@ func do_rebirth() -> int:
 	return gained
 
 
+# ---------- 离线收益（2026-10-11 拍板：只金币 / 上限 8 小时 / 效率 60% / 回归弹窗） ----------
+
+const OFFLINE_CAP_SEC := 8 * 3600   # 离线收益计入时长上限
+const OFFLINE_RATE := 0.6           # 离线效率 = 在线挂机收入的 60%
+const OFFLINE_MIN_SEC := 300.0      # 离开不足 5 分钟不结算、不弹窗（防切屏误触）
+
+
+func settle_offline() -> Dictionary:
+	## 读档末尾调用：按离开时长结算离线金币（立即入账防丢），返回报告供回归弹窗展示。
+	## 基准 = 当前挂机收入 income_per_sec()（含训练线/果实/职业/种族/天赋/巅峰全部修饰符）。
+	if last_seen <= 0.0:
+		return {}
+	var elapsed: float = maxf(0.0, Time.get_unix_time_from_system() - last_seen)
+	if elapsed < OFFLINE_MIN_SEC:
+		return {}
+	var credited: float = minf(elapsed, OFFLINE_CAP_SEC)
+	var gold := floorf(income_per_sec() * credited * OFFLINE_RATE)
+	if gold < 1.0:
+		return {}
+	add_money(gold)
+	pending_offline = {
+		"seconds": int(elapsed),
+		"credited_sec": int(credited),
+		"rate": income_per_sec() * OFFLINE_RATE,
+		"gold": int(gold),
+	}
+	return pending_offline
+
+
+func take_offline_report() -> Dictionary:
+	## 弹窗取走报告（取走即清空，避免重复弹）
+	var r := pending_offline
+	pending_offline = {}
+	return r
+
+
 func can_afford(cost: float) -> bool:
 	return money >= cost
 
@@ -380,6 +418,8 @@ func reset() -> void:
 	paragon_talents = {}
 	paragon_unlocked_boards = ["p1"]
 	floor3_card = false
+	last_seen = 0.0
+	pending_offline = {}
 	Mods.recompute()
 	EventBus.money_changed.emit(money)
 	EventBus.income_changed.emit(income_per_sec())

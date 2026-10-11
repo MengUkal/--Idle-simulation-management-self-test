@@ -47,6 +47,9 @@ func _ready() -> void:
 	_init_line_buttons()
 	_connect_signals()
 	_refresh_all()
+	# 离线收益回归弹窗（金额已在读档时结算入账，这里只负责展示）
+	if not GameState.pending_offline.is_empty():
+		add_child(OfflinePanel.new())
 	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3"][clampi(GameState.floor_index, 1, 3) - 1])
 	if OS.is_debug_build():
