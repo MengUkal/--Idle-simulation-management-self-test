@@ -52,6 +52,7 @@ func save() -> void:
 		"paragon_unlocked_boards": GameState.paragon_unlocked_boards,
 		"floor3_card": GameState.floor3_card,
 		"floor4_card": GameState.floor4_card,
+		"floor5_card": GameState.floor5_card,
 		"bag": GameState.bag,
 		"equipped": GameState.equipped,
 		"leg_claimed": GameState.leg_claimed,
@@ -125,6 +126,7 @@ func _load() -> void:
 		GameState.talents = t
 	GameState.floor3_card = bool(data.get("floor3_card", false))
 	GameState.floor4_card = bool(data.get("floor4_card", false))
+	GameState.floor5_card = bool(data.get("floor5_card", false))
 	var bag_arr: Array = data.get("bag", [])
 	if typeof(bag_arr) == TYPE_ARRAY:
 		GameState.bag = bag_arr

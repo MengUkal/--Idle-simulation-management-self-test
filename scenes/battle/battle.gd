@@ -97,6 +97,10 @@ const MONSTER_SLUG := {
 	"落英妖": "petalfae", "花粉蛾": "pollenmoth", "夜香花": "nightbloom",
 	"蜜壶蜂": "honeypot", "灯芯草妖": "lampgrass", "曼陀花妖": "datura",
 	"千瓣祭主": "petalpriest",
+	# 第五层·云顶鹰巢（slug 预留）
+	"云雀妖": "cloudlark", "云绵羊": "cloudsheep", "风筝妖": "kitefiend",
+	"露珠精": "dewspirit", "雷蜓": "thunderdragonfly", "雾里鱼": "mistfish",
+	"瞭望鹰": "watchereagle",
 }
 
 
@@ -507,6 +511,11 @@ func _victory() -> void:
 		if GameState.unlock_floor4_card():
 			Sfx.play("floor_unlock")
 			_show_toast("镇风桩轰然折服，桩底压着一枚「落英花冠层卡」")
+	# 层卡：首杀千瓣祭主掉落「云顶鹰巢层卡」（P5，五层解锁凭证）
+	if str(monster.get("name", "")) == "千瓣祭主" and monster.get("elite", false):
+		if GameState.unlock_floor5_card():
+			Sfx.play("floor_unlock")
+			_show_toast("千瓣祭主凋落，花心藏着一枚「云顶鹰巢层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	_battle_bounty += bounty

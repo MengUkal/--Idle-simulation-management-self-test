@@ -212,7 +212,7 @@ const LEGENDARIES := [
 		"hook": {"type": "elite_kill", "chance": 0.02}},  # 交易所校秤祖锤（挂点提案：精英通用代管）
 	{"id": "leg_eagle_bow", "name": "鹰唳长弓", "slot": "main", "type": "bow",
 		"special": [{"key": "steps", "kind": "add", "per": 4}],
-		"hook": {"type": "none"}},  # 云顶鹰巢（第五层实装后挂瞭望鹰）
+		"hook": {"type": "kill", "monster": "瞭望鹰", "chance": 0.10}},  # 换羽期（第五层实装激活）
 ]
 
 

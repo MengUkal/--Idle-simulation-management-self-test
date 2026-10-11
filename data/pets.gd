@@ -42,6 +42,14 @@ const PETS := {
 	"灯芯草妖": {"key": "regen", "kind": "add", "per": 1},
 	"曼陀花妖": {"key": "battle_damage", "kind": "mult", "per": 0.02},
 	"千瓣祭主": {"key": "fruit", "kind": "mult", "per": 0.02},
+	# 五层·云顶鹰巢
+	"云雀妖": {"key": "chain_bonus", "kind": "add", "per": 0.003},
+	"云绵羊": {"key": "max_hp", "kind": "mult", "per": 0.03},
+	"风筝妖": {"key": "steps", "kind": "add", "per": 1},
+	"露珠精": {"key": "regen", "kind": "add", "per": 1},
+	"雷蜓": {"key": "battle_damage", "kind": "mult", "per": 0.02},
+	"雾里鱼": {"key": "ep", "kind": "mult", "per": 0.02},
+	"瞭望鹰": {"key": "fruit", "kind": "mult", "per": 0.03},
 }
 
 

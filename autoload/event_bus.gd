@@ -14,3 +14,4 @@ signal holdings_changed(idx: int, total: int)  # 标的持仓变化（交易所�
 signal rebirth_performed(gained: int, total: int, count: int)  # 重生完成（M4：本次果实/累计/轮数）
 signal floor3_card_gained()                   # 首杀古树掉落苍干栈道层卡（P3）
 signal floor4_card_gained()                   # 首杀镇风桩掉落落英花冠层卡（P4）
+signal floor5_card_gained()                   # 首杀千瓣祭主掉落云顶鹰巢层卡（P5）

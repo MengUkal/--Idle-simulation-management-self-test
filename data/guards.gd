@@ -30,6 +30,12 @@ const KITS := {
 		"rage": {"tag": "狂暴", "at": 0.25, "dr": 0.4},
 		"resolve": {"tag": "根性"},
 	},
+	# 瞭望鹰「树的一只眼」（第五层）：守望者——不开狂暴，先制封印+蓄力窗+根性，考验稳定输出。
+	"瞭望鹰": {
+		"opener": {"tag": "先制·鹰眼封印", "steps": 3, "seal_weak": true},
+		"charge": {"tag": "凌空蓄力", "at": 0.5, "steps": 3, "mult": 2.0},
+		"resolve": {"tag": "根性"},
+	},
 }
 
 var def: Dictionary

@@ -23,6 +23,7 @@ var paragon_talents := {}                 # 巅峰记录 {节点id: rank}（见 
 var paragon_unlocked_boards := ["p1"]     # 已解锁板块（点亮传奇即永久解锁，退还不清）
 var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
 var floor4_card := false                  # 落英花冠层卡（首杀镇风桩掉落，P4）
+var floor5_card := false                  # 云顶鹰巢层卡（首杀千瓣祭主掉落，P5）
 var bag: Array = []                       # 装备背包（≤30 件实例，E1）
 var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
@@ -104,6 +105,8 @@ func paragon_refund(node_id: String) -> bool:
 func can_go_to_floor(index: int) -> bool:
 	## 层间往返的目标层是否可去：一层自由；二层 Lv.10；三层 Lv.50 + 层卡
 	match index:
+		5:
+			return level >= Balance.FLOOR_5_LEVEL_REQ and floor5_card
 		4:
 			return level >= Balance.FLOOR_4_LEVEL_REQ and floor4_card
 		3:
@@ -129,6 +132,15 @@ func unlock_floor4_card() -> bool:
 		return false
 	floor4_card = true
 	EventBus.floor4_card_gained.emit()
+	return true
+
+
+func unlock_floor5_card() -> bool:
+	## 首杀千瓣祭主掉落「云顶鹰巢层卡」；已持有返回 false
+	if floor5_card:
+		return false
+	floor5_card = true
+	EventBus.floor5_card_gained.emit()
 	return true
 
 
@@ -686,6 +698,7 @@ func reset() -> void:
 	paragon_unlocked_boards = ["p1"]
 	floor3_card = false
 	floor4_card = false
+	floor5_card = false
 	bag = []
 	equipped = {}
 	leg_claimed = []
