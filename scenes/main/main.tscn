@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" path="res://assets/art/bg/world_tree.png" id="4_tree"]
 [ext_resource type="Texture2D" path="res://assets/art/bg/bg_floor1.png" id="5_bg1"]
 [ext_resource type="Texture2D" path="res://assets/art/bg/bg_floor2.png" id="6_bg2"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/line_atk.png" id="7_latk"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/line_bounty.png" id="8_lbty"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/line_income.png" id="9_linc"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyk8p"]
 content_margin_left = 28.0
@@ -215,6 +218,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(460, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
+icon = ExtResource("7_latk")
+expand_icon = true
 text = "攻击训练 Lv.0 → 1（25 精华）"
 
 [node name="LineBounty" type="Button" parent="RightPanel" unique_id=866869732]
@@ -222,6 +227,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(460, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
+icon = ExtResource("8_lbty")
+expand_icon = true
 text = "赏金训练 Lv.0 → 1（25 精华）"
 
 [node name="LineIncome" type="Button" parent="RightPanel" unique_id=765580422]
@@ -229,6 +236,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(460, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
+icon = ExtResource("9_linc")
+expand_icon = true
 text = "收入训练 Lv.0 → 1（25 精华）"
 
 [node name="FlavorLabel" type="Label" parent="RightPanel" unique_id=707278334]

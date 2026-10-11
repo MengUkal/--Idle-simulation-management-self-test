@@ -24,9 +24,12 @@
 | 场景 | 背景接入 | 图标接入 | 备注 |
 | --- | --- | --- | --- |
 | title | ✅ world_tree 全屏（+呼吸动效） | — | `scenes/title/`，启动场景 |
-| main | ✅ 按 floor_index 切换 | ✅ 吉尔/精华 | MoneyRow/EssenceRow |
-| battle | ✅ 按 floor_index 切换 | ✅ 棋子 25 张 | 棋子按钮用 StyleBoxEmpty 豁免全局主题 |
+| main | ✅ 按 floor_index 切换 | ✅ 吉尔/精华/训练线×3 | MoneyRow/EssenceRow/Line×3 |
+| battle | ✅ 按 floor_index 切换 | ✅ 棋子 25 + 技能图标 7 | 棋子按钮 StyleBoxEmpty 豁免全局主题；技能栏图标 battle.gd 接入 |
 | market | ✅ 固定 bg_floor1（支行设定在一层） | ✅ 三标的图标 | **market.gd 是代码构建 UI**——改市场视觉要改代码，只改 tscn 会被运行时重建覆盖 |
+| talents | ✅ bg_talent 星树 | ✅ 效果图标 9 + 关键像素图 21 | `talents_panel.gd` 竖树布局 |
+| paragon | ✅ bg_talent 星树 | ✅ 板块纹章 3 + 节点效果图标 | `paragon_panel.gd`，代码构建 UI |
+| character | ✅ world_tree 压暗 | ✅ 纹章 16 | `character_create.gd`，代码构建 UI |
 
 ## 风格基线
 
