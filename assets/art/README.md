@@ -7,11 +7,12 @@
 
 | 目录 | 内容 | 生成方式 |
 | --- | --- | --- |
-| `tiles/` | 棋子 25 张：`tile_{0-5}_{fire\|water\|wind\|earth\|light\|dark}_{plain\|lh\|lv\|bomb}.png` + `tile_bird.png` | `python tools/artgen.py`（`--size` 可改尺寸） |
-| `ui/` | `ui_gil.png`（吉尔）、`ui_essence.png`（精华）、`target_huo/feng/sheng.png`（三标的） | 同上（artgen 一并产出） |
-| `ui/preview.png`、`ui/_targets.png` | 人工预览拼图，不进游戏 | 同上 |
-| `monsters/` | 14 只怪物头像 `monsters/<slug>.png`（128×128 透明底）+ `_roster.png` 质检拼图 | `python tools/gen_asset.py --monster <中文名>`（需 ComfyUI 运行中） |
-| `bg/` | `world_tree.png`（768×512 树绘）、`bg_floor1/2.png`（640×360×3 = 1920×1080 背景） | `python tools/gen_asset.py --scene "<英文描述>" --out <名> --w .. --h .. --scale ..` |
+| `tiles/` | 棋子 25 张：`tile_{0-5}_{fire\|water\|wind\|earth\|light\|dark}_{plain\|lh\|lv\|bomb}.png` + `tile_bird.png`；机制 tile：`obstacle_flower.png`（花瓣封印障碍）+ `smoke_fog.png`（香雾遮目，半透明） | `python tools/artgen.py`（`--size` 可改尺寸）；机制 tile 归 `make_board_fx_tiles`（固定 84px） |
+| `ui/` | `ui_gil.png`（吉尔）、`ui_essence.png`（精华）、`target_huo/feng/sheng.png`（三标的）、`line_atk/bounty/income.png`（训练线）、`skill_<class>.png`（七职业技能）、`eff_*.png`（九种效果图标，天赋/巅峰节点通用）、`board_p1/p2/p3.png`（巅峰板块纹章） | 同上（artgen 一并产出） |
+| `ui/preview.png`、`ui/_targets.png` 等 | 人工预览拼图，不进游戏 | 同上 |
+| `monsters/` | **22 只**怪物头像 `monsters/<slug>.png`（128×128 透明底：一二三四层全覆盖）+ `_roster*.png` 质检拼图 | `python tools/gen_asset.py --monster <中文名>` / `--batch <json>`（需 ComfyUI 运行中） |
+| `bg/` | `world_tree.png`（树绘）、`bg_floor1/2/3/4.png`（四层背景）、`bg_talent.png`（天赋/巅峰星树） | `python tools/gen_asset.py --scene "<英文描述>" --out <名> --w .. --h .. --scale ..` |
+| `cards/` | `card_floor3.png`（苍干栈道层卡）、`card_floor4.png`（落英花冠层卡）——层卡道具卡面，暂无 UI 挂点先备 | `python tools/artgen.py`（`make_floor_cards`） |
 
 ## 命名规范
 

@@ -77,6 +77,14 @@ MONSTERS = {
     "喇叭藤":     ("hornvine",   "single giant orange trumpet flower with curly vines, trumpet bloom pointing up, no human"),
     "刺藤果":     ("thornfruit", "round spiky seed pod covered in thorns, small vine on top, no limbs, no face except tiny eyes"),
     "镇风桩":     ("windstake",  "carved wooden totem pole guardian with a stern face, ropes and metal cap, standing pillar, imposing"),
+    # 第四层 · 落英花冠（光闇系+花粉毒系，设定包第九轮命名）
+    "落英妖":     ("petalfae",  "small spirit creature made of drifting pink petals, petal dress body, gentle glow, no human"),
+    "花粉蛾":     ("pollenmoth", "fluffy round moth with pollen-dusted wings, big fuzzy body, big cute eyes"),
+    "夜香花":     ("nightbloom", "dark night-blooming flower creature with closed bud body and glowing stamens, no human"),
+    "蜜壶蜂":     ("honeypot",   "chubby bee carrying a tiny honey pot on its back, honeycomb patterns, big cute eyes"),
+    "灯芯草妖":   ("lampgrass",  "glowing rush grass lantern creature, warm light inside grass blades, grass body"),
+    "曼陀花妖":   ("datura",     "beautiful poisonous mandala flower creature, purple-white petals, sly grin, no human"),
+    "千瓣祭主":   ("petalpriest", "imposing ancient priest of a thousand petals, layered petal robes, ceremonial mask, staff of flowers"),
 }
 
 # 表情变体：在怪物描述后追加的形态词（输出到 monsters/variants/）
