@@ -92,3 +92,14 @@ func _run() -> void:
 
 	# T8 未知怪物名：安全空包
 	check("T8 未知名安全", not GuardKit.new("不存在的怪").has_kit())
+
+	# T9 千瓣祭主：三阶段操控流（封印→烟幕→狂暴→根性），一拍一阶段
+	var zj := GuardKit.new("千瓣祭主")
+	check("T9 祭主有机制包", zj.has_kit())
+	check("T9 75% 触发花瓣封印", zj.after_move(0.7) == ["obstacle"])
+	check("T9 封印后不重复触发", zj.after_move(0.6).is_empty())
+	check("T9 50% 触发香雾", zj.after_move(0.45) == ["smoke"])
+	check("T9 25% 触发狂暴", zj.after_move(0.2) == ["rage"] and zj.raged)
+	check("T9 狂暴减伤 40%", is_equal_approx(float(zj.move_modifiers(1, false)["mult"]), 0.6))
+	check("T9 根性一次", zj.on_lethal() and not zj.on_lethal())
+	check("T9 阶段放完不再发事件", zj.after_move(0.1).is_empty())

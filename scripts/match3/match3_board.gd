@@ -11,6 +11,7 @@ class_name Match3Board
 
 const EMPTY := -1
 const BIRD_ELEM := -2            # grid 值：魔力鸟（不可被颜色匹配）
+const OBST_ELEM := -3            # grid 值：花障（2026-10-11 拍板棋盘系第二批；不可交换/不参与匹配/随重力下落/邻消即碎）
 
 const SPECIAL_NONE := 0
 const SPECIAL_LINE_H := 1        # 清整行
@@ -18,10 +19,14 @@ const SPECIAL_LINE_V := 2        # 清整列
 const SPECIAL_BOMB := 3          # 清 3×3
 const SPECIAL_BIRD := 4          # 魔力鸟
 
+const PLUS_DROP_CHANCE := 0.02   # 【已拍板】补牌天降强化珠概率
+const PLUS_WAVE_BONUS := 0.06    # 【已拍板】强化珠每颗对该波伤害 +6%
+
 var size := 7
 var kinds := 6
-var grid: Array = []             # grid[行][列] = 元素 0..kinds-1；EMPTY=-1；魔力鸟=BIRD_ELEM
+var grid: Array = []             # grid[行][列] = 元素 0..kinds-1；EMPTY=-1；魔力鸟=BIRD_ELEM；花障=OBST_ELEM
 var specials: Array = []         # specials[行][列] = SPECIAL_*（与 grid 平行）
+var plus: Array = []             # plus[行][列] = true 强化珠（+珠，与 grid 平行；消除时给所在波伤害加成）
 var rng := RandomNumberGenerator.new()
 var spawned_last_move: Array = []  # 上一次交换生成的特效 [{cell, special}]（供 UI 提示）
 var last_moves: Array = []         # 本回合重力移动记录 [{from: Vector2i, to: Vector2i}]（供下落动画）
@@ -38,13 +43,17 @@ func _init(board_size: int = 7, element_kinds: int = 6) -> void:
 func setup() -> void:
 	grid.clear()
 	specials.clear()
+	plus.clear()
 	for r in size:
 		var row := []
 		var srow := []
+		var prow := []
 		row.resize(size)
 		srow.resize(size)
+		prow.resize(size)
 		grid.append(row)
 		specials.append(srow)
+		plus.append(prow)
 		for c in size:
 			var v := rng.randi_range(0, kinds - 1)
 			var guard := 0
@@ -53,6 +62,7 @@ func setup() -> void:
 				guard += 1
 			row[c] = v
 			srow[c] = SPECIAL_NONE
+			prow[c] = false
 
 
 static func are_adjacent(a: Vector2i, b: Vector2i) -> bool:
@@ -70,6 +80,17 @@ func swap_cells(a: Vector2i, b: Vector2i) -> void:
 	var ts: int = specials[a.y][a.x]
 	specials[a.y][a.x] = specials[b.y][b.x]
 	specials[b.y][b.x] = ts
+	var tp: bool = plus[a.y][a.x]
+	plus[a.y][a.x] = plus[b.y][b.x]
+	plus[b.y][b.x] = tp
+
+
+func plus_at(r: int, c: int) -> bool:
+	return plus[r][c]
+
+
+func is_obstacle(r: int, c: int) -> bool:
+	return grid[r][c] == OBST_ELEM
 
 
 ## 找出所有属于 ≥3 连的格子（魔力鸟/空格不参与颜色匹配）。
@@ -151,6 +172,9 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	last_refills = []
 	if not are_adjacent(a, b):
 		return {"ok": false}
+	# 花障：不可交换（相邻消除一次即碎；技能爆破可直接击碎）
+	if grid[a.y][a.x] == OBST_ELEM or grid[b.y][b.x] == OBST_ELEM:
+		return {"ok": false}
 	var sa := special_at(a.y, a.x)
 	var sb := special_at(b.y, b.x)
 	# —— 特效 + 特效：组合技 ——
@@ -166,16 +190,16 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 		var waves_b: Array = []
 		var wave: Array = []
 		var queue: Array = []
-		wave.append({"cell": bird_cell, "element": _remove_cell(bird_cell)})
+		wave.append({"cell": bird_cell, "element": _remove_cell(bird_cell), "plus": false})
 		var color: int = grid[other.y][other.x]
-		wave.append({"cell": other, "element": _remove_cell(other)})
+		wave.append(_take_entry(other))
 		if color >= 0:
 			for r in size:
 				for c in size:
 					if grid[r][c] == color:
 						var cell := Vector2i(c, r)
 						var sp := special_at(r, c)
-						wave.append({"cell": cell, "element": _remove_cell(cell)})
+						wave.append(_take_entry(cell))
 						if sp >= SPECIAL_LINE_H and sp <= SPECIAL_BOMB:
 							queue.append([cell, sp])
 		_expand_chain(queue, wave)
@@ -189,7 +213,7 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 		var other2 := b if sa != SPECIAL_NONE else a
 		var waves_s: Array = []
 		var wave_s: Array = []
-		wave_s.append({"cell": other2, "element": _remove_cell(other2)})
+		wave_s.append(_take_entry(other2))
 		waves_s.append(wave_s)
 		var queue: Array = [[sp_cell, sp]]
 		_expand_chain(queue, wave_s)
@@ -222,15 +246,24 @@ func _report(waves: Array, swapped := false) -> Dictionary:
 	}
 
 
-## 消除一格并返回其元素（同时清特效标记）。
+## 消除一格并返回其元素（同时清特效标记与强化珠标记）。
 func _remove_cell(cell: Vector2i) -> int:
 	var el: int = grid[cell.y][cell.x]
 	grid[cell.y][cell.x] = EMPTY
 	specials[cell.y][cell.x] = SPECIAL_NONE
+	plus[cell.y][cell.x] = false
 	return el
 
 
-## 重力补牌后再匹配，循环直到无消除（每波含形状检测与特效连锁）。
+## 消除一格并生成 wave 条目：花障碎裂记 element=-1（伤害侧跳过），普通格携带强化珠标记。
+func _take_entry(cell: Vector2i) -> Dictionary:
+	var is_obst: bool = grid[cell.y][cell.x] == OBST_ELEM
+	var p: bool = plus[cell.y][cell.x] and not is_obst
+	var el := _remove_cell(cell)
+	return {"cell": cell, "element": -1 if is_obst else el, "plus": p}
+
+
+## 重力补牌后再匹配，循环直到无消除（每波含形状检测与特效连锁；波后结算邻消碎障）。
 func _cascade(waves: Array) -> void:
 	while true:
 		_apply_gravity_and_refill()
@@ -238,6 +271,21 @@ func _cascade(waves: Array) -> void:
 		if matches.is_empty():
 			break
 		_process_match_wave(matches, waves)
+
+
+## 邻消即碎：与刚消除格子正交相邻的花障立即碎裂（碎片条目 element=-1，伤害侧跳过）。
+func _break_adjacent_obstacles(wave: Array) -> void:
+	var broke := {}
+	for e in wave:
+		var c: Vector2i = e["cell"]
+		for d0: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+			var nb := c + d0
+			if nb.x < 0 or nb.y < 0 or nb.x >= size or nb.y >= size:
+				continue
+			if grid[nb.y][nb.x] != OBST_ELEM or broke.has(nb):
+				continue
+			broke[nb] = true
+			wave.append(_take_entry(nb))
 
 
 ## 展开连锁：队列项为 [cell, sp]（sp 在入队前读取），引爆特效并把被波及的特效继续入队。
@@ -254,7 +302,7 @@ func _expand_chain(queue: Array, wave: Array) -> void:
 		triggered[cell] = true
 		# 特效本体计入消除（若仍在棋盘上且未计入过本波）
 		if grid[cell.y][cell.x] != EMPTY and not _wave_has(wave, cell):
-			wave.append({"cell": cell, "element": _remove_cell(cell)})
+			wave.append(_take_entry(cell))
 		var swept := _special_sweep_cells(cell, sp)
 		for sc in swept:
 			if sc == cell:
@@ -264,7 +312,7 @@ func _expand_chain(queue: Array, wave: Array) -> void:
 			if _wave_has(wave, sc):
 				continue
 			var sc_sp := special_at(sc.y, sc.x)
-			wave.append({"cell": sc, "element": _remove_cell(sc)})
+			wave.append(_take_entry(sc))
 			if sc_sp >= SPECIAL_LINE_H and sc_sp <= SPECIAL_BOMB:
 				queue.append([sc, sc_sp])
 
@@ -307,7 +355,7 @@ func _process_match_wave(matches: Array[Vector2i], waves: Array) -> void:
 		if spawn_cells.has(cell):
 			continue
 		var sp := special_at(cell.y, cell.x)
-		wave.append({"cell": cell, "element": _remove_cell(cell)})
+		wave.append(_take_entry(cell))
 		if sp >= SPECIAL_LINE_H and sp <= SPECIAL_BOMB:
 			queue.append([cell, sp])
 	for sp in spawns:
@@ -316,6 +364,7 @@ func _process_match_wave(matches: Array[Vector2i], waves: Array) -> void:
 		spawned_last_move.append({"cell": cell, "special": sp["special"]})
 	_expand_chain(queue, wave)
 	waves.append(wave)
+	_break_adjacent_obstacles(wave)  # 邻消即碎：先碎障再重力（含玩家首波与每个连锁波）
 
 
 ## 形状检测：对本波消除的格子按颜色分组，判定应生成的特效。
@@ -459,7 +508,7 @@ func _resolve_combo(a: Vector2i, b: Vector2i, sa: int, sb: int, waves: Array) ->
 		if grid[cell.y][cell.x] == EMPTY:
 			continue
 		var sp_before := special_at(cell.y, cell.x)
-		wave.append({"cell": cell, "element": _remove_cell(cell)})
+		wave.append(_take_entry(cell))
 		if sp_before >= SPECIAL_LINE_H and sp_before <= SPECIAL_BOMB:
 			queue.append([cell, sp_before])
 	_expand_chain(queue, wave)
@@ -523,7 +572,7 @@ func skill_shuffle() -> Dictionary:
 	for r in size:
 		for c in size:
 			if grid[r][c] != EMPTY:
-				cells.append({"v": grid[r][c], "s": specials[r][c]})
+				cells.append({"v": grid[r][c], "s": specials[r][c], "p": plus[r][c]})
 	for attempt in 24:
 		cells.shuffle()
 		var i := 0
@@ -531,6 +580,7 @@ func skill_shuffle() -> Dictionary:
 			for c in size:
 				grid[r][c] = cells[i]["v"]
 				specials[r][c] = cells[i]["s"]
+				plus[r][c] = cells[i]["p"]
 				i += 1
 		if find_matches().is_empty():
 			return {"ok": true}
@@ -541,8 +591,8 @@ func skill_shuffle() -> Dictionary:
 func skill_bless(cell: Vector2i) -> bool:
 	if cell.x < 0 or cell.y < 0 or cell.x >= size or cell.y >= size:
 		return false
-	if grid[cell.y][cell.x] == EMPTY:
-		return false
+	if grid[cell.y][cell.x] == EMPTY or grid[cell.y][cell.x] == OBST_ELEM:
+		return false  # 花障不可被祝圣
 	specials[cell.y][cell.x] = SPECIAL_BOMB
 	return true
 
@@ -570,6 +620,22 @@ func skill_plague() -> Dictionary:
 	return {"waves": waves, "changed": changed}
 
 
+## 花瓣封印：随机 k 个普通棋子封为花障（千瓣祭主专属机制）。返回被封的格子。
+func seal_obstacles(k: int) -> Array:
+	var candidates := []
+	for r in size:
+		for c in size:
+			if grid[r][c] >= 0 and special_at(r, c) == SPECIAL_NONE:
+				candidates.append(Vector2i(c, r))
+	candidates.shuffle()
+	var out := []
+	for cell in candidates.slice(0, k):
+		grid[cell.y][cell.x] = OBST_ELEM
+		plus[cell.y][cell.x] = false
+		out.append(cell)
+	return out
+
+
 func _apply_gravity_and_refill() -> void:
 	for c in size:
 		var write := size - 1
@@ -580,11 +646,14 @@ func _apply_gravity_and_refill() -> void:
 					last_moves.append({"from": Vector2i(c, r), "to": Vector2i(c, write)})
 					grid[write][c] = grid[r][c]
 					specials[write][c] = specials[r][c]
+					plus[write][c] = plus[r][c]
 					specials[r][c] = SPECIAL_NONE
+					plus[r][c] = false
 				write -= 1
 		for r in range(write, -1, -1):
 			grid[r][c] = rng.randi_range(0, kinds - 1)
 			specials[r][c] = SPECIAL_NONE
+			plus[r][c] = rng.randf() < PLUS_DROP_CHANCE  # 【已拍板】天降强化珠 2%
 			last_refills.append(Vector2i(c, r))
 
 

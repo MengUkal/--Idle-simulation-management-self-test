@@ -32,15 +32,20 @@ func _init() -> void:
 	quit(1 if _fails > 0 else 0)
 
 
-## 直接注入棋盘（并初始化平行的特效数组为无特效）
+## 直接注入棋盘（并初始化平行的特效/强化珠数组为无特效/无强化）
 func _grid_only(b: Match3Board, g: Array) -> void:
 	b.grid = g
 	b.specials = []
+	b.plus = []
 	for r in b.size:
 		var srow := []
 		srow.resize(b.size)
 		srow.fill(Match3Board.SPECIAL_NONE)
 		b.specials.append(srow)
+		var prow := []
+		prow.resize(b.size)
+		prow.fill(false)
+		b.plus.append(prow)
 
 
 func _test_setup() -> void:

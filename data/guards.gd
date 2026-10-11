@@ -22,6 +22,14 @@ const KITS := {
 		"rage": {"tag": "狂暴", "at": 0.25, "dr": 0.4},
 		"resolve": {"tag": "根性"},
 	},
+	# 千瓣祭主「三阶段操控流」（2026-10-11 拍板棋盘系第二批）：棋盘改写者，与另两守不同质。
+	# 花瓣封印=妨碍珠 3 颗（邻消即碎）；香雾障目=灰雾 3 步看不清棋盘。
+	"千瓣祭主": {
+		"obstacle": {"tag": "花瓣封印", "at": 0.75, "count": 3},
+		"smoke": {"tag": "香雾障目", "at": 0.5, "steps": 3},
+		"rage": {"tag": "狂暴", "at": 0.25, "dr": 0.4},
+		"resolve": {"tag": "根性"},
+	},
 }
 
 var def: Dictionary
@@ -30,6 +38,8 @@ var charge_left := 0
 var charge_used := false
 var raged := false
 var resolve_used := false
+var obstacle_used := false   # 花瓣封印已放（千瓣祭主）
+var smoke_used := false      # 香雾障目已放（千瓣祭主）
 
 
 func _init(monster_name: String) -> void:
@@ -69,14 +79,21 @@ func move_modifiers(waves_count: int, from_skill: bool) -> Dictionary:
 	return out
 
 
-## 伤害落定后推进状态机。返回事件标签（供战斗层播横幅/音效）：
-## "charge" = 蓄力窗开启 / "rage" = 狂暴启动。计数器在本步生效后递减。
+## 伤害落定后推进状态机。返回事件标签（供战斗层播横幅/音效/改写棋盘）：
+## "obstacle"=花瓣封印 / "smoke"=香雾障目 / "charge"=蓄力窗开启 / "rage"=狂暴启动。
+## 一拍只放一个阶段（阈值从高到低逐个触发），保证演出节奏。
 func after_move(hp_frac: float) -> Array:
 	var events: Array = []
 	if not has_kit():
 		return events
 	var charge_started := false
-	if not charge_used and def.has("charge") and hp_frac <= float(def["charge"].get("at", 0.5)):
+	if not obstacle_used and def.has("obstacle") and hp_frac <= float(def["obstacle"].get("at", 0.75)):
+		obstacle_used = true
+		events.append("obstacle")
+	elif not smoke_used and def.has("smoke") and hp_frac <= float(def["smoke"].get("at", 0.5)):
+		smoke_used = true
+		events.append("smoke")
+	elif not charge_used and def.has("charge") and hp_frac <= float(def["charge"].get("at", 0.5)):
 		charge_used = true
 		charge_left = int(def["charge"].get("steps", 3))
 		charge_started = true  # 触发步的伤害已结算完毕，窗口从下一步开始计步

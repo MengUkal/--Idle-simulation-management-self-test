@@ -57,6 +57,7 @@ var _busy := false
 var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹结算）
 var guard := GuardKit.new("")  # 层守机制包（2026-10-11 拍板；非层守 = 空包全直通）
 var _banner: Label             # 当前层守机制横幅（新顶旧，防叠加）
+var _smoke_left := 0           # 香雾障目剩余步数（渲染层遮蔽棋盘图案）
 
 @onready var _steps_label_ref: Label = %StepsLabel
 @onready var _stat_cleared_ref: Label = %StatCleared
@@ -255,6 +256,11 @@ func _build_tiles() -> void:
 			b.position = _cell_pos(Vector2i(c, r))
 			b.size = Vector2(TILE, TILE)
 			b.focus_mode = Control.FOCUS_NONE
+			# 强化珠 "+" 角标样式（文字仅在 plus_at 时置"+"）
+			b.add_theme_font_size_override("font_size", 30)
+			b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.25))
+			b.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+			b.add_theme_constant_override("outline_size", 6)
 			for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 				b.add_theme_stylebox_override(st, sb_empty)
 			b.pressed.connect(_on_tile_pressed.bind(b))
@@ -332,6 +338,8 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	else:
 		await _anim_invalid_swap(a, b)
 	steps_left -= 1
+	if _smoke_left > 0:
+		_smoke_left -= 1  # 香雾按玩家步数衰减
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
 	_apply_damage(report["waves"])
@@ -371,8 +379,16 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 	# 层守机制修正（封印/单消盾/蓄力易伤/狂暴减伤/树皮硬化；普通怪直通）
 	var mods: Dictionary = guard.move_modifiers(waves.size(), from_skill)
 	for i in waves.size():
-		var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + Mods.add("chain_bonus")) * float(i)
+		var plus_n := 0
 		for entry in waves[i]:
+			if bool(entry.get("plus", false)):
+				plus_n += 1
+		# 强化珠：每颗对该波伤害 +6%（拍板 2026-10-11）
+		var wave_mult := (1.0 + (Balance.CHAIN_BONUS_PER_WAVE + Mods.add("chain_bonus")) * float(i)) \
+			* (1.0 + Match3Board.PLUS_WAVE_BONUS * float(plus_n))
+		for entry in waves[i]:
+			if int(entry["element"]) < 0:
+				continue  # 花障碎片等非伤害条目
 			var m := Balance.damage_multiplier(int(entry["element"]), monster)
 			var m_final := m * Mods.mult("weakness")
 			if bool(mods["sealed"]):
@@ -425,7 +441,7 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 		else:
 			_victory()
 	else:
-		# 血量阶段推进（横幅 + 音效）
+		# 血量阶段推进（横幅 + 音效 + 棋盘改写）
 		for e in guard.after_move(float(monster_hp) / float(monster_hp_max)):
 			if str(e) == "charge":
 				_show_banner("%s！%d 步内受伤翻倍" % [
@@ -435,6 +451,19 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 			elif str(e) == "rage":
 				_show_banner("狂暴！受到的伤害大幅降低", Color(1.0, 0.5, 0.4))
 				Sfx.play("elite_appear")
+			elif str(e) == "obstacle":
+				var sealed: Array = board.seal_obstacles(
+					int(guard.def.get("obstacle", {}).get("count", 3)))
+				_show_banner("%s！%d 颗棋子被封入花障" % [
+					str(guard.def.get("obstacle", {}).get("tag", "花瓣封印")),
+					sealed.size()], Color(0.8, 0.55, 0.95))
+				Sfx.play("special_bomb")
+			elif str(e) == "smoke":
+				_smoke_left = int(guard.def.get("smoke", {}).get("steps", 3))
+				_show_banner("%s！%d 步内看不清棋盘" % [
+					str(guard.def.get("smoke", {}).get("tag", "香雾障目")),
+					_smoke_left], Color(0.6, 0.65, 0.8))
+				Sfx.play("skill_cast")
 
 
 func _victory() -> void:
@@ -499,9 +528,19 @@ func _refresh_board() -> void:
 			var v: int = board.grid[r][c]
 			var sp: int = board.special_at(r, c)
 			b.text = ""
+			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
+			if board.is_obstacle(r, c):
+				b.icon = _cached_tex("res://assets/art/tiles/obstacle_flower.png")
+				b.expand_icon = true
+				continue
+			if _smoke_left > 0 and v >= 0:
+				b.icon = _cached_tex("res://assets/art/tiles/smoke_fog.png")  # 香雾：看不清图案
+				b.expand_icon = true
+				continue
 			b.icon = _tile_texture(v, sp)
 			b.expand_icon = true
-			b.modulate = Color(1.4, 1.4, 1.15) if selected == Vector2i(c, r) else Color.WHITE
+			if board.plus_at(r, c):
+				b.text = "+"  # 强化珠金角标（字体样式在 _build_tiles 统一设置）
 
 
 func _refresh_hud() -> void:
@@ -512,7 +551,10 @@ func _refresh_hud() -> void:
 	_stat_ep.text = "本局精华：+%d" % session_ep
 	var weak_name: String = Balance.ELEMENT_NAMES[int(monster.get("weak", 0))]
 	var elite_tag: String = "★精英 " if monster.get("elite", false) else ""
-	_enemy_name.text = "%s%s（弱点：%s）%s" % [elite_tag, monster["name"], weak_name, guard.state_tag()]
+	var gtag: String = guard.state_tag()
+	if _smoke_left > 0:
+		gtag += "｜香雾"
+	_enemy_name.text = "%s%s（弱点：%s）%s" % [elite_tag, monster["name"], weak_name, gtag]
 	_hp_bar.max_value = monster_hp_max
 	_hp_bar.value = maxf(monster_hp, 0.0)
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]

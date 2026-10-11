@@ -90,11 +90,16 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 					if b.x >= Balance.BOARD_SIZE or b.y >= Balance.BOARD_SIZE:
 						continue
 					var a := Vector2i(c, r)
+					if board.is_obstacle(a.y, a.x) or board.is_obstacle(b.y, b.x):
+						continue  # 花障不可交换
 					board.swap_cells(a, b)
 					var matches := board.find_matches()
 					var score := 0.0
 					for cell in matches:
-						score += Balance.damage_multiplier(int(board.grid[cell.y][cell.x]), monster)
+						var sm := Balance.damage_multiplier(int(board.grid[cell.y][cell.x]), monster)
+						if board.plus_at(cell.y, cell.x):
+							sm *= 1.0 + Match3Board.PLUS_WAVE_BONUS
+						score += sm
 					# 特效参与的交换永远有效（近似估值）
 					if board.special_at(a.y, a.x) != Match3Board.SPECIAL_NONE or board.special_at(b.y, b.x) != Match3Board.SPECIAL_NONE:
 						score = maxf(score, 2.5)
@@ -128,8 +133,15 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 		# 层守机制镜像（与 battle.gd 共用 GuardKit，保证模拟与实装不漂移）
 		var mods: Dictionary = guard.move_modifiers(waves.size(), false)
 		for i in waves.size():
-			var wave_mult := 1.0 + (Balance.CHAIN_BONUS_PER_WAVE + chain_mod) * float(i)
+			var plus_n := 0
 			for entry in waves[i]:
+				if bool(entry.get("plus", false)):
+					plus_n += 1
+			var wave_mult := (1.0 + (Balance.CHAIN_BONUS_PER_WAVE + chain_mod) * float(i)) \
+				* (1.0 + Match3Board.PLUS_WAVE_BONUS * float(plus_n))
+			for entry in waves[i]:
+				if int(entry["element"]) < 0:
+					continue  # 花障碎片等非伤害条目
 				var m := Balance.damage_multiplier(int(entry["element"]), monster)
 				var m_eff := 1.0 if bool(mods["sealed"]) else m
 				if m > 1.0 and not bool(mods["sealed"]):
@@ -148,7 +160,9 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 				hp = 1.0  # 根性：首次致死锁 1 HP
 			else:
 				break
-		guard.after_move(hp / float(int(monster["hp"])))
+		for ev2 in guard.after_move(hp / float(int(monster["hp"]))):
+			if str(ev2) == "obstacle":
+				board.seal_obstacles(3)  # 花瓣封印镜像（香雾对全知 AI 无影响，忽略）
 		board.ensure_playable()
 	var killed := hp <= 0.0
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(bounty_line)))
