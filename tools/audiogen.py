@@ -913,6 +913,65 @@ def _bgm_floor3():
     return dict(bpm=bpm, bars=bars, layers=layers, name="bgm_floor3", desc="三层·苍干栈道")
 
 
+def _bgm_floor4():
+    """四层·落英花冠 预备样张（圣经第九轮拍板立项，内容未实装）：B 小调柔色，78bpm，16 小节 48s。
+    花瓣雨生态：竖琴十六分如落英铺地 + 钟琴长句摇曳 + 高音区"花瓣反光"随机微光 + 暖垫，夜祭前的安眠曲气质。"""
+    bpm = 78
+    q = 60.0 / bpm
+    Bm, G, D, A = [47, 50, 54], [55, 59, 62], [50, 54, 57], [57, 61, 64]
+    bars = [Bm, G, D, A] * 4
+
+    def arp(chord, bar_idx, r):
+        order = (0, 1, 2, 3, 2, 3, 1, 2, 0, 2, 1, 3, 2, 3, 2, 1)
+        out = []
+        for i in range(16):
+            d = order[i]
+            m = chord[d % len(chord)] + 12 * (1 if d >= len(chord) else 0)
+            out.append((i, m, 0.45))
+        return out
+
+    def sec(events):
+        return [(st, m, b * q) for st, m, b in events]
+
+    mel = [[] for _ in range(16)]
+    mel[0] = sec([(0, 74, 1.0), (6, 71, 0.5), (8, 74, 1.0), (12, 78, 1.6)])
+    mel[1] = sec([(0, 79, 1.2), (6, 78, 0.5), (8, 74, 1.0), (12, 71, 1.6)])
+    mel[2] = sec([(0, 74, 1.0), (6, 78, 0.5), (8, 81, 1.0), (12, 78, 1.6)])
+    mel[3] = sec([(0, 76, 1.2), (8, 73, 1.2), (12, 69, 1.6)])
+    mel[4] = sec([(0, 74, 0.75), (4, 71, 0.75), (8, 74, 0.75), (12, 79, 1.6)])
+    mel[5] = sec([(0, 78, 1.0), (6, 74, 0.5), (8, 71, 1.0), (12, 67, 1.6)])
+    mel[6] = sec([(0, 74, 1.0), (6, 78, 0.5), (8, 81, 0.75), (12, 83, 1.6)])
+    mel[7] = sec([(0, 81, 2.5), (8, 73, 1.6)])
+    mel[8] = sec([(0, 74, 0.5), (2, 76, 0.5), (4, 78, 0.75), (8, 81, 0.75), (12, 78, 1.5)])
+    mel[9] = sec([(0, 79, 0.75), (4, 78, 0.75), (8, 74, 0.75), (12, 71, 1.5)])
+    mel[10] = sec([(0, 74, 0.5), (4, 78, 0.5), (8, 81, 0.75), (12, 85, 1.5)])
+    mel[11] = sec([(0, 83, 0.75), (4, 81, 0.75), (8, 78, 2.2)])
+    mel[12] = sec([(0, 74, 0.5), (2, 71, 0.5), (4, 74, 0.75), (8, 79, 0.75), (12, 78, 1.5)])
+    mel[13] = sec([(0, 79, 0.75), (4, 83, 0.75), (8, 79, 0.75), (12, 74, 1.5)])
+    mel[14] = sec([(0, 78, 0.75), (4, 81, 0.75), (8, 78, 0.75), (12, 74, 1.5)])
+    mel[15] = sec([(0, 73, 1.0), (4, 76, 1.0), (8, 81, 2.2)])
+
+    def twinkle(bar_idx, chord, t0, buf, ctx):
+        # 花瓣反光：高音区稀疏微光（比二层风铃更轻更密）
+        r = ctx["rng"]
+        if r.random() < 0.5:
+            st = int(r.integers(0, 16))
+            m = 89 + int(r.integers(0, 6))
+            place(buf, pan(bell(n2f(m), 0.45, bright=1.2, decay=5.5), 0.5),
+                  t0 + st / 16 * ctx["bar_sec"], 0.12)
+
+    layers = [
+        _layer_pad(lambda c: c, gain=0.13),
+        _layer_bass(levels=(1, 3)),
+        _layer_guitar_arp(arp),
+        _layer_melody(mel, "bell", gain=0.42, pan_p=0.25),
+        twinkle,
+        _layer_perc("shaker", (0, 8), 0.05),
+        _layer_kick((0, 8), 0.12),
+    ]
+    return dict(bpm=bpm, bars=bars, layers=layers, name="bgm_floor4", desc="四层·落英花冠（预备）")
+
+
 def bgm_to_stereo(buf, total, tail):
     left = reverb(buf[:, 0], 0.22)
     right = reverb(buf[:, 1], 0.22, spread=1)
@@ -1108,8 +1167,8 @@ VARIANTS = {
     "swap_ok": ("s_swap_ok_b",),
 }
 
-SONG_BUILDERS = {"bgm_floor1": _bgm_floor1, "bgm_floor2": _bgm_floor2, "bgm_market": _bgm_market, "bgm_floor3": _bgm_floor3}
-SONG_PRIO = {"bgm_floor1": "P0", "bgm_floor2": "P0", "bgm_market": "P0", "bgm_floor3": "P0"}
+SONG_BUILDERS = {"bgm_floor1": _bgm_floor1, "bgm_floor2": _bgm_floor2, "bgm_market": _bgm_market, "bgm_floor3": _bgm_floor3, "bgm_floor4": _bgm_floor4}
+SONG_PRIO = {"bgm_floor1": "P0", "bgm_floor2": "P0", "bgm_market": "P0", "bgm_floor3": "P0", "bgm_floor4": "P2 预备"}
 
 DEMO = [
     "ui_click", "level_up", "money_not_enough", "floor_unlock", "rebirth",
@@ -1188,7 +1247,7 @@ def main():
     jobs = []
     if args.demo:
         outdir = os.path.join(proj, "docs", "音频样张")
-        jobs = [("sfx", s) for s in DEMO] + [("bgm", s) for s in ("bgm_floor1", "bgm_floor2", "bgm_floor3")]
+        jobs = [("sfx", s) for s in DEMO] + [("bgm", s) for s in ("bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4")]
     elif args.all:
         outdir = os.path.join(proj, "assets", "audio")
         jobs = [("sfx", s) for s in CATALOG] + [("bgm", s) for s in SONG_BUILDERS]
