@@ -85,6 +85,14 @@ MONSTERS = {
     "灯芯草妖":   ("lampgrass",  "glowing rush grass lantern creature, warm light inside grass blades, grass body"),
     "曼陀花妖":   ("datura",     "beautiful poisonous mandala flower creature, purple-white petals, sly grin, no human"),
     "千瓣祭主":   ("petalpriest", "imposing ancient priest of a thousand petals, layered petal robes, ceremonial mask, staff of flowers"),
+    # 第五层 · 云顶鹰巢（風系+云雾雷系，圣经第十轮命名；slug 对齐 battle.gd MONSTER_SLUG）
+    "云雀妖":     ("cloudlark",  "small round cloud-puff bird with tiny wings, fluffy cloud body, tiny bird beak"),
+    "云绵羊":     ("cloudsheep", "fluffy cloud sheep, round woolly cloud body with sheep face and stubby legs"),
+    "风筝妖":     ("kitefiend",  "diamond-shaped kite creature with long ribbon tails, flying, painted face pattern on kite"),
+    "露珠精":     ("dewspirit",  "transparent round dew droplet spirit holding a small leaf, tiny eyes, water drop body"),
+    "雷蜓":       ("thunderdragonfly", "dragonfly with lightning-patterned wings, long thin body, small electric sparks"),
+    "雾里鱼":     ("fogfish",    "fish swimming inside a small fog cloud, fish body with fins, mist trail"),
+    "瞭望鹰":     ("watcheagle", "majestic giant eagle perched on a cloud peak, piercing eyes, spread wings, imposing"),
 }
 
 # 表情变体：在怪物描述后追加的形态词（输出到 monsters/variants/）
