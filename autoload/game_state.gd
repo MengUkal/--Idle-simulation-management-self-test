@@ -491,9 +491,10 @@ func player_max_hp() -> int:
 
 
 func train_cost_for(kind: String) -> int:
-	## 训练线升级实价 = 基础费用 × 果实折扣 × 轮数衰减 × 职业/种族修饰符
-	return int(ceil(Balance.train_cost(line_level(kind)) * Balance.train_cost_mult(fruits, rebirth_count)
-		* Mods.mult("train_cost")))
+	## 训练线升级实价 = 基础费用 × 果实折扣 × 轮数衰减 × 职业/种族/天赋/巅峰/装备修饰符
+	## 硬下限 5% 基价（审计 2026-10-12：极端折扣堆叠后训练仍须是消耗口）
+	return int(ceil(maxf(0.05, Balance.train_cost_mult(fruits, rebirth_count)
+		* Mods.mult("train_cost")) * Balance.train_cost(line_level(kind))))
 
 
 func add_essence(amount: int) -> void:
@@ -651,8 +652,8 @@ func upgrade_level() -> bool:
 
 
 func upgrade_cost() -> float:
-	## 下一级献金费用（含职业/种族修饰符）
-	return ceil(Balance.upgrade_cost(level) * Mods.mult("upgrade_cost"))
+	## 下一级献金费用（含职业/种族/天赋/巅峰/装备修饰符；下限 0.30 防折扣堆叠趋零——审计 2026-10-12）
+	return ceil(Balance.upgrade_cost(level) * maxf(0.30, Mods.mult("upgrade_cost")))
 
 
 func go_to_floor(index: int) -> void:

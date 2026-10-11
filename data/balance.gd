@@ -181,9 +181,9 @@ static func atk_fruit_mult(fruits: int) -> float:
 
 
 static func train_cost_mult(fruits: int, rebirth_count: int) -> float:
-	## 训练费用总乘数：果实折扣 × 轮数永久衰减
-	return pow(1.0 - FRUIT_TRAIN_DISCOUNT, float(fruits)) \
-		* pow(1.0 - REBIRTH_TRAIN_DECAY, float(rebirth_count))
+	## 训练费用总乘数：果实折扣 × 轮数永久衰减；下限 0.10（审计 2026-10-12：500 果实时趋零 → 训练免费漏洞）
+	return maxf(0.10, pow(1.0 - FRUIT_TRAIN_DISCOUNT, float(fruits)) \
+		* pow(1.0 - REBIRTH_TRAIN_DECAY, float(rebirth_count)))
 
 
 static func trade_cost(price: float, shares: int, fee_rate: float = MARKET_FEE_RATE) -> Dictionary:
