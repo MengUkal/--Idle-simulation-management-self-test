@@ -58,6 +58,13 @@ var _pending_result := 0  # 0 无 / 1 胜利 / 2 失败（动画结束后再弹�
 var guard := GuardKit.new("")  # 层守机制包（2026-10-11 拍板；非层守 = 空包全直通）
 var _banner: Label             # 当前层守机制横幅（新顶旧，防叠加）
 var _smoke_left := 0           # 香雾障目剩余步数（渲染层遮蔽棋盘图案）
+var player_hp := 0.0           # 玩家当前生命（战斗内即态，P-a）
+var player_hp_max := 1         # 玩家生命上限（等级/职业/装备推导）
+var _charge := 0               # 怪物蓄力计数（每耗 1 步 -1，归零发动攻击，P-a D7）
+var _battle_bounty := 0        # 本局已入账赏金（战败作废用，D8）
+var _lost_by_hp := false       # 战败原因：玩家 HP 归零
+var _player_hp_bar: ProgressBar
+var _player_hp_label: Label
 
 @onready var _steps_label_ref: Label = %StepsLabel
 @onready var _stat_cleared_ref: Label = %StatCleared
@@ -134,6 +141,10 @@ func _ready() -> void:
 	board.ensure_playable()
 	steps_left = Balance.battle_steps(GameState.level) + Mods.add("steps")
 	_roll_monster()
+	player_hp_max = GameState.player_max_hp()
+	player_hp = float(player_hp_max)
+	_charge = int(monster.get("speed", 6))
+	_build_player_hud()
 	_refresh_board()
 	_refresh_hud()
 	if monster.get("elite", false):
@@ -141,6 +152,7 @@ func _ready() -> void:
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if guard.has_kit() and guard.opener().size() > 0:
 		_show_banner(str(guard.opener().get("tag", "先制")), Color(0.95, 0.8, 0.35))  # 层守先制横幅
+		_monster_attack(true)  # 先制 = 开场立即攻击一次（规划 §2.2）
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# BGM 按层四选一（bgm_floor4 已由音频会话产出预备样张，2026-10-11）
@@ -318,14 +330,7 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	var spawned: Array = report.get("spawned", [])
 	if spawned.size() > 0:
 		_show_toast("生成特殊棋子！")
-		for sp_entry: Dictionary in spawned:
-			match int(sp_entry["special"]):
-				Match3Board.SPECIAL_LINE_H, Match3Board.SPECIAL_LINE_V:
-					Sfx.play("special_line")
-				Match3Board.SPECIAL_BOMB:
-					Sfx.play("special_bomb")
-				Match3Board.SPECIAL_BIRD:
-					Sfx.play("special_bird")
+		Sfx.play("special_spawn")  # S3② 凯旋生成 stab（音频会话 2026-10-11；special_line/bomb/bird 留作引爆专用）
 	# 1) 交换补间。普通三连（逻辑已换位）：按钮跟随块走——滑到新格位后停住、
 	#    tiles 引用对调，之后的消除/下落/刷新全部按新映射，视觉与逻辑一致。
 	#    特效激活（逻辑不换位）：只播撞击回弹，明确"这块没有换过去"。
@@ -340,6 +345,12 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 	steps_left -= 1
 	if _smoke_left > 0:
 		_smoke_left -= 1  # 香雾按玩家步数衰减
+	# 怪物蓄力攻击（P-a D7）：每耗 1 步 -1，归零发动攻击并重置
+	if not defeated:
+		_charge -= 1
+		if _charge <= 0:
+			_monster_attack(false)
+			_charge = int(monster.get("speed", 6))
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
 	_apply_damage(report["waves"])
@@ -435,6 +446,11 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 	if not bool(mods["blocked"]):
 		_spawn_damage_number(dmg, any_weak)
 		_hit_flash()
+	# 再生词条（P-a）：每波消除回复
+	var regen_total := int(Mods.add("regen")) * waves.size()
+	if regen_total > 0 and player_hp < float(player_hp_max) and player_hp > 0.0:
+		player_hp = minf(player_hp + float(regen_total), float(player_hp_max))
+		_update_player_hud()
 	if monster_hp <= 0:
 		if guard.has_kit() and guard.on_lethal():
 			# 根性：首次致死锁 1 HP 生还（限一次）——层守的最后一道门
@@ -487,12 +503,103 @@ func _victory() -> void:
 			_show_toast("镇风桩轰然折服，桩底压着一枚「落英花冠层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
+	_battle_bounty += bounty
 	GameState.set_meta("last_bounty", bounty)
 	# 装备掉落（E1：传奇定向挂点 + 全战斗小概率；粗品/普通自动分解回精华）
 	var drop_text: String = GameState.battle_drop(monster, monster.get("elite", false))
 	if drop_text != "":
 		_show_toast(drop_text)
+		# 稀有度揭示音（音频会话 2026-10-11）：传奇/祖品拉仪式感，史诗轻钟，普通系极轻金币
+		if drop_text.contains("传奇"):
+			Sfx.play("rarity_legend")
+		elif drop_text.contains("史诗"):
+			Sfx.play("rarity_epic")
+		else:
+			Sfx.play("drop_common")
 	_pending_result = 1  # 结果弹窗在动画结束后弹出
+
+
+# ---------- 玩家生命与怪物蓄力（P-a，2026-10-11 拍板 D7~D10） ----------
+
+func _build_player_hud() -> void:
+	## 玩家 HP 条（棋盘下方居中）
+	var board_w := Balance.BOARD_SIZE * STEP
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.55)
+	bg.position = Vector2(board_layer.position.x + board_w / 2.0 - 240.0,
+		board_layer.position.y + board_w + 14.0)
+	bg.size = Vector2(480, 22)
+	add_child(bg)
+	_player_hp_bar = ProgressBar.new()
+	_player_hp_bar.max_value = player_hp_max
+	_player_hp_bar.value = player_hp
+	_player_hp_bar.show_percentage = false
+	_player_hp_bar.position = Vector2(4, 4)
+	_player_hp_bar.size = Vector2(472, 14)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.35, 0.85, 0.5)
+	_player_hp_bar.add_theme_stylebox_override("fill", fill)
+	var fgbg := StyleBoxFlat.new()
+	fgbg.bg_color = Color(0.16, 0.14, 0.2)
+	_player_hp_bar.add_theme_stylebox_override("background", fgbg)
+	_player_hp_label = Label.new()
+	_player_hp_label.text = ""
+	_player_hp_bar.add_child(_player_hp_label)
+	bg.add_child(_player_hp_bar)
+	_player_hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_player_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+
+func _update_player_hud() -> void:
+	if _player_hp_bar == null:
+		return
+	_player_hp_bar.max_value = player_hp_max
+	_player_hp_bar.value = maxf(player_hp, 0.0)
+	_player_hp_label.text = "HP %d / %d ｜ 怪物蓄力 %s" % [
+		ceili(maxf(player_hp, 0.0)), player_hp_max, "▮".repeat(clampi(_charge, 0, 9))]
+
+
+func _monster_attack(opened: bool) -> void:
+	## 怪物蓄力攻击：伤害 = atk × 30%~50% × 狂暴系数 × (1 - 玩家减伤)
+	var atk := float(monster.get("atk", 0))
+	if atk <= 0.0 or battle_over or defeated:
+		return
+	var dmg := int(ceil(atk * randf_range(Balance.PLAYER_ATTACK_FRAC[0], Balance.PLAYER_ATTACK_FRAC[1]) \
+		* guard.atk_mult() * (1.0 - clampf(Mods.add("dr"), 0.0, 0.6))))
+	player_hp -= dmg
+	Sfx.play("monster_hit", 1.2, 0.0)
+	_shake_board()
+	_update_player_hud()
+	_spawn_player_number(dmg)
+	if player_hp <= 0.0:
+		_lose_by_hp()
+
+
+func _spawn_player_number(dmg: int) -> void:
+	## 玩家受伤飘字（棋盘右上红字）
+	var label := Label.new()
+	label.text = "-%d" % dmg
+	label.add_theme_font_size_override("font_size", 32)
+	label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3))
+	label.position = Vector2(board_layer.position.x + Balance.BOARD_SIZE * STEP + 20.0, 360.0)
+	add_child(label)
+	var tw := create_tween()
+	tw.tween_property(label, "position:y", 290.0, 0.8)
+	tw.parallel().tween_property(label, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(label.queue_free)
+
+
+func _lose_by_hp() -> void:
+	## 战败（D8）：本局赏金/精华作废；持有物不丢
+	_lost_by_hp = true
+	battle_over = true
+	if _battle_bounty > 0:
+		GameState.money = maxf(0.0, GameState.money - float(_battle_bounty))
+		EventBus.money_changed.emit(GameState.money)
+	if session_ep > 0:
+		GameState.essence = maxi(0, GameState.essence - session_ep)
+		EventBus.essence_changed.emit(GameState.essence)
+	_show_result(false, true)
 
 
 func _on_retreat_pressed() -> void:
@@ -565,12 +672,14 @@ func _refresh_hud() -> void:
 	_hp_bar.max_value = monster_hp_max
 	_hp_bar.value = maxf(monster_hp, 0.0)
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
+	_update_player_hud()
 
 
 # ---------- 棋子图标（tools/artgen.py 程序化生成，见 docs/游戏设计文档.md §13） ----------
 
 const ELEMENT_EN := ["fire", "water", "wind", "earth", "light", "dark"]
 const TILE_TEX_FMT := "res://assets/art/tiles/tile_%d_%s_%s.png"
+const CHAIN_LADDER := [0, 2, 4, 7, 9, 12, 14, 16]  # S3① 连锁爬梯半音表（大调音级，音频会话 2026-10-11）
 const TEX_BIRD := "res://assets/art/tiles/tile_bird.png"
 
 
@@ -646,7 +755,7 @@ func _spawn_damage_number(amount: int, weak: bool, blocked := false) -> void:
 	tw.tween_callback(label.queue_free)
 
 
-func _show_result(victory: bool) -> void:
+func _show_result(victory: bool, lost_hp := false) -> void:
 	battle_over = true
 	Sfx.play("battle_win" if victory else "battle_retreat")
 	var time_text := "%d:%02d" % [int(elapsed / 60.0), int(elapsed) % 60]
@@ -657,6 +766,11 @@ func _show_result(victory: bool) -> void:
 			bounty, "G",
 			total_damage, total_cleared, max_chain,
 			session_ep, time_text,
+		]
+	elif lost_hp:
+		_result_title.text = "力竭倒下……"
+		_result_stats.text = "%s 击倒了你了——本局收益作废（持有物不丢，拍板 D8）\n再挑战即可，棋盘不会记仇\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d ｜ 用时 %s" % [
+			monster["name"], total_damage, total_cleared, max_chain, time_text,
 		]
 	else:
 		_result_title.text = "步数耗尽……"
@@ -720,6 +834,22 @@ func _anim_invalid_swap(a: Vector2i, b: Vector2i) -> void:
 
 ## 消除：按连锁波分批播（缩小消失）。每格纹理用 waves 里记录的逻辑元素，
 ## 不信按钮上的旧纹理——修复"消掉的块颜色和预期不一样"的视觉错位。
+func _praise(chains: int) -> void:
+	## S3③ 连锁屏幕字 + 夸赞音阶梯（不错/漂亮/惊人/传说，音频会话 2026-10-11）
+	if chains >= 5:
+		_show_banner("传说！！", Color(1.0, 0.85, 0.3))
+		Sfx.play("praise_5")
+	elif chains >= 4:
+		_show_banner("惊人！", Color(1.0, 0.7, 0.35))
+		Sfx.play("praise_4")
+	elif chains >= 3:
+		_show_banner("漂亮！", Color(0.65, 0.9, 1.0))
+		Sfx.play("praise_3")
+	elif chains >= 2:
+		_show_banner("不错！", Color(0.8, 1.0, 0.75))
+		Sfx.play("praise_2")
+
+
 func _anim_clear(waves: Array) -> void:
 	for wi in waves.size():
 		var wave: Array = waves[wi]
@@ -744,7 +874,14 @@ func _anim_clear(waves: Array) -> void:
 					break
 			Sfx.play("clear_effective" if weak_hit else "clear_normal")
 		elif wi > 0:
-			Sfx.play("combo_chain", 1.0 + 0.12 * wi)
+			# S3① 连锁半音爬梯（大调音级上行，替代线性 pitch，音频会话 2026-10-11）
+			Sfx.play("combo_chain", pow(2.0, CHAIN_LADDER[mini(wi - 1, CHAIN_LADDER.size() - 1)] / 12.0))
+		var plus_n := 0
+		for entry3: Dictionary in wave:
+			if bool(entry3.get("plus", false)):
+				plus_n += 1
+		if plus_n > 0:
+			Sfx.play("plus_tick", 1.0 + 0.05 * minf(float(wi), 4.0), -6.0)  # 强化珠正反馈微光
 		var tw := create_tween().set_parallel(true)
 		for entry in wave:
 			var cell: Vector2i = entry["cell"]
@@ -769,6 +906,8 @@ func _anim_clear(waves: Array) -> void:
 			btn2.icon = null  # 已消除：视觉清空，待本步末尾 refresh 补上落定后的块
 		if wi < waves.size() - 1:
 			await get_tree().create_timer(0.06).timeout  # 波间停顿：连锁节奏可见
+	# S3③ 屏幕字夸赞（不错/漂亮/惊人/传说，音频会话 2026-10-11）
+	_praise(waves.size())
 
 
 ## 按重力记录设置下落/补牌的起始位置

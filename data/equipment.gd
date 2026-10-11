@@ -113,6 +113,13 @@ const AFFIXES := [
 		"effects": [{"key": "chain_bonus", "kind": "add", "per": 0.01}, {"key": "bounty", "kind": "mult", "per": 0.04}]},
 	{"id": "af_atlas", "name": "星图", "slots": ["ring", "trinket"],
 		"effects": [{"key": "fruit", "kind": "mult", "per": 0.05}, {"key": "drop_rate", "kind": "mult", "per": 0.10}]},
+	# 生命系统三词条（P-a，伙伴与生命系统规划 §2.4）
+	{"id": "af_vital", "name": "丰盈", "key": "max_hp", "kind": "mult",
+		"tiers": [0.06, 0.09, 0.12, 0.15, 0.18], "slots": ["helm", "body", "legs"]},
+	{"id": "af_regen", "name": "再生", "key": "regen", "kind": "add",
+		"tiers": [1, 1, 2, 2, 3], "slots": ["ring", "trinket"]},
+	{"id": "af_guard", "name": "坚壁", "key": "dr", "kind": "add",
+		"tiers": [0.03, 0.045, 0.06, 0.075, 0.09], "slots": ["body", "shoulder", "off"]},
 ]
 
 # ---------- 基础件（125 件：层级 = 掉落楼层 L1~L5） ----------

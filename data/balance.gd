@@ -40,47 +40,55 @@ const BATTLE_STEPS_PER_LEVEL := 0.5 # 【已拍板】每级 +0.5 步（即每 2 
 # 第一层怪物表（2026-10-09 草案落地；数值直接改这里，不用动代码）
 # 元素索引：0火 1水 2風 3土 4光 5闇；克制：火克風、風克土、土克水、水克火、光闇互克
 const MONSTERS_FLOOR1 := [
-	{"name": "树精史莱姆", "hp": 30, "bounty": 5, "weak": 0},
-	{"name": "風狼", "hp": 45, "bounty": 8, "weak": 3},
-	{"name": "岩甲龟", "hp": 70, "bounty": 12, "weak": 1},
-	{"name": "水妖", "hp": 55, "bounty": 10, "weak": 3},
-	{"name": "光萤", "hp": 40, "bounty": 9, "weak": 5},
-	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4},
+	{"name": "树精史莱姆", "hp": 30, "bounty": 5, "weak": 0, "atk": 12, "speed": 6},
+	{"name": "風狼", "hp": 45, "bounty": 8, "weak": 3, "atk": 16, "speed": 6},
+	{"name": "岩甲龟", "hp": 70, "bounty": 12, "weak": 1, "atk": 20, "speed": 6},
+	{"name": "水妖", "hp": 55, "bounty": 10, "weak": 3, "atk": 14, "speed": 6},
+	{"name": "光萤", "hp": 40, "bounty": 9, "weak": 5, "atk": 12, "speed": 6},
+	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4, "atk": 12, "speed": 6},
 ]
-const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4}
+const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4, "atk": 30, "speed": 4}
 # 第二层怪物表（2026-10-09 草案落地；数值直接改这里）
 const MONSTERS_FLOOR2 := [
-	{"name": "荆棘树妖", "hp": 120, "bounty": 18, "weak": 0},
-	{"name": "風羽隼", "hp": 150, "bounty": 22, "weak": 3},
-	{"name": "苔石巨人", "hp": 220, "bounty": 32, "weak": 1},
-	{"name": "沼泽水灵", "hp": 180, "bounty": 26, "weak": 3},
-	{"name": "暗藤魔", "hp": 160, "bounty": 24, "weak": 4},
-	{"name": "辉羽蝶", "hp": 160, "bounty": 24, "weak": 5},
+	{"name": "荆棘树妖", "hp": 120, "bounty": 18, "weak": 0, "atk": 30, "speed": 6},
+	{"name": "風羽隼", "hp": 150, "bounty": 22, "weak": 3, "atk": 38, "speed": 5},
+	{"name": "苔石巨人", "hp": 220, "bounty": 32, "weak": 1, "atk": 45, "speed": 6},
+	{"name": "沼泽水灵", "hp": 180, "bounty": 26, "weak": 3, "atk": 34, "speed": 5},
+	{"name": "暗藤魔", "hp": 160, "bounty": 24, "weak": 4, "atk": 36, "speed": 5},
+	{"name": "辉羽蝶", "hp": 160, "bounty": 24, "weak": 5, "atk": 32, "speed": 5},
 ]
-const MONSTER_ELITE_FLOOR2 := {"name": "守林古树", "hp": 500, "bounty": 120, "weak": 0}
+const MONSTER_ELITE_FLOOR2 := {"name": "守林古树", "hp": 500, "bounty": 120, "weak": 0, "atk": 60, "speed": 4}
 # 第三层·苍干栈道怪物表（2026-10-11 拍板：命名/弱点=世界观设定包；HP/赏金=重生练度标定草案档）
 # 生态：風系 + 藤蔓寄生系；练度曲线：第 2 轮门槛（Lv.50）打前四只、第 3 轮门槛（Lv.55）全开
 const MONSTERS_FLOOR3 := [
-	{"name": "旋風雀", "hp": 380, "bounty": 55, "weak": 3},
-	{"name": "叶隐蛙", "hp": 420, "bounty": 60, "weak": 0},
-	{"name": "風滚草", "hp": 460, "bounty": 62, "weak": 1},
-	{"name": "吊藤妖", "hp": 500, "bounty": 68, "weak": 0},
-	{"name": "喇叭藤", "hp": 550, "bounty": 72, "weak": 4},
-	{"name": "刺藤果", "hp": 620, "bounty": 78, "weak": 5},
+	{"name": "旋風雀", "hp": 380, "bounty": 55, "weak": 3, "atk": 55, "speed": 5},
+	{"name": "叶隐蛙", "hp": 420, "bounty": 60, "weak": 0, "atk": 60, "speed": 5},
+	{"name": "風滚草", "hp": 460, "bounty": 62, "weak": 1, "atk": 65, "speed": 5},
+	{"name": "吊藤妖", "hp": 500, "bounty": 68, "weak": 0, "atk": 70, "speed": 5},
+	{"name": "喇叭藤", "hp": 550, "bounty": 72, "weak": 4, "atk": 75, "speed": 5},
+	{"name": "刺藤果", "hp": 620, "bounty": 78, "weak": 5, "atk": 80, "speed": 5},
 ]
-const MONSTER_ELITE_FLOOR3 := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1}
+const MONSTER_ELITE_FLOOR3 := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1, "atk": 110, "speed": 3}
 # 第四层·落英花冠怪物表（2026-10-11 拍板：命名/弱点=设定包第九轮；HP/赏金=设定包参考稿档）
 # 生态：光闇系 + 花粉毒系；练度曲线：第 4 轮门槛（Lv.60，与巅峰系统并行成长）逐步全开
 const MONSTERS_FLOOR4 := [
-	{"name": "落英妖", "hp": 900, "bounty": 100, "weak": 5},
-	{"name": "花粉蛾", "hp": 1020, "bounty": 115, "weak": 2},
-	{"name": "夜香花", "hp": 1140, "bounty": 130, "weak": 4},
-	{"name": "蜜壶蜂", "hp": 1260, "bounty": 145, "weak": 1},
-	{"name": "灯芯草妖", "hp": 1380, "bounty": 165, "weak": 1},
-	{"name": "曼陀花妖", "hp": 1500, "bounty": 190, "weak": 3},
+	{"name": "落英妖", "hp": 900, "bounty": 100, "weak": 5, "atk": 100, "speed": 5},
+	{"name": "花粉蛾", "hp": 1020, "bounty": 115, "weak": 2, "atk": 110, "speed": 5},
+	{"name": "夜香花", "hp": 1140, "bounty": 130, "weak": 4, "atk": 118, "speed": 5},
+	{"name": "蜜壶蜂", "hp": 1260, "bounty": 145, "weak": 1, "atk": 126, "speed": 5},
+	{"name": "灯芯草妖", "hp": 1380, "bounty": 165, "weak": 1, "atk": 134, "speed": 5},
+	{"name": "曼陀花妖", "hp": 1500, "bounty": 190, "weak": 3, "atk": 145, "speed": 5},
 ]
-const MONSTER_ELITE_FLOOR4 := {"name": "千瓣祭主", "hp": 2400, "bounty": 330, "weak": 5}
+const MONSTER_ELITE_FLOOR4 := {"name": "千瓣祭主", "hp": 2400, "bounty": 330, "weak": 5, "atk": 190, "speed": 3}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
+# ---------- 玩家 HP（P-a，2026-10-11 拍板 D7~D10：伙伴与生命系统规划 §2） ----------
+const PLAYER_HP_BASE := 100         # 基础生命
+const PLAYER_HP_PER_LEVEL := 20     # 等级成长：每级 +20
+const PLAYER_ATTACK_FRAC := [0.3, 0.5]  # 怪物实际伤害 = atk × 30%~50%（随机，规划 §2.2）
+const CLASS_HP_MOD := {             # 职业修正（规划 §2.3 提案值）
+	"warrior": 1.4, "paladin": 1.3, "priest": 1.1, "ranger": 1.0,
+	"rogue": 0.9, "mage": 0.9, "warlock": 0.9,
+}
 const WEAKNESS_MULT := 2.0          # 命中弱点属性的伤害倍率
 const CHAIN_BONUS_PER_WAVE := 0.2   # 连锁加成：第 n 波伤害 ×(1 + 0.2×(n-1))
 # 元素设定（【已拍板】全色皆攻击 + 属性克制）：

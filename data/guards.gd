@@ -19,7 +19,7 @@ const KITS := {
 		"opener": {"tag": "先制·弱点封印", "steps": 3, "seal_weak": true},
 		"shield": {"tag": "连击护盾"},
 		"charge": {"tag": "桩劲蓄力", "at": 0.5, "steps": 3, "mult": 2.0},
-		"rage": {"tag": "狂暴", "at": 0.25, "dr": 0.4},
+		"rage": {"tag": "狂暴", "at": 0.25, "dr": 0.4, "atk_mult": 1.3},
 		"resolve": {"tag": "根性"},
 	},
 	# 千瓣祭主「三阶段操控流」（2026-10-11 拍板棋盘系第二批）：棋盘改写者，与另两守不同质。
@@ -115,6 +115,13 @@ func on_lethal() -> bool:
 		resolve_used = true
 		return true
 	return false
+
+
+## 狂暴期攻击力系数（层守机制包适配 HP 系统：狂暴墙保留 + 攻击提升，规划 §2.2）
+func atk_mult() -> float:
+	if not raged or not def.has("rage"):
+		return 1.0
+	return float(def["rage"].get("atk_mult", 1.3))
 
 
 ## HUD 常驻状态标签（挂在敌人名后，让规则一直可读）

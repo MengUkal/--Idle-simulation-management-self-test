@@ -393,6 +393,13 @@ func income_per_sec() -> float:
 		* Balance.income_fruit_mult(fruits) * Mods.mult("income")
 
 
+## 玩家生命上限（P-a 拍板 D9 全构成：基础+等级成长+职业修正+装备词条）
+func player_max_hp() -> int:
+	var base := Balance.PLAYER_HP_BASE + Balance.PLAYER_HP_PER_LEVEL * level
+	var cm: float = Balance.CLASS_HP_MOD.get(character_class, 1.0)
+	return int(ceil(base * cm * Mods.mult("max_hp")))
+
+
 func train_cost_for(kind: String) -> int:
 	## 训练线升级实价 = 基础费用 × 果实折扣 × 轮数衰减 × 职业/种族修饰符
 	return int(ceil(Balance.train_cost(line_level(kind)) * Balance.train_cost_mult(fruits, rebirth_count)

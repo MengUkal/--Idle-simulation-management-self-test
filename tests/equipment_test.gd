@@ -55,7 +55,7 @@ func _run() -> void:
 	check("T0 戒指 5 / 饰品 5",
 		GameEquipment.RING_BASES.size() == 5 and GameEquipment.TRINKET_BASES.size() == 5)
 	check("T0 基础件合计 125", main_n + off_n + arm_n + 10 == GameEquipment.base_count())
-	check("T0 词条池 16 条", GameEquipment.AFFIXES.size() == 16)
+	check("T0 词条池 19 条（16+生命系统 3）", GameEquipment.AFFIXES.size() == 19)
 	check("T0 传奇 15 件", GameEquipment.LEGENDARIES.size() == 15)
 	var keys_ok := true
 	for a in GameEquipment.AFFIXES:

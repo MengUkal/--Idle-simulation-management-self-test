@@ -4,8 +4,8 @@ extends Node
 ## 重算时机：角色创建 / 重生 / 天赋变更（天赋来源在 recompute 的预留段追加）。
 ## 消费端：battle（伤害/弱点/连锁/步数/精华/赏金）、GameState（收入/训练费/献金/手续费/果实）。
 
-const MULT_KEYS := ["battle_damage", "weakness", "income", "upgrade_cost", "train_cost", "bounty", "ep", "fruit", "drop_rate", "weapon_atk"]
-const ADD_KEYS := ["steps", "chain_bonus", "fee"]
+const MULT_KEYS := ["battle_damage", "weakness", "income", "upgrade_cost", "train_cost", "bounty", "ep", "fruit", "drop_rate", "weapon_atk", "max_hp"]
+const ADD_KEYS := ["steps", "chain_bonus", "fee", "regen", "dr"]
 
 var _mult := {}
 var _add := {}
