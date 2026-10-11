@@ -76,6 +76,10 @@ const MONSTER_SLUG := {
 	"光萤": "firefly", "暗影鼠": "rat", "树根守卫": "guardian",
 	"荆棘树妖": "thorntree", "風羽隼": "falcon", "苔石巨人": "golem",
 	"沼泽水灵": "bogspirit", "暗藤魔": "vine", "辉羽蝶": "butterfly", "守林古树": "ancient",
+	# 第三层·苍干栈道（2026-10-11 美术会话产出接入）
+	"旋風雀": "gustsparrow", "叶隐蛙": "leaffrog", "風滚草": "tumbleweed",
+	"吊藤妖": "hangvine", "喇叭藤": "hornvine", "刺藤果": "thornfruit",
+	"镇风桩": "windstake",
 }
 
 
@@ -112,6 +116,7 @@ func _ready() -> void:
 	_refresh_board()
 	_refresh_hud()
 	if monster.get("elite", false):
+		Sfx.play("elite_appear")  # 精英登场：暗钟压迫感（音频会话 2026-10-11）
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
@@ -144,6 +149,11 @@ func _build_skill_bar() -> void:
 	_skill_btn.clip_text = true
 	_skill_btn.text = "⚡0"
 	_skill_btn.add_theme_font_size_override("font_size", 14)
+	# 职业技能图标（美术管线产物 skill_<class>.png；缺失时留纯文字）
+	var skill_icon_path := "res://assets/art/ui/skill_%s.png" % GameState.character_class
+	if ResourceLoader.exists(skill_icon_path):
+		_skill_btn.icon = load(skill_icon_path)
+		_skill_btn.expand_icon = true
 	_skill_btn.pressed.connect(_on_skill_pressed)
 	_skill_btn.tooltip_text = "%s\n%s" % [skill_def.get("name", ""), skill_def.get("desc", "")]
 	_skill_btn.disabled = not skill_ready()
