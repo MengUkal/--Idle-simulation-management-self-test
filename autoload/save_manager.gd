@@ -52,6 +52,10 @@ func save() -> void:
 		"paragon_unlocked_boards": GameState.paragon_unlocked_boards,
 		"floor3_card": GameState.floor3_card,
 		"floor4_card": GameState.floor4_card,
+		"bag": GameState.bag,
+		"equipped": GameState.equipped,
+		"leg_claimed": GameState.leg_claimed,
+		"killed_once": GameState.killed_once,
 		# schema v5 追加（离线收益，2026-10-11）：旧档缺省 0 = 首次升级后才开始计离线
 		"last_seen": Time.get_unix_time_from_system(),
 	}
@@ -116,6 +120,18 @@ func _load() -> void:
 		GameState.talents = t
 	GameState.floor3_card = bool(data.get("floor3_card", false))
 	GameState.floor4_card = bool(data.get("floor4_card", false))
+	var bag_arr: Array = data.get("bag", [])
+	if typeof(bag_arr) == TYPE_ARRAY:
+		GameState.bag = bag_arr
+	var eq_dict: Dictionary = data.get("equipped", {})
+	if typeof(eq_dict) == TYPE_DICTIONARY:
+		GameState.equipped = eq_dict
+	var lc_arr: Array = data.get("leg_claimed", [])
+	if typeof(lc_arr) == TYPE_ARRAY:
+		GameState.leg_claimed = lc_arr
+	var ko_dict: Dictionary = data.get("killed_once", {})
+	if typeof(ko_dict) == TYPE_DICTIONARY:
+		GameState.killed_once = ko_dict
 	GameState.last_seen = float(data.get("last_seen", 0.0))
 	Mods.recompute()  # 角色/天赋就绪后重算修饰符
 	GameState.settle_offline()  # 离线收益结算（依赖完整修饰符，必须在 recompute 之后）

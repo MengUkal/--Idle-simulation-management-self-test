@@ -485,6 +485,10 @@ func _victory() -> void:
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)
+	# 装备掉落（E1：传奇定向挂点 + 全战斗小概率；粗品/普通自动分解回精华）
+	var drop_text: String = GameState.battle_drop(monster, monster.get("elite", false))
+	if drop_text != "":
+		_show_toast(drop_text)
 	_pending_result = 1  # 结果弹窗在动画结束后弹出
 
 

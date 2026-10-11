@@ -23,6 +23,10 @@ var paragon_talents := {}                 # 巅峰记录 {节点id: rank}（见 
 var paragon_unlocked_boards := ["p1"]     # 已解锁板块（点亮传奇即永久解锁，退还不清）
 var floor3_card := false                  # 苍干栈道层卡（首杀守林古树掉落，P3）
 var floor4_card := false                  # 落英花冠层卡（首杀镇风桩掉落，P4）
+var bag: Array = []                       # 装备背包（≤30 件实例，E1）
+var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
+var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
+var killed_once: Dictionary = {}          # 击杀过的目标 {名字: true}（传奇首杀判定）
 var last_seen := 0.0                      # 最近一次存档的 Unix 时间戳（0 = 从未存过，离线收益用）
 var pending_offline := {}                 # 待展示的离线收益报告（主界面弹窗消费，不落盘）
 
@@ -121,6 +125,76 @@ func unlock_floor4_card() -> bool:
 	floor4_card = true
 	EventBus.floor4_card_gained.emit()
 	return true
+
+
+# ---------- 装备（E1，2026-10-11 22 项拍板 + 内容包 v2） ----------
+
+const BAG_CAPACITY := 30
+
+
+## 战斗掉落结算（在赏金之后调用）。返回 toast 文本（空 = 无可展示掉落）。
+## 粗品/普通自动分解回精华（拍板 D3.1 配套，默认开）；传奇定向挂点首杀必掉。
+func battle_drop(monster: Dictionary, is_elite: bool) -> String:
+	var mname := str(monster.get("name", ""))
+	var is_first := not killed_once.has(mname)
+	killed_once[mname] = true
+	var toasts: Array = []
+	for drop in GameEquipment.roll_legendary(monster, is_elite, is_first, leg_claimed):
+		leg_claimed.append(str(drop["id"]))
+		if _add_to_bag(drop) == "":
+			toasts.append("✦ 传奇「%s」掉落！" % str(drop["name"]))
+		else:
+			add_essence(50)
+			toasts.append("背包已满，「%s」折算 50 精华" % str(drop["name"]))
+	if randf() < GameEquipment.DROP_BASE_CHANCE * Mods.mult("drop_rate"):
+		var item := GameEquipment.roll_item(floor_index, rebirth_count, character_class, monster)
+		var q := int(item.get("quality", 0))
+		if q <= 1:
+			add_essence(GameEquipment.DECOMPOSE_ESSENCE[q])
+		elif _add_to_bag(item) == "":
+			toasts.append("获得 %s（%s）" % [str(item["name"]), GameEquipment.QUALITY_NAMES[q]])
+	if toasts.is_empty():
+		return ""
+	return " / ".join(toasts)
+
+
+func _add_to_bag(item: Dictionary) -> String:
+	## 入包；背包满返回 "full"
+	if bag.size() >= BAG_CAPACITY:
+		return "full"
+	bag.append(item)
+	return ""
+
+
+## 穿戴背包第 idx 件。返回错误文本（空 = 成功）；同槽旧件回包；戒指自动落 A/B。
+func equip_from_bag(idx: int) -> String:
+	if idx < 0 or idx >= bag.size():
+		return "无效的背包格"
+	var item: Dictionary = bag[idx]
+	if not GameEquipment.can_wear(character_class, item):
+		return "%s 与职业不符" % str(item.get("name", "该装备"))
+	var slot := str(item["slot"])
+	if slot == "ring":
+		slot = "ring_a" if not equipped.has("ring_a") else "ring_b"
+	var old: Dictionary = equipped.get(slot, {})
+	equipped[slot] = item
+	bag.remove_at(idx)
+	if not old.is_empty():
+		bag.append(old)
+	Mods.recompute()
+	return ""
+
+
+## 卸下穿戴栏。返回错误文本（空 = 成功）。
+func unequip(slot: String) -> String:
+	if not equipped.has(slot):
+		return "该栏位为空"
+	var err := _add_to_bag(equipped[slot])
+	if err != "":
+		return "背包已满"
+	equipped.erase(slot)
+	Mods.recompute()
+	return ""
 
 
 func needs_character_creation() -> bool:
@@ -431,6 +505,10 @@ func reset() -> void:
 	paragon_unlocked_boards = ["p1"]
 	floor3_card = false
 	floor4_card = false
+	bag = []
+	equipped = {}
+	leg_claimed = []
+	killed_once = {}
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()

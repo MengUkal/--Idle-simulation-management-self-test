@@ -1,5 +1,5 @@
 extends Node
-## 一次性截屏：层守机制横幅（禁用自动保存，仅内存构造，不碰玩家存档）。
+## 一次性截屏：层守机制横幅 / 四层美术验证（禁用自动保存，仅内存构造，不碰玩家存档）。
 
 func _ready() -> void:
 	await get_tree().process_frame
@@ -13,24 +13,19 @@ func _ready() -> void:
 	var b: Node = load("res://scenes/battle/battle.tscn").instantiate()
 	add_child(b)
 	await get_tree().process_frame
-	# 强制层守千瓣祭主 + 演示花瓣封印（花障）与香雾（灰雾）
-	b.monster = Balance.MONSTER_ELITE_FLOOR4.duplicate()
-	b.monster["elite"] = true
-	b.guard = GuardKit.new("千瓣祭主")
+	# 四层美术接入验证：强制常驻怪落英妖（立绘 petalfae.png + bg_floor4.png 自动加载）
+	b.monster = Balance.MONSTERS_FLOOR4[0].duplicate()
 	b.monster_hp_max = int(b.monster["hp"])
-	b.monster_hp = float(b.monster_hp_max) * 0.4
-	var slug: String = b.MONSTER_SLUG.get("千瓣祭主", "")
+	b.monster_hp = float(b.monster_hp_max) * 0.7
+	var slug: String = b.MONSTER_SLUG.get("落英妖", "")
 	var tex_path := "res://assets/art/monsters/%s.png" % slug
 	if ResourceLoader.exists(tex_path):
 		b._enemy_portrait.texture = load(tex_path)
-	b.board.seal_obstacles(3)
-	b._smoke_left = 3
 	b._refresh_hud()
 	b._refresh_board()
-	b._show_banner("香雾障目！3 步内看不清棋盘", Color(0.6, 0.65, 0.8))
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(0.5).timeout
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
-	img.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_guard.png")
-	print("[capture] cap_guard saved")
+	img.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_floor4_art.png")
+	print("[capture] cap_floor4_art saved")
 	get_tree().quit()
