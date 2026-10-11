@@ -1103,6 +1103,78 @@ AMBIENCE = {"amb_floor1": _amb_floor1, "amb_floor2": _amb_floor2, "amb_floor3": 
 SAMPLE_EXTRA = {"talent_node": s_talent_node, "paragon_node": s_paragon_node}
 
 
+# ---------------------------------------------------------------- 层守机制专属音（2026-10-11：替换 battle.gd 占位复用）
+
+
+def s_guard_seal():
+    """花瓣封印（封棋子入花障）：木棘折断双响 + 花瓣散开的高频飘落 + 低音暗染。"""
+    dur = 0.55
+    buf = np.zeros(int(dur * SR))
+    for i, dt in enumerate((0.0, 0.09)):  # 两声棘断
+        n = bp(noise(0.06), 800, 2600) * np.exp(-55 * t_axis(0.06))
+        place(buf, n, dt, 0.9)
+        th = sweep(150 - i * 25, 70, 0.12, curve=0.7) * np.exp(-20 * t_axis(0.12))
+        place(buf, th, dt, 0.7)
+    sp = sparkle(dur, base=1760, n=6, level=0.7)
+    i0 = int(0.12 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0] * 0.8
+    place(buf, sweep(95, 55, 0.35, curve=0.6) * np.exp(-8 * t_axis(0.35)), 0.05, 0.6)
+    return normalize(softclip(buf), -6)
+
+
+def s_guard_smoke():
+    """香雾障目：闷雾喷发 + 细雾沙沙渐浓 + 轻微失谐铃（看不清的迷幻感）。"""
+    dur = 0.8
+    buf = np.zeros(int(dur * SR))
+    puff = lp(noise(0.18), 600) * adsr(int(0.18 * SR), 0.01, 0.05, 0.7, 0.1)
+    place(buf, puff, 0.0, 1.0)
+    mist = bp(noise(dur), 1800, 5200) * adsr(int(dur * SR), 0.25, 0.2, 0.85, 0.3)
+    place(buf, mist, 0.05, 0.45)
+    d1 = bell(n2f(74), 0.5, bright=0.8, decay=5)
+    d2 = bell(n2f(75), 0.45, bright=0.8, decay=5)  # 失谐小二度
+    buf[: len(d1)] += d1 * 0.35
+    i = int(0.06 * SR)
+    buf[i: i + len(d2)] += d2[: len(buf) - i] * 0.3
+    return normalize(buf, -8)
+
+
+def s_guard_charge():
+    """蓄力（受伤翻倍窗口）：低频张力爬升 + 心跳双击（威胁预告）。"""
+    dur = 0.9
+    buf = np.zeros(int(dur * SR))
+    dr = osc(90, dur, "saw", vib_hz=6, vib_amt=30)
+    dr = lp(dr, 500) * adsr(int(dur * SR), 0.3, 0.15, 0.9, 0.25)
+    buf[: len(dr)] += dr * 0.6
+    for dt in (0.0, 0.38):
+        th = sweep(105, 60, 0.16, curve=0.6) * np.exp(-14 * t_axis(0.16))
+        place(buf, th, dt, 0.9)
+    return normalize(softclip(buf), -6)
+
+
+def s_guard_rage():
+    """狂暴（受伤大幅降低）：锯齿低吼重颤 + 嘶吼噪声层 + 重击点。"""
+    dur = 1.0
+    growl = osc(68, dur, "saw", vib_hz=11, vib_amt=90)
+    growl = lp(growl, 420) * adsr(int(dur * SR), 0.05, 0.1, 0.9, 0.3)
+    hiss = bp(noise(dur), 900, 2600) * adsr(int(dur * SR), 0.12, 0.1, 0.7, 0.35) * 0.5
+    y = growl + hiss
+    hit = sweep(140, 45, 0.3, curve=0.5) * np.exp(-7 * t_axis(0.3))
+    y[: len(hit)] += hit * 1.1
+    return normalize(softclip(y), -4)
+
+
+def s_guard_guts():
+    """根性（首次致死锁 1 HP）：金属护盾铿（非谐波簇短促）+ 低频稳住，与 level_up 明显区分。"""
+    dur = 0.5
+    t = t_axis(dur)
+    y = np.zeros_like(t)
+    for r, a in ((1.0, 1.0), (2.32, 0.6), (3.01, 0.45), (4.27, 0.3)):  # 非谐波金属簇
+        y += a * np.sin(2 * np.pi * n2f(62) * r * t) * np.exp(-9 * r * t)
+    low = sweep(80, 62, 0.4, curve=0.7) * np.exp(-7 * t_axis(0.4))
+    y[: len(low)] += low * 0.8
+    return normalize(softclip(fade_edges(y, 0.002, 0.03)), -6)
+
+
 def gen_ambience(sid, outdir, sub="ambience"):
     """环境音：30s 无缝循环（尾巴折回 + 整周期 LFO），双声道独立实现去相关，
     响度固定很低（RMS≈0.045，垫底用）。demo 输出样张区（sub=ambience）；--all 转正（sub=amb）。"""
@@ -1149,6 +1221,11 @@ CATALOG = {
     "skill_ready":      (s_skill_ready,      "sfx/skill_ready.wav",      "P1", "充能型技能充能完成提示"),
     "combo_chain":      (s_combo_chain,      "sfx/combo_chain.wav",      "P0", "连锁（pitch_scale 升调）"),
     "elite_appear":     (s_elite_appear,     "sfx/elite_appear.wav",     "P1", "精英怪登场（暗钟压迫感，2026-10-11）"),
+    "guard_seal":       (s_guard_seal,       "sfx/guard_seal.wav",       "P1", "层守·花瓣封印（替占位 special_bomb，2026-10-11）"),
+    "guard_smoke":      (s_guard_smoke,      "sfx/guard_smoke.wav",      "P1", "层守·香雾障目（替占位 skill_cast）"),
+    "guard_charge":     (s_guard_charge,     "sfx/guard_charge.wav",     "P1", "层守·蓄力（替占位 skill_ready）"),
+    "guard_rage":       (s_guard_rage,       "sfx/guard_rage.wav",       "P1", "层守·狂暴（替占位 elite_appear）"),
+    "guard_guts":       (s_guard_guts,       "sfx/guard_guts.wav",       "P1", "层守·根性（替占位 level_up）"),
     "talent_node":      (s_talent_node,      "sfx/talent_node.wav",      "P1", "天赋节点点亮（2026-10-11 转正，替代复用 level_up）"),
     "paragon_node":     (s_paragon_node,     "sfx/paragon_node.wav",     "P1", "巅峰节点点亮（2026-10-11 转正，替代复用 level_up）"),
     "monster_hit":      (s_monster_hit,      "sfx/monster_hit.wav",      "P1", "怪物受击（低频短促）"),
@@ -1224,6 +1301,52 @@ def n_bars_info(spec, bar_sec):
     return f"{len(spec['bars'])} 小节 @ {spec['bpm']}bpm（{len(spec['bars']) * bar_sec:.1f}s 循环）"
 
 
+def verify_assets(outdir):
+    """资产质检门：存在性/时长/峰值/RMS/NaN 逐项检查（--verify 触发；失败退出码 1，可挂 preaccept）。"""
+    fails = 0
+
+    def check(name, ok, detail=""):
+        nonlocal fails
+        if not ok:
+            fails += 1
+        print(("PASS  " if ok else "FAIL  ") + name + (("  " + detail) if (detail and not ok) else ""))
+
+    for sid, (_, rel, _, _) in CATALOG.items():
+        rels = [rel] + [rel.replace(".wav", "_" + v.rsplit("_", 1)[-1] + ".wav") for v in VARIANTS.get(sid, ())]
+        for r in rels:
+            p = os.path.join(outdir, r)
+            if not os.path.exists(p):
+                check(r, False, "缺失")
+                continue
+            x, sr = sf.read(p, always_2d=True)
+            d = len(x) / sr
+            peak = float(np.max(np.abs(x)))
+            check(r, 0.02 <= d <= 8.0 and 0.05 < peak <= 1.0 and bool(np.isfinite(x).all()),
+                  f"dur={d:.2f}s peak={peak:.2f}")
+    for sid in SONG_BUILDERS:
+        p = os.path.join(outdir, "bgm", sid + ".ogg")
+        if not os.path.exists(p):
+            check("bgm/" + sid, False, "缺失")
+            continue
+        x, sr = sf.read(p, always_2d=True)
+        d = len(x) / sr
+        rms = float(np.sqrt(np.mean(x ** 2)))
+        check("bgm/" + sid, 20.0 <= d <= 70.0 and 0.10 <= rms <= 0.14 and bool(np.isfinite(x).all()),
+              f"dur={d:.1f}s rms={rms:.3f}")
+    for sid in AMBIENCE:
+        p = os.path.join(outdir, "amb", sid + ".ogg")
+        if not os.path.exists(p):
+            check("amb/" + sid, False, "缺失")
+            continue
+        x, sr = sf.read(p, always_2d=True)
+        d = len(x) / sr
+        rms = float(np.sqrt(np.mean(x ** 2)))
+        check("amb/" + sid, abs(d - 30.0) < 0.3 and 0.03 <= rms <= 0.06, f"dur={d:.1f}s rms={rms:.3f}")
+    print("---")
+    print(f"verify 结果：{fails} 项失败")
+    return fails
+
+
 def main():
     ap = argparse.ArgumentParser(description="程序化音频管线（音效+BGM）")
     ap.add_argument("--all", action="store_true", help="全量生成到 assets/audio/")
@@ -1231,9 +1354,14 @@ def main():
     ap.add_argument("--only", type=str, default="", help="逗号分隔的资产 id（与 --outdir 配合）")
     ap.add_argument("--outdir", type=str, default="", help="输出根目录（默认 assets/audio）")
     ap.add_argument("--list", action="store_true", help="列出资产目录")
+    ap.add_argument("--verify", action="store_true", help="质检 assets/audio 全部资产（失败退出码 1）")
     args = ap.parse_args()
 
     proj = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    if args.verify:
+        outdir = args.outdir or os.path.join(proj, "assets", "audio")
+        return 1 if verify_assets(outdir) > 0 else 0
 
     if args.list:
         print("== SFX ==")

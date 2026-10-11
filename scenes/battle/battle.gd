@@ -437,7 +437,7 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 			# 根性：首次致死锁 1 HP 生还（限一次）——层守的最后一道门
 			monster_hp = 1.0
 			_show_banner("根性！", Color(0.75, 0.6, 1.0))
-			Sfx.play("level_up")
+			Sfx.play("guard_guts")  # 专属音（音频会话 2026-10-11）
 		else:
 			_victory()
 	else:
@@ -447,23 +447,23 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 				_show_banner("%s！%d 步内受伤翻倍" % [
 					str(guard.def.get("charge", {}).get("tag", "蓄力")),
 					int(guard.def.get("charge", {}).get("steps", 3))], Color(0.55, 0.9, 0.6))
-				Sfx.play("skill_ready")
+				Sfx.play("guard_charge")  # 专属音（音频会话 2026-10-11，下同）
 			elif str(e) == "rage":
 				_show_banner("狂暴！受到的伤害大幅降低", Color(1.0, 0.5, 0.4))
-				Sfx.play("elite_appear")
+				Sfx.play("guard_rage")
 			elif str(e) == "obstacle":
 				var sealed: Array = board.seal_obstacles(
 					int(guard.def.get("obstacle", {}).get("count", 3)))
 				_show_banner("%s！%d 颗棋子被封入花障" % [
 					str(guard.def.get("obstacle", {}).get("tag", "花瓣封印")),
 					sealed.size()], Color(0.8, 0.55, 0.95))
-				Sfx.play("special_bomb")
+				Sfx.play("guard_seal")
 			elif str(e) == "smoke":
 				_smoke_left = int(guard.def.get("smoke", {}).get("steps", 3))
 				_show_banner("%s！%d 步内看不清棋盘" % [
 					str(guard.def.get("smoke", {}).get("tag", "香雾障目")),
 					_smoke_left], Color(0.6, 0.65, 0.8))
-				Sfx.play("skill_cast")
+				Sfx.play("guard_smoke")
 
 
 func _victory() -> void:
