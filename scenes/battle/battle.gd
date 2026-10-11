@@ -115,8 +115,8 @@ func _ready() -> void:
 		_show_toast("遭遇精英：%s！" % monster["name"])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
-	# BGM 按层：三层暂用二层曲顶替（bgm_floor3 待音频会话产出）
-	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
+	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3"][clampi(GameState.floor_index, 1, 3) - 1])
 	_setup_skill()
 	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
@@ -327,6 +327,7 @@ func _apply_damage(waves: Array) -> void:
 	monster_hp -= dmg
 	# 充能型技能：按消除块数积能量（资源模型 charge）
 	if str(skill_def.get("resource", "")) == "charge":
+		var was_ready := skill_energy >= 1
 		var cleared_here := 0
 		for w in waves.size():
 			cleared_here += (waves[w] as Array).size()
@@ -335,6 +336,8 @@ func _apply_damage(waves: Array) -> void:
 		while skill_frac >= int(skill_def.get("charge_per", 8)) and skill_energy < cap:
 			skill_frac -= int(skill_def.get("charge_per", 8))
 			skill_energy += 1
+		if not was_ready and skill_energy >= 1:
+			Sfx.play("skill_ready")  # 充能完成提示：跨过可用线的瞬间只响一次（音频会话 2026-10-11）
 		_refresh_skill_bar()
 	Sfx.play("monster_hit", 1.0, -4.0)  # 受击低频垫层（音效文件本身已 -9dB，再压 4dB 防吵）
 	if ep > 0:
@@ -357,7 +360,7 @@ func _victory() -> void:
 	if str(monster.get("name", "")) == "守林古树" and monster.get("elite", false):
 		if GameState.unlock_floor3_card():
 			Sfx.play("floor_unlock")
-			_show_toast("守林古树承认了你——它吐出一枚「苍干栈道层卡」")
+			_show_toast("守林古树承认了你，它吐出一枚「苍干栈道层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)
@@ -729,6 +732,7 @@ func _cast_skill(cell: Vector2i) -> void:
 		return
 	_busy = true
 	skill_targeting = false
+	Sfx.play("skill_cast")  # 职业技能施法音（七职业通用；此前技能全程无声，音频会话补齐 2026-10-11）
 	match str(skill_def.get("resource", "")):
 		"charge":
 			skill_energy -= 1

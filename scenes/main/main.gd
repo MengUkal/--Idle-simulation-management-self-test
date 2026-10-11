@@ -47,7 +47,8 @@ func _ready() -> void:
 	_init_line_buttons()
 	_connect_signals()
 	_refresh_all()
-	Sfx.bgm("bgm_floor1" if GameState.floor_index < 2 else "bgm_floor2")
+	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3"][clampi(GameState.floor_index, 1, 3) - 1])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	if OS.get_cmdline_user_args().has("--capture-main"):
