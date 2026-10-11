@@ -93,6 +93,14 @@ func _ready() -> void:
 var _tip_timer := 0.0
 
 
+func _notification(what: int) -> void:
+	## 手机版（2026-10-12）：切后台立即存档；主界面返回键 = 退出（自动保存触发）
+	if what == NOTIFICATION_APPLICATION_PAUSED:
+		SaveManager.save()
+	elif what == NOTIFICATION_GO_BACK:
+		get_tree().quit()
+
+
 func _process(delta: float) -> void:
 	## 新手提示队列：每 4.5 秒弹一条（引导链清单实装）
 	if GameState.pending_tips.is_empty():

@@ -38,6 +38,10 @@ var _skill_hover := Vector2i(-1, -1)  # 瞄准模式下鼠标悬停的格子
 var _btn_pulse: Tween          # 技能就绪呼吸脉冲
 var _skill_btn: Button
 var _skill_up_btn: Button
+var _drag_cell := Vector2i(-1, -1)   # 滑动交换：按住的格位（手机版，2026-10-12 拍板）
+var _drag_pos := Vector2.ZERO
+var _drag_used := false
+var _skill_up_btn: Button
 
 var board_layer: Control
 var _steps_label: Label
@@ -329,6 +333,7 @@ func _build_tiles() -> void:
 			for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 				b.add_theme_stylebox_override(st, sb_empty)
 			b.pressed.connect(_on_tile_pressed.bind(b))
+		b.button_down.connect(_on_tile_down.bind(b))
 			board_layer.add_child(b)
 			row.append(b)
 		tiles.append(row)
@@ -343,8 +348,55 @@ func _connect_button_signals() -> void:
 
 # ---------- 交互 ----------
 
+func _notification(what: int) -> void:
+	## 手机版（2026-10-12）：切后台立即存档；系统返回键 = 撤退确认/结算
+	if what == NOTIFICATION_APPLICATION_PAUSED:
+		SaveManager.save()
+	elif what == NOTIFICATION_GO_BACK:
+		if _result_panel.visible:
+			_leave_battle()
+		else:
+			_on_retreat_pressed()
+
+
+func _input(event: InputEvent) -> void:
+	## 滑动交换（拍板 2026-10-12）：按住棋子拖过相邻格阈值即触发交换
+	if _drag_cell.x < 0 or _busy or battle_over:
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		var delta_v: Vector2 = event.position - _drag_pos
+		if delta_v.length() < STEP * 0.45:
+			return
+		var dir := Vector2i.ZERO
+		if absf(delta_v.x) > absf(delta_v.y):
+			dir = Vector2i(1 if delta_v.x > 0.0 else -1, 0)
+		else:
+			dir = Vector2i(0, 1 if delta_v.y > 0.0 else -1)
+		var target := _drag_cell + dir
+		if target.x < 0 or target.y < 0 or target.x >= Balance.BOARD_SIZE or target.y >= Balance.BOARD_SIZE:
+			return
+		_drag_used = true
+		var from := _drag_cell
+		_drag_cell = Vector2i(-1, -1)
+		selected = Vector2i(-1, -1)
+		_refresh_board()
+		_try_move(from, target)
+
+
+func _on_tile_down(btn: Button) -> void:
+	## 滑动交换：记录按下的格位与起点（手机版）
+	_drag_cell = Vector2i(
+		clampi(int(round(btn.position.x / STEP)), 0, Balance.BOARD_SIZE - 1),
+		clampi(int(round(btn.position.y / STEP)), 0, Balance.BOARD_SIZE - 1))
+	_drag_pos = btn.get_global_mouse_position()
+	_drag_used = false
+
+
 func _on_tile_pressed(btn: Button) -> void:
 	## 按钮可随交换换格位（tiles 引用对调），格位从按钮当前位置反推，不能用构建期绑定的坐标
+	if _drag_used:
+		_drag_used = false  # 刚完成滑动交换：吞掉释放点击
+		return
 	if _busy or steps_left <= 0 or defeated:
 		return
 	var cell := Vector2i(
