@@ -54,6 +54,15 @@ func _ready() -> void:
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4"][clampi(GameState.floor_index, 1, 4) - 1])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	# 装备入口（E1.5）：贴在设置按钮左侧，代码生成避免动 tscn
+	var eq_btn := Button.new()
+	eq_btn.text = "背包"
+	eq_btn.tooltip_text = "打开背包与装备（30 格背包 / 10 槽穿戴）"
+	eq_btn.pressed.connect(func() -> void:
+		Sfx.play("ui_open")
+		add_child(EquipmentPanel.new()))
+	_settings_button.add_sibling(eq_btn)
+	eq_btn.position = _settings_button.position + Vector2(-130, 0)
 	if OS.get_cmdline_user_args().has("--capture-main"):
 		_debug_capture.call_deferred()
 
