@@ -13,6 +13,7 @@
 | `monsters/` | **22 只**怪物头像 `monsters/<slug>.png`（128×128 透明底：一二三四层全覆盖）+ `_roster*.png` 质检拼图 | `python tools/gen_asset.py --monster <中文名>` / `--batch <json>`（需 ComfyUI 运行中） |
 | `bg/` | `world_tree.png`（树绘）、`bg_floor1/2/3/4.png`（四层背景）、`bg_talent.png`（天赋/巅峰星树） | `python tools/gen_asset.py --scene "<英文描述>" --out <名> --w .. --h .. --scale ..` |
 | `cards/` | `card_floor3.png`（苍干栈道层卡）、`card_floor4.png`（落英花冠层卡）——层卡道具卡面，暂无 UI 挂点先备 | `python tools/artgen.py`（`make_floor_cards`） |
+| `equipment/` | **装备图标 100 张**：10 槽位形状（主手 6 武器 / 副手 2 / 防具 5 槽×3 甲种 / 戒指 / 饰品）× 品级 4 档框（灰普通/绿优秀/蓝稀有/金传奇）；`_equipment.png` 预览。**装备系统实装后即插即用**（命名 `{slot}_{rarity}.png` / `{slot}_{mat}_{rarity}.png`） | `python tools/artgen.py`（`make_equipment_icons`，槽位注册表 EQUIP_SLOTS / 品级表 EQUIP_RARITIES 数据驱动） |
 
 ## 命名规范
 

@@ -1026,6 +1026,196 @@ def make_floor_cards():
     return made
 
 
+# ---------- 装备图标（槽位形状 × 品级框，数据驱动） ----------
+
+EQUIP_DIR = os.path.join(ART, "equipment")
+
+EQUIP_RARITIES = [
+    ("common",    "普通", (200, 200, 200, 255)),
+    ("fine",      "优秀", (0x58, 0xB4, 0x6B, 255)),
+    ("rare",      "稀有", (0x4F, 0x8F, 0xE0, 255)),
+    ("legendary", "传奇", (0xF2, 0xC9, 0x4C, 255)),
+]
+
+EQUIP_ARMOR_MATS = {
+    "cloth":   {"base": (0x6a, 0x5a, 0x8a), "hi": (0x9a, 0x8a, 0xb8), "edge": (0x3a, 0x30, 0x4a)},
+    "leather": {"base": (0x8a, 0x5a, 0x2b), "hi": (0xb8, 0x8a, 0x4c), "edge": (0x4a, 0x2e, 0x14)},
+    "heavy":   {"base": (0x7a, 0x7a, 0x88), "hi": (0xb0, 0xb0, 0xc0), "edge": (0x3a, 0x3a, 0x44)},
+}
+
+
+def _eq_frame(d, rarity_col):
+    """品级底框：暗底 + 品级色边 + 顶部宝石"""
+    d.rounded_rectangle([4, 4, S - 4, S - 4], radius=18, fill=(0x1c, 0x16, 0x2a, 255),
+                        outline=rarity_col, width=5)
+    gx, gy, gr = S * 0.5, S * 0.135, S * 0.045
+    d.ellipse([gx - gr, gy - gr, gx + gr, gy + gr], fill=rarity_col)
+
+
+def _eq_sword(d, col, hi):
+    d.polygon([(S * 0.52, S * 0.20), (S * 0.60, S * 0.28), (S * 0.44, S * 0.52),
+               (S * 0.38, S * 0.46)], fill=col)
+    d.line([(S * 0.52, S * 0.24), (S * 0.42, S * 0.48)], fill=hi, width=3)
+    d.line([S * 0.32, S * 0.50, S * 0.50, S * 0.56], fill=hi, width=5)
+    d.line([S * 0.38, S * 0.58, S * 0.28, S * 0.74], fill=(0x8a, 0x5a, 0x2b, 255), width=6)
+
+
+def _eq_axe(d, col, hi):
+    d.line([S * 0.34, S * 0.20, S * 0.62, S * 0.82], fill=(0x8a, 0x5a, 0x2b, 255), width=7)
+    d.polygon([(S * 0.42, S * 0.22), (S * 0.70, S * 0.16), (S * 0.74, S * 0.42),
+               (S * 0.48, S * 0.46)], fill=col)
+    d.polygon([(S * 0.48, S * 0.24), (S * 0.62, S * 0.22), (S * 0.64, S * 0.36)],
+              fill=hi)
+
+
+def _eq_hammer(d, col, hi):
+    d.line([S * 0.50, S * 0.30, S * 0.50, S * 0.82], fill=(0x8a, 0x5a, 0x2b, 255), width=8)
+    d.rounded_rectangle([S * 0.26, S * 0.14, S * 0.74, S * 0.38], radius=8, fill=col,
+                        outline=(0x3a, 0x3a, 0x44, 255), width=3)
+    d.rectangle([S * 0.36, S * 0.20, S * 0.64, S * 0.26], fill=hi)
+
+
+def _eq_dagger(d, col, hi):
+    d.polygon([(S * 0.56, S * 0.22), (S * 0.62, S * 0.28), (S * 0.46, S * 0.52),
+               (S * 0.42, S * 0.46)], fill=col)
+    d.line([S * 0.36, S * 0.48, S * 0.48, S * 0.54], fill=hi, width=4)
+    d.line([S * 0.40, S * 0.56, S * 0.30, S * 0.70], fill=(0x8a, 0x5a, 0x2b, 255), width=5)
+
+
+def _eq_staff(d, col, hi):
+    d.line([S * 0.50, S * 0.32, S * 0.50, S * 0.84], fill=(0x8a, 0x5a, 0x2b, 255), width=7)
+    d.ellipse([S * 0.38, S * 0.14, S * 0.62, S * 0.38], fill=col, outline=hi, width=3)
+    d.ellipse([S * 0.45, S * 0.21, S * 0.55, S * 0.31], fill=hi)
+
+
+def _eq_bow(d, col, hi):
+    d.arc([S * 0.28, S * 0.18, S * 0.68, S * 0.82], 300, 60, fill=col, width=6)
+    d.line([S * 0.36, S * 0.22, S * 0.36, S * 0.78], fill=hi, width=3)
+    d.line([S * 0.36, S * 0.50, S * 0.72, S * 0.28], fill=(0xE8, 0xE0, 0xCF, 255), width=4)
+    d.polygon([(S * 0.74, S * 0.26), (S * 0.64, S * 0.26), (S * 0.72, S * 0.36)],
+              fill=(0xE8, 0xE0, 0xCF, 255))
+
+
+def _eq_shield(d, col, hi):
+    d.polygon([(S * 0.50, S * 0.16), (S * 0.74, S * 0.26), (S * 0.70, S * 0.58),
+               (S * 0.50, S * 0.82), (S * 0.30, S * 0.58), (S * 0.26, S * 0.26)],
+              fill=col, outline=hi, width=3)
+    d.line([S * 0.50, S * 0.26, S * 0.50, S * 0.62], fill=hi, width=4)
+    d.line([S * 0.36, S * 0.40, S * 0.64, S * 0.40], fill=hi, width=4)
+
+
+def _eq_focus(d, col, hi):
+    d.ellipse([S * 0.34, S * 0.30, S * 0.66, S * 0.62], fill=col, outline=hi, width=4)
+    d.ellipse([S * 0.43, S * 0.39, S * 0.57, S * 0.53], fill=hi)
+    d.line([S * 0.30, S * 0.26, S * 0.38, S * 0.36], fill=hi, width=4)
+    d.line([S * 0.70, S * 0.26, S * 0.62, S * 0.36], fill=hi, width=4)
+    d.line([S * 0.50, S * 0.62, S * 0.50, S * 0.80], fill=hi, width=4)
+
+
+def _eq_helm(d, mat, hi):
+    d.polygon([(S * 0.28, S * 0.52), (S * 0.28, S * 0.30), (S * 0.38, S * 0.18),
+               (S * 0.62, S * 0.18), (S * 0.72, S * 0.30), (S * 0.72, S * 0.52)],
+              fill=mat["base"], outline=mat["edge"], width=3)
+    d.rectangle([S * 0.40, S * 0.36, S * 0.60, S * 0.48], fill=(0x19, 0x13, 0x22, 255))
+    d.line([S * 0.50, S * 0.18, S * 0.50, S * 0.36], fill=mat["hi"], width=4)
+
+
+def _eq_chest(d, mat, hi):
+    d.polygon([(S * 0.30, S * 0.22), (S * 0.70, S * 0.22), (S * 0.76, S * 0.48),
+               (S * 0.66, S * 0.80), (S * 0.34, S * 0.80), (S * 0.24, S * 0.48)],
+              fill=mat["base"], outline=mat["edge"], width=3)
+    d.line([S * 0.50, S * 0.24, S * 0.50, S * 0.78], fill=mat["hi"], width=3)
+    d.line([S * 0.30, S * 0.46, S * 0.70, S * 0.46], fill=mat["hi"], width=3)
+
+
+def _eq_shoulders(d, mat, hi):
+    for sx in (S * 0.28, S * 0.72):
+        d.pieslice([sx - S * 0.20, S * 0.30, sx + S * 0.20, S * 0.66], 180, 360,
+                   fill=mat["base"], outline=mat["edge"], width=3)
+        d.line([sx - S * 0.16, S * 0.40, sx + S * 0.16, S * 0.40], fill=mat["hi"], width=3)
+    d.line([S * 0.34, S * 0.34, S * 0.66, S * 0.34], fill=mat["edge"], width=6)
+
+
+def _eq_legs(d, mat, hi):
+    d.polygon([(S * 0.32, S * 0.20), (S * 0.68, S * 0.20), (S * 0.62, S * 0.50),
+               (S * 0.58, S * 0.80), (S * 0.52, S * 0.80), (S * 0.52, S * 0.50),
+               (S * 0.48, S * 0.50), (S * 0.48, S * 0.80), (S * 0.42, S * 0.80),
+               (S * 0.38, S * 0.50)], fill=mat["base"], outline=mat["edge"], width=3)
+    d.line([S * 0.36, S * 0.34, S * 0.64, S * 0.34], fill=mat["hi"], width=3)
+
+
+def _eq_boots(d, mat, hi):
+    for bx in (S * 0.28, S * 0.56):
+        d.polygon([(bx, S * 0.28), (bx + S * 0.16, S * 0.28), (bx + S * 0.16, S * 0.62),
+                   (bx + S * 0.24, S * 0.72), (bx + S * 0.24, S * 0.78),
+                   (bx - S * 0.02, S * 0.78), (bx, S * 0.62)],
+                  fill=mat["base"], outline=mat["edge"], width=3)
+        d.line([bx, S * 0.40, bx + S * 0.16, S * 0.40], fill=mat["hi"], width=3)
+
+
+def _eq_ring(d, col, hi):
+    d.arc([S * 0.30, S * 0.34, S * 0.70, S * 0.74], 0, 360, fill=col, width=8)
+    d.polygon([(S * 0.50, S * 0.20), (S * 0.60, S * 0.32), (S * 0.40, S * 0.32)],
+              fill=hi)
+
+
+def _eq_amulet(d, col, hi):
+    d.arc([S * 0.32, S * 0.14, S * 0.68, S * 0.50], 20, 160, fill=col, width=4)
+    d.polygon([(S * 0.50, S * 0.48), (S * 0.64, S * 0.60), (S * 0.50, S * 0.84),
+               (S * 0.36, S * 0.60)], fill=hi, outline=col, width=3)
+    d.ellipse([S * 0.45, S * 0.58, S * 0.55, S * 0.68], fill=(0xE8, 0xE0, 0xCF, 255))
+
+
+EQUIP_SLOTS = {
+    "sword":        (_eq_sword,  (0xD8, 0xDE, 0xE8, 255), (0xFF, 0xFF, 0xFF, 255)),
+    "axe":          (_eq_axe,    (0xB8, 0xC4, 0xD4, 255), (0xE8, 0xF0, 0xF8, 255)),
+    "hammer":       (_eq_hammer, (0xB8, 0xC4, 0xD4, 255), (0xE8, 0xF0, 0xF8, 255)),
+    "dagger":       (_eq_dagger, (0xD8, 0xDE, 0xE8, 255), (0xFF, 0xFF, 0xFF, 255)),
+    "staff":        (_eq_staff,  (0x8A, 0x5F, 0xBF, 255), (0xC8, 0xA8, 0xE8, 255)),
+    "bow":          (_eq_bow,    (0x58, 0xB4, 0x6B, 255), (0xA8, 0xD8, 0xB0, 255)),
+    "shield":       (_eq_shield, (0x6a, 0x5a, 0x8a, 255), (0xb8, 0xaa, 0xd8, 255)),
+    "focus":        (_eq_focus,  (0x5F, 0xD3, 0xC9, 255), (0xA8, 0xF0, 0xE8, 255)),
+    "ring":         (_eq_ring,   (0xF2, 0xC9, 0x4C, 255), (0xFF, 0xE9, 0xA8, 255)),
+    "amulet":       (_eq_amulet, (0x5F, 0xD3, 0xC9, 255), (0xFF, 0xE9, 0xA8, 255)),
+}
+EQUIP_ARMOR_SLOTS = {"helm": _eq_helm, "chest": _eq_chest, "shoulders": _eq_shoulders,
+                     "legs": _eq_legs, "boots": _eq_boots}
+
+
+def make_equipment_icons():
+    """装备图标：槽位形状 × 品级框。输出 assets/art/equipment/。
+    武器/副手：{type}_{rarity}.png；防具：{slot}_{mat}_{rarity}.png；戒指/饰品：{id}_{rarity}.png"""
+    os.makedirs(EQUIP_DIR, exist_ok=True)
+    made = []
+
+    def draw_one(draw_fn, rarity_col, item_col=None, item_hi=None, mat=None):
+        img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        _eq_frame(d, rarity_col)
+        if mat:
+            draw_fn(d, mat, mat["hi"])
+        elif item_col:
+            draw_fn(d, item_col, item_hi)
+        return img
+
+    for rid, rname, rcol in EQUIP_RARITIES:
+        for sid, (fn, col, hi) in EQUIP_SLOTS.items():
+            img = draw_one(fn, rcol, item_col=col, item_hi=hi)
+            p = os.path.join(EQUIP_DIR, f"{sid}_{rid}.png")
+            img.save(p)
+            made.append(p)
+        for mat_id, mat in EQUIP_ARMOR_MATS.items():
+            for asid, afn in EQUIP_ARMOR_SLOTS.items():
+                img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+                d = ImageDraw.Draw(img)
+                _eq_frame(d, rcol)
+                afn(d, mat, mat["hi"])
+                p = os.path.join(EQUIP_DIR, f"{asid}_{mat_id}_{rid}.png")
+                img.save(p)
+                made.append(p)
+    return made
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -1091,6 +1281,9 @@ def main():
     # 棋盘机制 tile + 层卡
     made += make_board_fx_tiles()
     made += make_floor_cards()
+
+    # 装备图标（槽位形状 × 品级框）
+    made += make_equipment_icons()
 
     # 职业主动技能图标
     skills = make_skill_icons()
