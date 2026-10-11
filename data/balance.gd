@@ -68,18 +68,18 @@ const MONSTERS_FLOOR3 := [
 	{"name": "喇叭藤", "hp": 550, "bounty": 72, "weak": 4, "atk": 75, "speed": 5},
 	{"name": "刺藤果", "hp": 620, "bounty": 78, "weak": 5, "atk": 80, "speed": 5},
 ]
-const MONSTER_ELITE_FLOOR3 := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1, "atk": 110, "speed": 3}
+const MONSTER_ELITE_FLOOR3 := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1, "atk": 304, "speed": 3}
 # 第四层·落英花冠怪物表（2026-10-11 拍板：命名/弱点=设定包第九轮；HP/赏金=设定包参考稿档）
 # 生态：光闇系 + 花粉毒系；练度曲线：第 4 轮门槛（Lv.60，与巅峰系统并行成长）逐步全开
 const MONSTERS_FLOOR4 := [
-	{"name": "落英妖", "hp": 900, "bounty": 100, "weak": 5, "atk": 100, "speed": 5},
-	{"name": "花粉蛾", "hp": 1020, "bounty": 115, "weak": 2, "atk": 110, "speed": 5},
-	{"name": "夜香花", "hp": 1140, "bounty": 130, "weak": 4, "atk": 118, "speed": 5},
-	{"name": "蜜壶蜂", "hp": 1260, "bounty": 145, "weak": 1, "atk": 126, "speed": 5},
-	{"name": "灯芯草妖", "hp": 1380, "bounty": 165, "weak": 1, "atk": 134, "speed": 5},
-	{"name": "曼陀花妖", "hp": 1500, "bounty": 190, "weak": 3, "atk": 145, "speed": 5},
+	{"name": "落英妖", "hp": 900, "bounty": 100, "weak": 5, "atk": 160, "speed": 5},
+	{"name": "花粉蛾", "hp": 1020, "bounty": 115, "weak": 2, "atk": 176, "speed": 5},
+	{"name": "夜香花", "hp": 1140, "bounty": 130, "weak": 4, "atk": 189, "speed": 5},
+	{"name": "蜜壶蜂", "hp": 1260, "bounty": 145, "weak": 1, "atk": 202, "speed": 5},
+	{"name": "灯芯草妖", "hp": 1380, "bounty": 165, "weak": 1, "atk": 214, "speed": 5},
+	{"name": "曼陀花妖", "hp": 1500, "bounty": 190, "weak": 3, "atk": 232, "speed": 5},
 ]
-const MONSTER_ELITE_FLOOR4 := {"name": "千瓣祭主", "hp": 2400, "bounty": 330, "weak": 5, "atk": 190, "speed": 3}
+const MONSTER_ELITE_FLOOR4 := {"name": "千瓣祭主", "hp": 2400, "bounty": 330, "weak": 5, "atk": 304, "speed": 3}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
 # ---------- 玩家 HP（P-a，2026-10-11 拍板 D7~D10：伙伴与生命系统规划 §2） ----------
 const PLAYER_HP_BASE := 100         # 基础生命

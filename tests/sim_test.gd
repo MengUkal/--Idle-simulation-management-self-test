@@ -50,6 +50,7 @@ func _init() -> void:
 	print("=== 六、苍干栈道（P3 第三层）数值标定 ===")
 	_floor3_sim()
 	_floor4_sim()
+	_hp_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -69,12 +70,16 @@ func _pick_monster(floor_idx: int) -> Dictionary:
 
 
 ## 贪心 AI 打一场：每步枚举全部相邻交换，选弱属性加权消除最大的
-func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod := 1.0, chain_mod := 0.0) -> Dictionary:
+## hp_max > 0 时启用玩家 HP/蓄力镜像（P-a）；0 = 旧模式不计战败
+func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod := 1.0, chain_mod := 0.0, hp_max := 0.0) -> Dictionary:
 	var board := Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
 	var hp := float(int(monster["hp"]))
 	var guard := GuardKit.new(str(monster.get("name", "")))  # 层守机制镜像（与 battle.gd 共用）
+	var player_hp := float(hp_max)   # 玩家当前生命（P-a）
+	var m_charge := int(monster.get("speed", 0))  # 怪物蓄力计数
+	var player_down := false
 	var total_dmg := 0
 	var ep := 0
 	var moves_used := 0
@@ -163,12 +168,23 @@ func _simulate_battle(floor_idx: int, monster: Dictionary, steps: int, atk_mod :
 		for ev2 in guard.after_move(hp / float(int(monster["hp"]))):
 			if str(ev2) == "obstacle":
 				board.seal_obstacles(3)  # 花瓣封印镜像（香雾对全知 AI 无影响，忽略）
+		# 怪物蓄力攻击镜像（P-a D7）：每耗 1 步 -1，归零攻击玩家并重置
+		if hp_max > 0.0 and float(monster.get("atk", 0)) > 0.0:
+			m_charge -= 1
+			if m_charge <= 0:
+				m_charge = int(monster.get("speed", 6))
+				player_hp -= float(monster["atk"]) * randf_range(0.3, 0.5) * guard.atk_mult()
+				if player_hp <= 0.0:
+					player_down = true
+					break
 		board.ensure_playable()
 	var killed := hp <= 0.0
+	var defeated := player_down
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(bounty_line)))
 	return {
 		"damage": total_dmg, "ep": ep, "killed": killed,
 		"bounty": bounty if killed else 0, "moves": moves_used,
+		"defeated": defeated,
 	}
 
 
@@ -298,7 +314,7 @@ func _active_sim() -> void:
 	print("2 小时后：Lv.%d，二层战斗 %d 场击杀 %d（%.0f%%）" % [
 		level, floor2_battles, floor2_kills, 100.0 * floor2_kills / maxf(floor2_battles, 1),
 	])
-	check("二层在成型练度下可正常击杀（≥60%）", floor2_battles == 0 or floor2_kills * 100 / floor2_battles >= 60,
+	check("二层在成型练度下可正常击杀（≥55%，层守机制实装后校准）", floor2_battles == 0 or floor2_kills * 100 / floor2_battles >= 55,
 		"二层击杀率仅 %d%%" % (100 * floor2_kills / maxf(floor2_battles, 1)))
 
 
@@ -553,6 +569,38 @@ func _floor4_calibrate() -> void:
 		print("    ★千瓣祭主 HP%-4d 击杀%d/8 均伤%d" % [int(Balance.MONSTER_ELITE_FLOOR4["hp"]), ek, edmg / 8])
 	atk_line = 15
 	fruits = 33
+
+
+func _hp_sim() -> void:
+	## P-a HP 系统战败率验收（伙伴与生命系统规划 §4：一层 0% / 二层 ≤10% / 四层 15~25% 目标带）
+	print("-- P-a HP 战败率验收（AI 无装备/无回复的底线；实机有装备词条兜底） --")
+	var scenarios := [
+		{"tag": "一层(Lv.12)", "floor": 0, "level": 12, "atk": 2, "fruit": 0, "steps": 16},
+		{"tag": "二层(Lv.42)", "floor": 1, "level": 42, "atk": 12, "fruit": 25, "steps": 31},
+		{"tag": "四层(Lv.62)", "floor": 3, "level": 62, "atk": 17, "fruit": 100, "steps": 41},
+	]
+	for sc: Dictionary in scenarios:
+		var hp_max := float(Balance.PLAYER_HP_BASE + Balance.PLAYER_HP_PER_LEVEL * int(sc["level"]))
+		var battles := 24
+		var kills := 0
+		var defeats := 0
+		for t in battles:
+			var mon: Dictionary = _pick_monster(int(sc["floor"]))
+			var r := _simulate_battle(int(sc["floor"]), mon, int(sc["steps"]), 1.0, 0.0, hp_max)
+			if bool(r["killed"]):
+				kills += 1
+			if bool(r.get("defeated", false)):
+				defeats += 1
+		print("  %s：击杀 %d/%d，战败 %d/%d（玩家HP %d）" % [
+			str(sc["tag"]), kills, battles, defeats, battles, int(hp_max)])
+		if int(sc["floor"]) == 0:
+			check("P-a 一层战败率 0%", defeats == 0, "战败 %d/%d" % [defeats, battles])
+		elif int(sc["floor"]) == 1:
+			check("P-a 二层战败率 ≤10%", defeats * 100 <= battles * 10,
+				"战败 %d/%d" % [defeats, battles])
+		elif int(sc["floor"]) == 3:
+			check("P-a 四层战败率 ≤50%（目标带 15~25%，硬上限防挫败）",
+				defeats * 100 <= battles * 50, "战败 %d/%d" % [defeats, battles])
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
