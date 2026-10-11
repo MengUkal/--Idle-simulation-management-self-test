@@ -60,6 +60,7 @@ func save() -> void:
 		"glue": GameState.glue,
 		"stars": GameState.stars,
 		"chests_opened": GameState.chests_opened,
+		"tips_seen": GameState.tips_seen,
 		"pets": GameState.pets,
 		"pet_board": GameState.pet_board,
 		# schema v5 追加（离线收益，2026-10-11）：旧档缺省 0 = 首次升级后才开始计离线
@@ -142,6 +143,9 @@ func _load() -> void:
 	GameState.glue = int(data.get("glue", 0))
 	GameState.stars = int(data.get("stars", 0))
 	GameState.chests_opened = int(data.get("chests_opened", 0))
+	var tips_dict: Dictionary = data.get("tips_seen", {})
+	if typeof(tips_dict) == TYPE_DICTIONARY:
+		GameState.tips_seen = tips_dict
 	var pets_dict: Dictionary = data.get("pets", {})
 	if typeof(pets_dict) == TYPE_DICTIONARY:
 		GameState.pets = pets_dict

@@ -157,10 +157,25 @@ func _ready() -> void:
 	if guard.has_kit() and guard.opener().size() > 0:
 		_show_banner(str(guard.opener().get("tag", "先制")), Color(0.95, 0.8, 0.35))  # 层守先制横幅
 		_monster_attack(true)  # 先制 = 开场立即攻击一次（规划 §2.2）
+	# 新手引导 B：首次战斗三连（引导链清单实装）
+	if GameState.tip_once("battle_first"):
+		_newbie_hints.call_deferred()
+
+
+func _newbie_hints() -> void:
+	## 首次战斗提示三连（间隔弹出）
+	var hints := [
+		"消除就是攻击。一次消得越多，连锁越痛。",
+		"打弱点色：伤害与精华双双倍。",
+		"技能充能靠消除；打不过，撤退不丢人。",
+	]
+	for h in hints:
+		_show_toast(str(h))
+		await get_tree().create_timer(3.2).timeout
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
-	# BGM 按层四选一（bgm_floor4 已由音频会话产出预备样张，2026-10-11）
-	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4"][clampi(GameState.floor_index, 1, 4) - 1])
+	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
 	_setup_skill()
 	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
@@ -580,6 +595,7 @@ func _award_stars(remaining := 0) -> void:
 	for c in chests:
 		var reward: String = GameState.open_chest()
 		_show_toast("★ 祭品箱开启：%s！" % reward)
+		Sfx.play("chest_open")  # 开箱吱呀+星尘（音频会话 2026-10-12），rarity_epic 紧随作奖励揭示
 		Sfx.play("rarity_epic")
 
 

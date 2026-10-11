@@ -50,8 +50,8 @@ func _ready() -> void:
 	# 离线收益回归弹窗（金额已在读档时结算入账，这里只负责展示）
 	if not GameState.pending_offline.is_empty():
 		add_child(OfflinePanel.new())
-	# BGM 按层四选一（bgm_floor4 已由音频会话产出预备样张，2026-10-11）
-	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4"][clampi(GameState.floor_index, 1, 4) - 1])
+	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	# 装备入口（E1.5）：贴在设置按钮左侧，代码生成避免动 tscn
@@ -81,8 +81,26 @@ func _ready() -> void:
 		add_child(KennelPanel.new()))
 	_settings_button.add_sibling(kennel_btn)
 	kennel_btn.position = attr_btn.position + Vector2(-130, 0)
+	# 新手引导 A：首次进入主界面三连（引导链清单实装）
+	if GameState.tip_once("main_first"):
+		GameState.pending_tips.append("欢迎来到世界树。吉尔会自己长——挂机收入，自动到账。")
+		GameState.pending_tips.append("变强只有一件事：攒吉尔，向树献金，升级。")
+		GameState.pending_tips.append("准备好了就点「出发冒险」。消除就是攻击。")
 	if OS.get_cmdline_user_args().has("--capture-main"):
 		_debug_capture.call_deferred()
+
+
+var _tip_timer := 0.0
+
+
+func _process(delta: float) -> void:
+	## 新手提示队列：每 4.5 秒弹一条（引导链清单实装）
+	if GameState.pending_tips.is_empty():
+		return
+	_tip_timer += delta
+	if _tip_timer >= 4.5:
+		_tip_timer = 0.0
+		_show_toast(GameState.pending_tips.pop_front())
 
 
 ## 【诊断工具】截屏主界面（-- --capture-main 触发，输出 tests/cap_main.png）

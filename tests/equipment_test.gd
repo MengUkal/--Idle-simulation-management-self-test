@@ -251,6 +251,22 @@ func _run() -> void:
 	GameState.reset()
 	check("T14 reset 清星", GameState.stars == 0 and GameState.chests_opened == 0)
 
+	# T15 新手提示（引导链清单实装）
+	GameState.reset()
+	GameState.pending_tips = []
+	check("T15 首次触发", GameState.tip_once("t_a", "提示文本"))
+	check("T15 二次不触发", not GameState.tip_once("t_a", "提示文本"))
+	check("T15 队列入队 1 条", GameState.pending_tips.size() == 1)
+	GameState.tip_once("t_b")  # 无文本：仅标记
+	check("T15 无文本仅标记", GameState.pending_tips.size() == 1)
+	SaveManager.save()
+	var f15 := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var d15: Dictionary = JSON.parse_string(f15.get_as_text())
+	f15.close()
+	check("T15 已读标记落盘", (d15.get("tips_seen", {}) as Dictionary).has("t_a"))
+	GameState.reset()
+	check("T15 reset 清标记", not GameState.tips_seen.has("t_a"))
+
 	# T12 分解与树胶（E2）
 	GameState.reset()
 	GameState.create_character("warrior", "human")

@@ -29,6 +29,8 @@ var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
 var killed_once: Dictionary = {}          # 击杀过的目标 {名字: true}（传奇首杀判定）
 var glue := 0                             # 树胶（洗练货币，分解粗品/普通获得，E2）
+var tips_seen := {}                       # 已读新手提示 {key: true}（存档，每条只出现一次）
+var pending_tips: Array = []              # 待展示提示文本队列（主界面逐条弹出）
 var stars := 0                            # 累计星星（S1 结算秀产星，S2 星辰宝箱）
 var chests_opened := 0                    # 已开启的祭品箱数（每 9 星一箱）
 var pets: Dictionary = {}                 # 伙伴图鉴 {怪物名: {count, quality}}（P-b）
@@ -262,6 +264,8 @@ func _add_to_bag(item: Dictionary) -> String:
 	if bag.size() >= BAG_CAPACITY:
 		return "full"
 	bag.append(item)
+	# 引导链 #7：首件装备入包
+	tip_once("equip_first", "掉了件装备。去背包装上，别让它吃灰。")
 	return ""
 
 
@@ -344,6 +348,18 @@ func pet_passive_per(monster_name: String) -> float:
 	if rec.is_empty():
 		return 0.0
 	return GamePets.passive_per(monster_name, int(rec.get("quality", 0)), str(pet_board) == monster_name)
+
+
+# ---------- 新手提示（引导链清单实装，2026-10-12） ----------
+
+## 一次性提示：首次调用入展示队列并存档标记；text 为空则只做标记（多连提示用）
+func tip_once(key: String, text: String = "") -> bool:
+	if tips_seen.has(key):
+		return false
+	tips_seen[key] = true
+	if text != "":
+		pending_tips.append(text)
+	return true
 
 
 # ---------- 星辰宝箱（S1 产星 / S2 祭品箱，第十五轮拍板） ----------
@@ -514,6 +530,8 @@ func add_essence(amount: int) -> void:
 		return
 	essence += amount
 	EventBus.essence_changed.emit(essence)
+	# 引导链 #3：首次获得精华
+	tip_once("essence_first", "精华到账。三条训练线，各管一样：打人、拿钱、挣钱。")
 
 
 func line_level(kind: String) -> int:
@@ -636,6 +654,9 @@ func add_money(amount: float) -> void:
 	money += amount
 	total_earned += amount
 	EventBus.money_changed.emit(money)
+	# 引导链 #1：首次吉尔攒到 10
+	if money >= 10.0:
+		tip_once("money10", "攒够 10 G 了。献金升级，树的祝福明码标价。")
 
 
 func try_spend(cost: float) -> bool:
@@ -654,8 +675,10 @@ func upgrade_level() -> bool:
 	level += 1
 	if level >= GameTalents.PARAGON_LEVEL:
 		paragon_points += 1  # 巅峰点分流（巅峰系统预留）
+		tip_once("paragon_first", "巅峰点开始积累。后期的事，现在知道也不亏。")
 	else:
 		skill_points += 1  # 天赋技能点
+		tip_once("skill_first", "技能点 +1。去天赋页，点亮你的第一格。")
 	EventBus.level_changed.emit(level)
 	EventBus.income_changed.emit(income_per_sec())
 	if level == Balance.FLOOR_2_LEVEL_REQ:
@@ -708,6 +731,8 @@ func reset() -> void:
 	pet_board = ""
 	stars = 0
 	chests_opened = 0
+	tips_seen = {}
+	pending_tips = []
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()
