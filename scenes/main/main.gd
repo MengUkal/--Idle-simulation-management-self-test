@@ -97,7 +97,7 @@ func _notification(what: int) -> void:
 	## 手机版（2026-10-12）：切后台立即存档；主界面返回键 = 退出（自动保存触发）
 	if what == NOTIFICATION_APPLICATION_PAUSED:
 		SaveManager.save()
-	elif what == NOTIFICATION_GO_BACK:
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		get_tree().quit()
 
 

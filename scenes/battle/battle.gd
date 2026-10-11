@@ -41,7 +41,6 @@ var _skill_up_btn: Button
 var _drag_cell := Vector2i(-1, -1)   # 滑动交换：按住的格位（手机版，2026-10-12 拍板）
 var _drag_pos := Vector2.ZERO
 var _drag_used := false
-var _skill_up_btn: Button
 
 var board_layer: Control
 var _steps_label: Label
@@ -333,7 +332,7 @@ func _build_tiles() -> void:
 			for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 				b.add_theme_stylebox_override(st, sb_empty)
 			b.pressed.connect(_on_tile_pressed.bind(b))
-		b.button_down.connect(_on_tile_down.bind(b))
+			b.button_down.connect(_on_tile_down.bind(b))
 			board_layer.add_child(b)
 			row.append(b)
 		tiles.append(row)
@@ -352,7 +351,7 @@ func _notification(what: int) -> void:
 	## 手机版（2026-10-12）：切后台立即存档；系统返回键 = 撤退确认/结算
 	if what == NOTIFICATION_APPLICATION_PAUSED:
 		SaveManager.save()
-	elif what == NOTIFICATION_GO_BACK:
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if _result_panel.visible:
 			_leave_battle()
 		else:
