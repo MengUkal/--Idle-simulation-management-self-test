@@ -1175,6 +1175,152 @@ def s_guard_guts():
     return normalize(softclip(fade_edges(y, 0.002, 0.03)), -6)
 
 
+# ---------------------------------------------------------------- S3 音效爬梯 + 装备系统（2026-10-11 深夜批次）
+
+
+def s_special_spawn():
+    """S3② 特殊棋子生成凯旋 stab（King 专利式 triumphant）：铜管感和弦快奏 D5-F#5-A5 + 顶音亮闪。"""
+    dur = 0.6
+    buf = np.zeros(int(dur * SR))
+    for i, m in enumerate((74, 78, 81)):
+        y = lp(osc(n2f(m), 0.22, "saw"), 2400) * adsr(int(0.22 * SR), 0.008, 0.05, 0.7, 0.08)
+        place(buf, y, i * 0.055, 0.8)
+    place(buf, bell(n2f(86), 0.4, bright=1.2, decay=5), 0.17, 0.55)
+    sp = sparkle(dur, base=2349, n=4, level=0.6)
+    i0 = int(0.2 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(softclip(buf), -5)
+
+
+def s_praise_2():
+    """S3③ 屏幕字「不错！」（2 连）：单暖钟。"""
+    buf = np.zeros(int(0.35 * SR))
+    place(buf, bell(n2f(81), 0.3, bright=1.0, decay=6), 0.0, 0.8)
+    return normalize(buf, -8)
+
+
+def s_praise_3():
+    """S3③ 屏幕字「漂亮！」（3 连）：双音上行钟。"""
+    buf = np.zeros(int(0.45 * SR))
+    place(buf, bell(n2f(78), 0.25, bright=1.0, decay=6), 0.0, 0.7)
+    place(buf, bell(n2f(81), 0.35, bright=1.0, decay=5), 0.09, 0.8)
+    return normalize(buf, -7)
+
+
+def s_praise_4():
+    """S3③ 屏幕字「惊人！」（4 连）：三连上行 + 微光。"""
+    buf = np.zeros(int(0.6 * SR))
+    for i, m in enumerate((78, 81, 86)):
+        place(buf, bell(n2f(m), 0.3, bright=1.1, decay=5), i * 0.08, 0.75)
+    sp = sparkle(0.4, base=2093, n=4, level=0.6)
+    i0 = int(0.16 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(buf, -6)
+
+
+def s_praise_5():
+    """S3③ 屏幕字「传说！！」（5 连+）：D 大调四连上号 + 深钟 + 大微光。"""
+    buf = np.zeros(int(1.1 * SR))
+    for i, m in enumerate((74, 78, 81, 86)):
+        place(buf, bell(n2f(m), 0.35, bright=1.15, decay=4.5), i * 0.085, 0.8)
+    place(buf, bell(n2f(50), 0.8, bright=0.8, decay=3), 0.1, 0.6)
+    sp = sparkle(0.9, base=2349, n=8, level=0.9)
+    i0 = int(0.2 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(softclip(buf), -5)
+
+
+def s_plus_tick():
+    """强化珠消除微光（每颗 +6% 的正反馈）：细金光 tick。"""
+    y = bell(n2f(93), 0.16, bright=1.3, decay=8) * 0.8
+    n = hp(noise(0.05), 6000) * np.exp(-90 * t_axis(0.05))
+    y[: len(n)] += 0.4 * n
+    return normalize(fade_edges(y, 0.002, 0.01), -10)
+
+
+def s_equip_on():
+    """装备上身：扣具 click-clack 双响 + 暖木确认。"""
+    buf = np.zeros(int(0.32 * SR))
+    for i, dt in enumerate((0.0, 0.075)):
+        c = bp(noise(0.04), 1400, 4200) * np.exp(-70 * t_axis(0.04))
+        place(buf, c, dt, 0.9)
+        th = thud(0.12, 140) * (0.5 - i * 0.1)
+        place(buf, th, dt + 0.004, 1.0)
+    p = pluck(n2f(74), 0.18, damp=6, bright=0.6)
+    i = int(0.14 * SR)
+    buf[i: i + len(p)] += p[: len(buf) - i] * 0.4
+    return normalize(buf, -7)
+
+
+def s_equip_off():
+    """装备卸下：布料软扑 + 单扣轻响。"""
+    buf = np.zeros(int(0.26 * SR))
+    f = lp(noise(0.12), 900) * adsr(int(0.12 * SR), 0.01, 0.04, 0.5, 0.06)
+    place(buf, f, 0.0, 0.9)
+    c = bp(noise(0.03), 1600, 4000) * np.exp(-90 * t_axis(0.03))
+    i = int(0.09 * SR)
+    buf[i: i + len(c)] += c * 0.6
+    return normalize(buf, -9)
+
+
+def s_rarity_legend():
+    """传奇/祖品掉落揭示：深钟定场 + D 大调琶音 fanfare + 合唱垫 + 大微光（仪式感拉满）。"""
+    buf = np.zeros(int(1.5 * SR))
+    place(buf, bell(n2f(50), 1.0, bright=0.8, decay=2.8), 0.0, 0.85)
+    for i, m in enumerate((74, 78, 81, 86, 90)):
+        place(buf, bell(n2f(m), 0.5, bright=1.1, decay=4), 0.15 + i * 0.09, 0.6)
+    place(buf, choir([n2f(62), n2f(66), n2f(69)], 1.0, level=0.7), 0.35, 0.4)
+    sp = sparkle(1.0, base=2093, n=10, level=0.9)
+    i0 = int(0.3 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(softclip(buf), -5)
+
+
+def s_rarity_epic():
+    """史诗掉落揭示：亮钟双音 + 中微光。"""
+    buf = np.zeros(int(0.7 * SR))
+    place(buf, bell(n2f(81), 0.35, bright=1.2, decay=5), 0.0, 0.75)
+    place(buf, bell(n2f(88), 0.45, bright=1.2, decay=4.5), 0.1, 0.8)
+    sp = sparkle(0.5, base=2093, n=4, level=0.6)
+    i0 = int(0.12 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(buf, -7)
+
+
+def s_drop_common():
+    """普通系掉落入包：极轻单金币。"""
+    buf = np.zeros(int(0.2 * SR))
+    c = coin_hit(2100, 0.14, 0.9)
+    buf[: len(c)] += c
+    return normalize(buf, -12)
+
+
+def s_ancient_pillar():
+    """太古光柱（太古词条揭示，工程会话交接回执②）：光柱自下而上升起——长上扫微光束 + 高频钟簇爬升 + 气流涌。"""
+    dur = 1.3
+    buf = np.zeros(int(dur * SR))
+    place(buf, whoosh(1.0, 200, 2400, up=True, level=0.8), 0.0, 0.6)
+    for i in range(7):  # 钟簇沿光柱爬升
+        m = 74 + i * 2  # D 大调整阶梯升
+        place(buf, bell(n2f(m), 0.4, bright=1.25, decay=5), 0.15 + i * 0.11, 0.5 + i * 0.05)
+    place(buf, bell(n2f(98), 0.7, bright=1.3, decay=4), 0.95, 0.6)  # 顶端 D7 定音
+    sp = sparkle(dur, base=2637, n=9, level=0.85)
+    i0 = int(0.25 * SR)
+    buf[i0: i0 + len(sp)] += sp[: len(buf) - i0]
+    return normalize(softclip(buf), -5)
+
+
+def s_decompose_glue():
+    """分解出树胶：粘稠扑通 + 双咕咚（罐子感）。"""
+    buf = np.zeros(int(0.45 * SR))
+    p = lp(noise(0.1), 500) * adsr(int(0.1 * SR), 0.005, 0.03, 0.6, 0.05)
+    place(buf, p, 0.0, 0.9)
+    for i, dt in enumerate((0.12, 0.24)):
+        g = sweep(300 - i * 70, 130 - i * 40, 0.09, curve=1.5) * np.exp(-24 * t_axis(0.09))
+        place(buf, g, dt, 0.9)
+    return normalize(buf, -8)
+
+
 def gen_ambience(sid, outdir, sub="ambience"):
     """环境音：30s 无缝循环（尾巴折回 + 整周期 LFO），双声道独立实现去相关，
     响度固定很低（RMS≈0.045，垫底用）。demo 输出样张区（sub=ambience）；--all 转正（sub=amb）。"""
@@ -1226,6 +1372,19 @@ CATALOG = {
     "guard_charge":     (s_guard_charge,     "sfx/guard_charge.wav",     "P1", "层守·蓄力（替占位 skill_ready）"),
     "guard_rage":       (s_guard_rage,       "sfx/guard_rage.wav",       "P1", "层守·狂暴（替占位 elite_appear）"),
     "guard_guts":       (s_guard_guts,       "sfx/guard_guts.wav",       "P1", "层守·根性（替占位 level_up）"),
+    "special_spawn":    (s_special_spawn,    "sfx/special_spawn.wav",    "P0", "S3② 特殊棋子生成凯旋 stab（King 专利式）"),
+    "praise_2":         (s_praise_2,         "sfx/praise_2.wav",         "P1", "S3③ 屏幕字·不错（2 连）"),
+    "praise_3":         (s_praise_3,         "sfx/praise_3.wav",         "P1", "S3③ 屏幕字·漂亮（3 连）"),
+    "praise_4":         (s_praise_4,         "sfx/praise_4.wav",         "P1", "S3③ 屏幕字·惊人（4 连）"),
+    "praise_5":         (s_praise_5,         "sfx/praise_5.wav",         "P1", "S3③ 屏幕字·传说（5 连+）"),
+    "plus_tick":        (s_plus_tick,        "sfx/plus_tick.wav",        "P1", "强化珠消除微光（+6% 正反馈）"),
+    "equip_on":         (s_equip_on,         "sfx/equip_on.wav",         "P1", "装备上身（扣具双响+暖木确认）"),
+    "equip_off":        (s_equip_off,        "sfx/equip_off.wav",        "P1", "装备卸下（布料软扑）"),
+    "rarity_legend":    (s_rarity_legend,    "sfx/rarity_legend.wav",    "P0", "传奇/祖品掉落揭示（深钟+fanfare+微光）"),
+    "rarity_epic":      (s_rarity_epic,      "sfx/rarity_epic.wav",      "P1", "史诗掉落揭示（亮钟双音）"),
+    "drop_common":      (s_drop_common,      "sfx/drop_common.wav",      "P2", "普通系掉落入包（极轻金币）"),
+    "ancient_pillar":   (s_ancient_pillar,   "sfx/ancient_pillar.wav",   "P1", "太古光柱（太古词条揭示，交接回执②）"),
+    "decompose_glue":   (s_decompose_glue,   "sfx/decompose_glue.wav",   "P1", "分解出树胶（精华路径走 essence_gain 监听）"),
     "talent_node":      (s_talent_node,      "sfx/talent_node.wav",      "P1", "天赋节点点亮（2026-10-11 转正，替代复用 level_up）"),
     "paragon_node":     (s_paragon_node,     "sfx/paragon_node.wav",     "P1", "巅峰节点点亮（2026-10-11 转正，替代复用 level_up）"),
     "monster_hit":      (s_monster_hit,      "sfx/monster_hit.wav",      "P1", "怪物受击（低频短促）"),

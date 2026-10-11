@@ -509,8 +509,10 @@ func _victory() -> void:
 	var drop_text: String = GameState.battle_drop(monster, monster.get("elite", false))
 	if drop_text != "":
 		_show_toast(drop_text)
-		# 稀有度揭示音（音频会话 2026-10-11）：传奇/祖品拉仪式感，史诗轻钟，普通系极轻金币
-		if drop_text.contains("传奇"):
+		# 稀有度揭示音（音频会话 2026-10-11）：太古光柱 > 传奇仪式 > 史诗轻钟 > 普通系极轻金币
+		if drop_text.contains("太古"):
+			Sfx.play("ancient_pillar")
+		elif drop_text.contains("传奇"):
 			Sfx.play("rarity_legend")
 		elif drop_text.contains("史诗"):
 			Sfx.play("rarity_epic")

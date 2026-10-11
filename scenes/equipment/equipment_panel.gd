@@ -365,10 +365,11 @@ func _on_wash_pressed() -> void:
 func _on_decompose_pressed() -> void:
 	if _sel_bag < 0:
 		return
-	Sfx.play("trade_sell")
 	var r: Dictionary = GameState.decompose(_sel_bag)
 	if not bool(r.get("ok", false)):
 		Sfx.play("money_not_enough", 1.0, -6.0)
+	elif int(r.get("glue", 0)) > 0:
+		Sfx.play("decompose_glue")  # 树胶账单音；精华路径由 essence_changed 监听自动响 essence_gain（音频会话 2026-10-11）
 	_sel_bag = -1
 	_wash_sel = -1
 	_refresh()
