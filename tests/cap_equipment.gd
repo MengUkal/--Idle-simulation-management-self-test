@@ -7,25 +7,18 @@ func _ready() -> void:
 	GameState.reset()
 	GameState.create_character("warrior", "human")
 	GameState.debug_set_level(55)
-	# 造几件演示装备：一件已穿 + 背包若干（含传奇/太古）
-	var sword := GameEquipment.roll_item(2, 0, "warrior", {"name": "演示"})
-	sword["slot"] = "main"
-	sword["type"] = "sword"
-	sword["tier"] = 2
-	sword["id"] = "main_sword_L2"
-	sword["name"] = GameEquipment.MAIN_BASES["sword"][1]
+	# 造几件演示装备：确定性构造（先 base_item 再内在属性，槽位/属性一致）
+	var sword := GameEquipment.base_item("main", "sword", 2)
 	sword["quality"] = 2
 	sword["affixes"] = [{"id": "af_sharp", "tier": 4, "ancient": false}]
+	GameEquipment._apply_intrinsics(sword)
 	GameState.bag.append(sword)
 	GameState.equip_from_bag(0)
-	var helm := GameEquipment.roll_item(4, 0, "warrior", {"name": "演示"})
-	helm["slot"] = "helm"
-	helm["type"] = "heavy"
-	helm["tier"] = 4
-	helm["id"] = "helm_heavy_L4"
-	helm["name"] = GameEquipment.ARMOR_BASES["heavy"]["helm"][3]
+	var helm := GameEquipment.base_item("helm", "heavy", 4)
 	helm["quality"] = 3
 	helm["affixes"] = [{"id": "af_zenith", "tier": 0, "ancient": false}, {"id": "af_harvest", "tier": 3, "ancient": false}, {"id": "af_studies", "tier": 2, "ancient": true}]
+	GameEquipment._apply_intrinsics(helm)
+	GameState.bag.append(helm)
 	GameState.equip_from_bag(GameState.bag.size() - 1)
 	for i in 5:
 		GameState.bag.append(GameEquipment.roll_item(3, 0, "warrior", {"name": "演示"}))
@@ -43,4 +36,14 @@ func _ready() -> void:
 	var img := get_viewport().get_texture().get_image()
 	img.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_equipment.png")
 	print("[capture] cap_equipment saved")
+	# 第二张：属性面板
+	panel.queue_free()
+	await get_tree().process_frame
+	var stats := StatsPanel.new()
+	main_scene.add_child(stats)
+	await get_tree().create_timer(0.4).timeout
+	await RenderingServer.frame_post_draw
+	var img2 := get_viewport().get_texture().get_image()
+	img2.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_stats.png")
+	print("[capture] cap_stats saved")
 	get_tree().quit()

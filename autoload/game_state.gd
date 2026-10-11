@@ -139,7 +139,7 @@ func battle_drop(monster: Dictionary, is_elite: bool) -> String:
 	var is_first := not killed_once.has(mname)
 	killed_once[mname] = true
 	var toasts: Array = []
-	for drop in GameEquipment.roll_legendary(monster, is_elite, is_first, leg_claimed):
+	for drop in GameEquipment.roll_legendary(monster, is_elite, is_first, leg_claimed, floor_index):
 		leg_claimed.append(str(drop["id"]))
 		if _add_to_bag(drop) == "":
 			toasts.append("✦ 传奇「%s」掉落！" % str(drop["name"]))

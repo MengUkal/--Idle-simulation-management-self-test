@@ -36,6 +36,33 @@ const ANCIENT_MULT := 1.5
 const DROP_BASE_CHANCE := 0.08         # 全战斗基础掉落概率（× drop_rate 修饰符）
 const DECOMPOSE_ESSENCE := [5, 15]     # 粗品/普通自动分解回精华（精良/史诗入包）
 
+# ---------- 内在属性维度（2026-10-12 拍板：层级 1~N 永续成长的三条公式轴） ----------
+## 与品级（词条栏数）正交：品级管词条数量，层级管这三条内在属性的数值。
+## 公式化（非查表）→ 层数加到 L6/L7… 装备跟着变强，永不封顶。
+
+const INTR_ATK_BASE := 0.12            # 主手/副手：攻击力（weapon_atk 乘区）L1 值
+const INTR_ATK_STEP := 0.04            # 每层级 +4%
+const INTR_ELEM_BASE := 0.06           # 全部位：元素专精（同色消除伤害 +）L1 值
+const INTR_ELEM_STEP := 0.02           # 每层级 +2%
+const INTR_SPEC_BASE := 0.08           # 主手/副手/鞋：特效增幅（特效波伤害 +）L1 值
+const INTR_SPEC_STEP := 0.03           # 每层级 +3%
+const INTR_SPEC_SLOTS := ["main", "off", "boots"]
+
+
+static func intr_atk(tier: int) -> float:
+	## 攻击力加成（百分比 per，进 weapon_atk 乘区）
+	return INTR_ATK_BASE + INTR_ATK_STEP * float(clampi(tier, 1, 999) - 1)
+
+
+static func intr_elem(tier: int) -> float:
+	## 元素专精加成（同色消除伤害 +）
+	return INTR_ELEM_BASE + INTR_ELEM_STEP * float(clampi(tier, 1, 999) - 1)
+
+
+static func intr_spec(tier: int) -> float:
+	## 特效增幅加成（特效波伤害 +）
+	return INTR_SPEC_BASE + INTR_SPEC_STEP * float(clampi(tier, 1, 999) - 1)
+
 # ---------- 职业类型限制（设计文档 §15.2，WoW 式） ----------
 
 const CLASS_TYPES := {
@@ -303,18 +330,47 @@ static func roll_affixes(slot: String, quality: int) -> Array:
 ## 掉落槽位族（戒指掉落记为 "ring"，穿戴时可入 ring_a/ring_b 任意栏）
 const DROP_SLOTS := ["main", "off", "helm", "body", "shoulder", "legs", "boots", "ring", "trinket"]
 
-## 组装一件普通装备实例（品质 roll → 词条 roll → 太古标记合并进词条）。
+## 组装一件普通装备实例（品质 roll → 词条 roll → 内在属性 → 太古标记）。
+## 内在属性（层级公式轴，2026-10-12 拍板）：主/副手攻击力；全件元素专精（随机绑定一元素）；主/副/鞋特效增幅。
 static func roll_item(floor_index: int, rebirth_count: int, class_id: String, monster: Dictionary) -> Dictionary:
 	var quality := roll_quality(floor_index, rebirth_count)
 	var slot: String = DROP_SLOTS[randi() % DROP_SLOTS.size()]
 	var type := _roll_type(slot, floor_index, class_id)
 	var base := base_item(slot, type, clampi(floor_index, 1, 5))
-	return {
+	var item := {
 		"id": base["id"], "name": base["name"], "slot": slot, "type": base.get("type", type),
 		"tier": base["tier"], "weight": base.get("weight", ""),
 		"quality": quality, "ancient": false, "affixes": roll_affixes(slot, quality),
 		"legendary": "", "monster": str(monster.get("name", "")),
 	}
+	_apply_intrinsics(item)
+	return item
+
+
+## 按层级公式写入内在属性（攻击力/元素专精/特效增幅）。
+static func _apply_intrinsics(item: Dictionary) -> void:
+	var slot := str(item.get("slot", ""))
+	var tier := int(item.get("tier", 1))
+	if slot in ["main", "off"]:
+		item["atk"] = intr_atk(tier)
+	if slot in INTR_SPEC_SLOTS:
+		item["spec_amp"] = intr_spec(tier)
+	item["elem"] = randi() % 6
+	item["elem_per"] = intr_elem(tier)
+
+
+## 内在属性展示文本（面板用）
+static func intr_text(item: Dictionary) -> String:
+	var lines := []
+	if item.has("atk"):
+		lines.append("攻击力 +%d%%" % int(round(float(item["atk"]) * 100.0)))
+	if item.has("elem_per"):
+		var names := ["火", "水", "風", "土", "光", "闇"]
+		var eid := int(item.get("elem", 0))
+		lines.append("%s属性方块伤害 +%d%%" % [names[eid % 6], int(round(float(item["elem_per"]) * 100.0))])
+	if item.has("spec_amp"):
+		lines.append("特殊方块效果 +%d%%" % int(round(float(item["spec_amp"]) * 100.0)))
+	return "\n".join(lines)
 
 
 ## 掉落类型 roll：80% 职业可用偏向（拍板 D2.2），20% 全池随机。
@@ -342,7 +398,8 @@ static func _roll_type(slot: String, floor_index: int, class_id: String) -> Stri
 
 ## 传奇判定：击杀结算时调用。返回命中的全部传奇实例（首杀挂点可多件同落；
 ## kill 概率挂点命中后继续评估其余件）。claimed = 已获得过的传奇 id（存档持久化）。
-static func roll_legendary(monster: Dictionary, is_elite: bool, is_first_kill: bool, claimed: Array) -> Array:
+## 传奇同样吃层级内在属性（tier = 掉落楼层），高层传奇不贬值。
+static func roll_legendary(monster: Dictionary, is_elite: bool, is_first_kill: bool, claimed: Array, floor_index: int) -> Array:
 	var out := []
 	var mname := str(monster.get("name", ""))
 	for leg in LEGENDARIES:
@@ -363,12 +420,14 @@ static func roll_legendary(monster: Dictionary, is_elite: bool, is_first_kill: b
 		if not hit:
 			continue
 		var affixes := roll_affixes(str(leg["slot"]), 3)
-		out.append({
+		var inst := {
 			"id": lid, "name": str(leg["name"]), "slot": str(leg["slot"]),
-			"type": str(leg["type"]), "tier": 0, "weight": "", "quality": 3,
+			"type": str(leg["type"]), "tier": clampi(floor_index, 1, 999), "weight": "", "quality": 3,
 			"ancient": false, "affixes": affixes, "legendary": lid,
 			"monster": mname,
-		})
+		}
+		_apply_intrinsics(inst)
+		out.append(inst)
 	return out
 
 

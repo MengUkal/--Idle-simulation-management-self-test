@@ -4,11 +4,14 @@ extends Node
 ## 重算时机：角色创建 / 重生 / 天赋变更（天赋来源在 recompute 的预留段追加）。
 ## 消费端：battle（伤害/弱点/连锁/步数/精华/赏金）、GameState（收入/训练费/献金/手续费/果实）。
 
-const MULT_KEYS := ["battle_damage", "weakness", "income", "upgrade_cost", "train_cost", "bounty", "ep", "fruit", "drop_rate"]
+const MULT_KEYS := ["battle_damage", "weakness", "income", "upgrade_cost", "train_cost", "bounty", "ep", "fruit", "drop_rate", "weapon_atk"]
 const ADD_KEYS := ["steps", "chain_bonus", "fee"]
 
 var _mult := {}
 var _add := {}
+var _elem := {}          # 元素专精：元素 id → 加算 per（同色消除伤害 ×(1+值)）
+var _spec_amp := 0.0     # 特效增幅：特效波伤害加算 per
+var _ledger := {}        # 来源明细：key → {来源: 累计per}（属性面板用）
 
 
 func _ready() -> void:
@@ -20,13 +23,16 @@ func recompute() -> void:
 		_mult[k] = 1.0
 	for k in ADD_KEYS:
 		_add[k] = 0.0
+	_elem = {}
+	_spec_amp = 0.0
+	_ledger = {}
 	var sources: Array = []
 	var cid: String = GameState.character_class
 	if GameClasses.CLASSES.has(cid):
-		sources.append(GameClasses.CLASSES[cid]["mods"])
+		sources.append({"label": "职业", "mods": GameClasses.CLASSES[cid]["mods"]})
 	var rid: String = GameState.character_race
 	if GameRaces.RACES.has(rid):
-		sources.append(GameRaces.RACES[rid]["mods"])
+		sources.append({"label": "种族", "mods": GameRaces.RACES[rid]["mods"]})
 	# ---- 天赋树来源（data/talents.gd，rank × 每级效果）----
 	for node_id in GameState.talents.keys():
 		var rank := int(GameState.talents[node_id])
@@ -40,8 +46,10 @@ func recompute() -> void:
 		var mod_name := str(def.get("mod", ""))
 		if kind == "add" and _add.has(mod_name):
 			_add[mod_name] += per * rank
+			_record(mod_name, "天赋", per * rank)
 		elif kind == "mult" and _mult.has(mod_name):
 			_mult[mod_name] *= 1.0 + per * rank
+			_record(mod_name, "天赋", per * rank)
 	# ---- 预留：被动技能来源在此追加 ----
 	# ---- 巅峰板块来源（data/paragon.gd，四层系统之巅）----
 	for node_id in GameState.paragon_talents.keys():
@@ -56,28 +64,57 @@ func recompute() -> void:
 		var pmod := str(pdef.get("mod", ""))
 		if pkind == "add" and _add.has(pmod):
 			_add[pmod] += pper * prank
+			_record(pmod, "巅峰", pper * prank)
 		elif pkind == "mult" and _mult.has(pmod):
 			_mult[pmod] *= 1.0 + pper * prank
-	# ---- 装备来源（data/equipment.gd，E1：遍历 10 槽穿戴 → 词条/祖品特效贡献）----
+			_record(pmod, "巅峰", pper * prank)
+	# ---- 装备来源（data/equipment.gd，E1：遍历 10 槽穿戴 → 词条/祖品特效/内在属性）----
 	for slot in GameState.equipped.keys():
 		var eq_item: Dictionary = GameState.equipped[slot]
 		if eq_item.is_empty():
 			continue
 		_apply_item_affixes(eq_item)
 	for m in sources:
-		for k: String in m.keys():
+		for k: String in m["mods"].keys():
+			var v := float(m["mods"][k])
 			if _mult.has(k):
-				_mult[k] *= float(m[k])
+				_mult[k] *= v
+				_record(k, str(m["label"]), v - 1.0)
 			elif _add.has(k):
-				_add[k] += float(m[k])
+				_add[k] += v
+				_record(k, str(m["label"]), v)
+
+
+## 记录来源明细（属性面板用）：mult 记加算形式（1+per 的 per）
+func _record(key: String, label: String, per: float) -> void:
+	if per == 0.0:
+		return
+	if not _ledger.has(key):
+		_ledger[key] = {}
+	var slot: Dictionary = _ledger[key]
+	slot[label] = float(slot.get(label, 0.0)) + per
 
 
 func mult(key: String) -> float:
 	return _mult.get(key, 1.0)
 
 
-## 单件装备的全部词条贡献（随机词条吃太古 ×1.5；祖品特效不吃太古）
+## 单件装备的全部贡献：随机词条（吃太古 ×1.5）+ 内在属性（层级公式轴）+ 祖品特效（不吃太古）
 func _apply_item_affixes(item: Dictionary) -> void:
+	# 内在属性：攻击力（主/副手）+ 元素专精（全件）+ 特效增幅（主/副/鞋）
+	if item.has("atk"):
+		var atk := float(item["atk"])
+		_mult["weapon_atk"] *= 1.0 + atk
+		_record("weapon_atk", "装备", atk)
+	if item.has("elem_per"):
+		var eid := int(item.get("elem", 0))
+		var ep := float(item["elem_per"])
+		_elem[eid] = float(_elem.get(eid, 0.0)) + ep
+		_record("elem_%d" % eid, "装备", ep)
+	if item.has("spec_amp"):
+		var spv := float(item["spec_amp"])
+		_spec_amp += spv
+		_record("spec_amp", "装备", spv)
 	for affix in item.get("affixes", []):
 		var def := GameEquipment.affix_def(str(affix["id"]))
 		if def.is_empty():
@@ -86,9 +123,9 @@ func _apply_item_affixes(item: Dictionary) -> void:
 			if bool(affix.get("ancient", false)) and def.has("tiers") else 1.0
 		if def.has("effects"):
 			for ef in def["effects"]:
-				_apply_mod_unit(str(ef["key"]), str(ef["kind"]), float(ef["per"]) * ancient_mult)
+				_apply_mod_unit(str(ef["key"]), str(ef["kind"]), float(ef["per"]) * ancient_mult, "装备")
 		else:
-			_apply_mod_unit(str(def["key"]), str(def["kind"]), GameEquipment.affix_per(affix))
+			_apply_mod_unit(str(def["key"]), str(def["kind"]), GameEquipment.affix_per(affix), "装备")
 	var lid := str(item.get("legendary", ""))
 	if lid == "":
 		return
@@ -96,14 +133,31 @@ func _apply_item_affixes(item: Dictionary) -> void:
 	if leg.is_empty() or not _legendary_cond_ok(leg):
 		return
 	for ef in leg.get("special", []):
-		_apply_mod_unit(str(ef.get("key", "")), str(ef.get("kind", "mult")), float(ef.get("per", 0.0)))
+		_apply_mod_unit(str(ef.get("key", "")), str(ef.get("kind", "mult")), float(ef.get("per", 0.0)), "装备·祖品")
 
 
-func _apply_mod_unit(key: String, kind: String, per: float) -> void:
+func _apply_mod_unit(key: String, kind: String, per: float, label: String) -> void:
 	if kind == "add" and _add.has(key):
 		_add[key] += per
+		_record(key, label, per)
 	elif kind == "mult" and _mult.has(key):
 		_mult[key] *= 1.0 + per
+		_record(key, label, per)
+
+
+## 元素专精乘区：同色消除伤害 ×(1 + 累计加成)
+func elem_mult(element: int) -> float:
+	return 1.0 + float(_elem.get(element, 0.0))
+
+
+## 特效增幅：特效波伤害加算 per
+func spec_amp() -> float:
+	return _spec_amp
+
+
+## 来源明细（属性面板用）：key → {来源: 累计per}
+func panel_sources() -> Dictionary:
+	return _ledger.duplicate(true)
 
 
 ## 传奇构筑条件白名单（拍板 D4.4 不做条件词条；传奇祖品的构筑条件在此窄口处理）

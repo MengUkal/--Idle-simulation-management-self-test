@@ -63,6 +63,15 @@ func _ready() -> void:
 		add_child(EquipmentPanel.new()))
 	_settings_button.add_sibling(eq_btn)
 	eq_btn.position = _settings_button.position + Vector2(-130, 0)
+	# 属性入口（E1.5）：再往左一格
+	var attr_btn := Button.new()
+	attr_btn.text = "属性"
+	attr_btn.tooltip_text = "角色属性总览（四组修饰符 + 来源明细）"
+	attr_btn.pressed.connect(func() -> void:
+		Sfx.play("ui_open")
+		add_child(StatsPanel.new()))
+	_settings_button.add_sibling(attr_btn)
+	attr_btn.position = eq_btn.position + Vector2(-130, 0)
 	if OS.get_cmdline_user_args().has("--capture-main"):
 		_debug_capture.call_deferred()
 

@@ -199,7 +199,9 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 					if grid[r][c] == color:
 						var cell := Vector2i(c, r)
 						var sp := special_at(r, c)
-						wave.append(_take_entry(cell))
+						var be := _take_entry(cell)
+						be["sp"] = true  # 魔力鸟引爆：吃特效增幅乘区
+						wave.append(be)
 						if sp >= SPECIAL_LINE_H and sp <= SPECIAL_BOMB:
 							queue.append([cell, sp])
 		_expand_chain(queue, wave)
@@ -300,9 +302,11 @@ func _expand_chain(queue: Array, wave: Array) -> void:
 		if triggered.has(cell):
 			continue
 		triggered[cell] = true
-		# 特效本体计入消除（若仍在棋盘上且未计入过本波）
+		# 特效本体计入消除（若仍在棋盘上且未计入过本波）；标记 sp 供特效增幅乘区
 		if grid[cell.y][cell.x] != EMPTY and not _wave_has(wave, cell):
-			wave.append(_take_entry(cell))
+			var e0 := _take_entry(cell)
+			e0["sp"] = true
+			wave.append(e0)
 		var swept := _special_sweep_cells(cell, sp)
 		for sc in swept:
 			if sc == cell:
@@ -312,7 +316,9 @@ func _expand_chain(queue: Array, wave: Array) -> void:
 			if _wave_has(wave, sc):
 				continue
 			var sc_sp := special_at(sc.y, sc.x)
-			wave.append(_take_entry(sc))
+			var se := _take_entry(sc)
+			se["sp"] = true  # 特效波及：吃特效增幅乘区
+			wave.append(se)
 			if sc_sp >= SPECIAL_LINE_H and sc_sp <= SPECIAL_BOMB:
 				queue.append([sc, sc_sp])
 
@@ -508,7 +514,9 @@ func _resolve_combo(a: Vector2i, b: Vector2i, sa: int, sb: int, waves: Array) ->
 		if grid[cell.y][cell.x] == EMPTY:
 			continue
 		var sp_before := special_at(cell.y, cell.x)
-		wave.append(_take_entry(cell))
+		var ce := _take_entry(cell)
+		ce["sp"] = true  # 组合技：吃特效增幅乘区
+		wave.append(ce)
 		if sp_before >= SPECIAL_LINE_H and sp_before <= SPECIAL_BOMB:
 			queue.append([cell, sp_before])
 	_expand_chain(queue, wave)

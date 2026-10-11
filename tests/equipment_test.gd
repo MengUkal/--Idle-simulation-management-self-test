@@ -170,10 +170,10 @@ func _run() -> void:
 	check("T7 未双持不加成", is_equal_approx(no_dual, base_cb))
 	check("T7 双持连锁 +3%", is_equal_approx(dual, base_cb + 0.03))
 
-	# T8 传奇首杀必掉 + 领取一次性
+	# T8 传奇首杀必掉 + 领取一次性 + 内在属性随层级
 	GameState.reset()
 	GameState.create_character("warrior", "human")
-	var drops: Array = GameEquipment.roll_legendary({"name": "守林古树"}, true, true, [])
+	var drops: Array = GameEquipment.roll_legendary({"name": "守林古树"}, true, true, [], 3)
 	var ids := []
 	for d in drops:
 		ids.append(d["id"])
@@ -182,8 +182,21 @@ func _run() -> void:
 	var all_ids := []
 	for l in GameEquipment.LEGENDARIES:
 		all_ids.append(l["id"])
-	var drops2: Array = GameEquipment.roll_legendary({"name": "守林古树"}, true, false, all_ids)
+	var drops2: Array = GameEquipment.roll_legendary({"name": "守林古树"}, true, false, all_ids, 3)
 	check("T8 全部领取后不再掉", drops2.is_empty())
+
+	# T8b 内在属性公式轴（层级 1~N 永续成长）
+	check("T8b atk 公式 L1/L5/L9", is_equal_approx(GameEquipment.intr_atk(1), 0.12)
+		and is_equal_approx(GameEquipment.intr_atk(5), 0.28)
+		and is_equal_approx(GameEquipment.intr_atk(9), 0.44))
+	check("T8b elem 公式 L1/L5", is_equal_approx(GameEquipment.intr_elem(1), 0.06)
+		and is_equal_approx(GameEquipment.intr_elem(5), 0.14))
+	check("T8b spec 公式 L5", is_equal_approx(GameEquipment.intr_spec(5), 0.20))
+	var intr_item := GameEquipment.roll_item(5, 0, "warrior", {"name": "x"})
+	var islot := str(intr_item["slot"])
+	check("T8b roll_item 携带内在属性", intr_item.has("elem_per")
+		and (intr_item.has("atk") if islot in ["main", "off"] else not intr_item.has("atk"))
+		and (intr_item.has("spec_amp") if islot in GameEquipment.INTR_SPEC_SLOTS else not intr_item.has("spec_amp")))
 
 	# T9 背包容量
 	GameState.reset()

@@ -375,7 +375,8 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 	var ep := 0
 	var any_weak := false
 	var atk_mult := Balance.train_multiplier(GameState.atk_line) \
-		* Balance.atk_fruit_mult(GameState.fruits) * Mods.mult("battle_damage")
+		* Balance.atk_fruit_mult(GameState.fruits) * Mods.mult("battle_damage") \
+		* Mods.mult("weapon_atk")  # 武器攻击力（装备内在属性，层级公式轴）
 	# 层守机制修正（封印/单消盾/蓄力易伤/狂暴减伤/树皮硬化；普通怪直通）
 	var mods: Dictionary = guard.move_modifiers(waves.size(), from_skill)
 	for i in waves.size():
@@ -398,7 +399,9 @@ func _apply_damage(waves: Array, from_skill := false) -> void:
 				ep += int(Balance.EP_PER_TILE * Balance.EP_WEAKNESS_MULT)
 			else:
 				ep += Balance.EP_PER_TILE
-			dmg_f += wave_mult * m_final * atk_mult
+			m_final *= Mods.elem_mult(int(entry["element"]))  # 装备元素专精（同色伤害+）
+			var sp_amp := 1.0 + (Mods.spec_amp() if bool(entry.get("sp", false)) else 0.0)
+			dmg_f += wave_mult * m_final * atk_mult * sp_amp
 	var dmg := 0
 	if bool(mods["blocked"]):
 		dmg = 0  # 连击盾：单波消除无效（主动技能不受盾影响，是解法）
