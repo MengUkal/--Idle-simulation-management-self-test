@@ -315,7 +315,7 @@ func _on_buy() -> void:
 	if _sel_id == "":
 		return
 	if GameState.talent_buy(_sel_id):
-		Sfx.play("level_up", 1.1)
+		Sfx.play("talent_node")  # 专属点亮音（2026-10-11 转正，替代复用 level_up）
 	_refresh_all()
 
 

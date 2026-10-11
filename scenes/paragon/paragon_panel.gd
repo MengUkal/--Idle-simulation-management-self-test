@@ -196,7 +196,7 @@ func _node_row(n: Dictionary, board: Dictionary) -> HBoxContainer:
 	buy.disabled = rank >= max_r or GameState.paragon_points < 1
 	buy.pressed.connect(func() -> void:
 		GameState.paragon_buy(n["id"])
-		Sfx.play("level_up", 1.1)
+		Sfx.play("paragon_node")  # 专属点亮音（2026-10-11 转正，替代复用 level_up）
 		_rebuild())
 	row.add_child(buy)
 	var refund := Button.new()
