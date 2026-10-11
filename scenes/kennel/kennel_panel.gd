@@ -5,6 +5,36 @@ extends CanvasLayer
 
 const ELEM_NAMES := ["火", "水", "風", "土", "光", "闇"]
 
+## 怪物名 → 头像 slug（与 battle.gd MONSTER_SLUG / tools/gen_asset.py MONSTERS 对齐）
+const PET_SLUGS := {
+	"树精史莱姆": "slime", "風狼": "windwolf", "岩甲龟": "turtle", "水妖": "nymph",
+	"光萤": "firefly", "暗影鼠": "rat", "树根守卫": "guardian",
+	"荆棘树妖": "thorntree", "風羽隼": "falcon", "苔石巨人": "golem",
+	"沼泽水灵": "bogspirit", "暗藤魔": "vine", "辉羽蝶": "butterfly", "守林古树": "ancient",
+	"旋風雀": "gustsparrow", "叶隐蛙": "leaffrog", "風滚草": "tumbleweed",
+	"吊藤妖": "hangvine", "喇叭藤": "hornvine", "刺藤果": "thornfruit", "镇风桩": "windstake",
+	"落英妖": "petalfae", "花粉蛾": "pollenmoth", "夜香花": "nightbloom",
+	"蜜壶蜂": "honeypot", "灯芯草妖": "lampgrass", "曼陀花妖": "datura", "千瓣祭主": "petalpriest",
+	"云雀妖": "cloudlark", "云绵羊": "cloudsheep", "风筝妖": "kite",
+	"露珠精": "dewdrop", "雷蜓": "thunderfly", "雾里鱼": "fogfish", "瞭望鹰": "watcheagle",
+}
+
+
+func _pet_icon(pname: String) -> Texture2D:
+	## 怪物头像 40px 最近邻缩放（美术管线产物；缺失返回 null 走纯文字）
+	var slug: String = PET_SLUGS.get(pname, "")
+	if slug == "":
+		return null
+	var path := "res://assets/art/monsters/%s.png" % slug
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	var img: Image = tex.get_image()
+	if img.is_compressed():
+		img.decompress()
+	img.resize(40, 40, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(img)
+
 var _cells := {}          # 怪物名 → 按钮
 var _board_label: Label
 
@@ -57,6 +87,9 @@ func _ready() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(150, 56)
 		btn.focus_mode = Control.FOCUS_NONE
+		var icon_tex := _pet_icon(str(pname))
+		if icon_tex:
+			btn.icon = icon_tex
 		btn.pressed.connect(_on_pet_pressed.bind(str(pname)))
 		grid.add_child(btn)
 		_cells[str(pname)] = btn
