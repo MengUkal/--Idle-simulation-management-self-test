@@ -49,4 +49,12 @@ func _ready() -> void:
 	var img2 := get_viewport().get_texture().get_image()
 	img2.save_png("F:/放置测试/挂机放置增量rpg/tests/cap_stats.png")
 	print("[capture] cap_stats saved")
-	get_tree().quit()
+	# 面板实例化冒烟（E2 补充）：兽栏 + 离线回归弹窗
+	var kennel := KennelPanel.new()
+	main_scene.add_child(kennel)
+	var offline := OfflinePanel.new()
+	main_scene.add_child(offline)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print("[smoke] KennelPanel/OfflinePanel 实例化 OK")
+	get_tree().quit(0)
