@@ -82,6 +82,10 @@ const MONSTER_SLUG := {
 	"旋風雀": "gustsparrow", "叶隐蛙": "leaffrog", "風滚草": "tumbleweed",
 	"吊藤妖": "hangvine", "喇叭藤": "hornvine", "刺藤果": "thornfruit",
 	"镇风桩": "windstake",
+	# 第四层·落英花冠（slug 预留：美术会话产出后按名落图，缺失时留空走通用底）
+	"落英妖": "petalfae", "花粉蛾": "pollenmoth", "夜香花": "nightbloom",
+	"蜜壶蜂": "honeypot", "灯芯草妖": "lampgrass", "曼陀花妖": "datura",
+	"千瓣祭主": "petalpriest",
 }
 
 
@@ -124,8 +128,8 @@ func _ready() -> void:
 		_show_banner(str(guard.opener().get("tag", "先制")), Color(0.95, 0.8, 0.35))  # 层守先制横幅
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
-	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
-	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3"][clampi(GameState.floor_index, 1, 3) - 1])
+	# BGM 按层四选一（bgm_floor4 已由音频会话产出预备样张，2026-10-11）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4"][clampi(GameState.floor_index, 1, 4) - 1])
 	_setup_skill()
 	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):
@@ -408,6 +412,11 @@ func _victory() -> void:
 		if GameState.unlock_floor3_card():
 			Sfx.play("floor_unlock")
 			_show_toast("守林古树承认了你，它吐出一枚「苍干栈道层卡」")
+	# 层卡：首杀镇风桩掉落「落英花冠层卡」（P4，四层解锁凭证）
+	if str(monster.get("name", "")) == "镇风桩" and monster.get("elite", false):
+		if GameState.unlock_floor4_card():
+			Sfx.play("floor_unlock")
+			_show_toast("镇风桩轰然折服，桩底压着一枚「落英花冠层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	GameState.set_meta("last_bounty", bounty)

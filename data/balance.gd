@@ -24,10 +24,12 @@ const UPGRADE_COST_GROWTH := 1.15   # 【已拍板】每级费用倍率（指数
 # ---------- 世界树层数 ----------
 const FLOOR_2_LEVEL_REQ := 10       # 【已拍板】进入第二层所需等级
 const FLOOR_3_LEVEL_REQ := 50       # 【已拍板 2026-10-11】进入第三层·苍干栈道所需等级（另需层卡：首杀古树掉落）
+const FLOOR_4_LEVEL_REQ := 60       # 【已拍板 2026-10-11】进入第四层·落英花冠所需等级（另需层卡：首杀镇风桩掉落）
 const FLOOR_NAMES := {
 	1: "第一层 · 树根之街",
 	2: "第二层 · 翠枝回廊",
 	3: "第三层 · 苍干栈道",
+	4: "第四层 · 落英花冠",
 }
 
 # ---------- 消消乐冒险（M2） ----------
@@ -67,6 +69,17 @@ const MONSTERS_FLOOR3 := [
 	{"name": "刺藤果", "hp": 620, "bounty": 78, "weak": 5},
 ]
 const MONSTER_ELITE_FLOOR3 := {"name": "镇风桩", "hp": 1100, "bounty": 200, "weak": 1}
+# 第四层·落英花冠怪物表（2026-10-11 拍板：命名/弱点=设定包第九轮；HP/赏金=设定包参考稿档）
+# 生态：光闇系 + 花粉毒系；练度曲线：第 4 轮门槛（Lv.60，与巅峰系统并行成长）逐步全开
+const MONSTERS_FLOOR4 := [
+	{"name": "落英妖", "hp": 900, "bounty": 100, "weak": 5},
+	{"name": "花粉蛾", "hp": 1020, "bounty": 115, "weak": 2},
+	{"name": "夜香花", "hp": 1140, "bounty": 130, "weak": 4},
+	{"name": "蜜壶蜂", "hp": 1260, "bounty": 145, "weak": 1},
+	{"name": "灯芯草妖", "hp": 1380, "bounty": 165, "weak": 1},
+	{"name": "曼陀花妖", "hp": 1500, "bounty": 190, "weak": 3},
+]
+const MONSTER_ELITE_FLOOR4 := {"name": "千瓣祭主", "hp": 2400, "bounty": 330, "weak": 5}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
 const WEAKNESS_MULT := 2.0          # 命中弱点属性的伤害倍率
 const CHAIN_BONUS_PER_WAVE := 0.2   # 连锁加成：第 n 波伤害 ×(1 + 0.2×(n-1))
@@ -89,12 +102,16 @@ static func damage_multiplier(element: int, monster: Dictionary) -> float:
 
 static func monster_pool(floor_index: int) -> Array:
 	## 各层常驻怪物池：在哪层冒险，遇哪层的怪
+	if floor_index >= 4:
+		return MONSTERS_FLOOR4
 	if floor_index >= 3:
 		return MONSTERS_FLOOR3
 	return MONSTERS_FLOOR2 if floor_index >= 2 else MONSTERS_FLOOR1
 
 
 static func monster_elite(floor_index: int) -> Dictionary:
+	if floor_index >= 4:
+		return MONSTER_ELITE_FLOOR4
 	if floor_index >= 3:
 		return MONSTER_ELITE_FLOOR3
 	return MONSTER_ELITE_FLOOR2 if floor_index >= 2 else MONSTER_ELITE_FLOOR1

@@ -50,8 +50,8 @@ func _ready() -> void:
 	# 离线收益回归弹窗（金额已在读档时结算入账，这里只负责展示）
 	if not GameState.pending_offline.is_empty():
 		add_child(OfflinePanel.new())
-	# BGM 按层三选一（bgm_floor3 已由音频会话产出，2026-10-11）
-	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3"][clampi(GameState.floor_index, 1, 3) - 1])
+	# BGM 按层四选一（bgm_floor4 已由音频会话产出预备样张，2026-10-11）
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4"][clampi(GameState.floor_index, 1, 4) - 1])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
 	if OS.get_cmdline_user_args().has("--capture-main"):
@@ -85,6 +85,7 @@ func _connect_signals() -> void:
 	EventBus.line_changed.connect(_on_line_changed)
 	EventBus.rebirth_performed.connect(_on_rebirth_performed)
 	EventBus.floor3_card_gained.connect(_refresh_buttons)
+	EventBus.floor4_card_gained.connect(_refresh_buttons)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_floor2_button.pressed.connect(_on_floor2_pressed)
 	_adventure_button.pressed.connect(_on_adventure_pressed)
@@ -156,8 +157,8 @@ func _on_upgrade_pressed() -> void:
 
 
 func _on_floor2_pressed() -> void:
-	## 层间往返：循环 1→2→3→1（三层·苍干栈道需 Lv.50 + 层卡）
-	var nxt := GameState.floor_index % 3 + 1
+	## 层间往返：循环 1→2→3→4→1（三层需 Lv.50+层卡；四层需 Lv.60+层卡）
+	var nxt := GameState.floor_index % 4 + 1
 	if GameState.can_go_to_floor(nxt):
 		Sfx.play("floor_switch")
 		GameState.go_to_floor(nxt)
@@ -290,9 +291,9 @@ func _refresh_buttons() -> void:
 		Balance.format_number(cost),
 		Balance.CURRENCY_SHORT,
 	]
-	# 层间按钮：循环 1→2→3→1；不可去时置灰，完整条件放悬停提示（按钮文字保持一行内）
+	# 层间按钮：循环 1→2→3→4→1；不可去时置灰，完整条件放悬停提示（按钮文字保持一行内）
 	var cur := GameState.floor_index
-	var nxt := cur % 3 + 1
+	var nxt := cur % 4 + 1
 	var nxt_name: String = Balance.FLOOR_NAMES.get(nxt, "未知层")
 	if GameState.can_go_to_floor(nxt):
 		_floor2_button.disabled = false
@@ -300,7 +301,12 @@ func _refresh_buttons() -> void:
 		_floor2_button.tooltip_text = "前往%s" % nxt_name
 	else:
 		_floor2_button.disabled = true
-		if nxt == 3:
+		if nxt == 4:
+			_floor2_button.text = "前往第四层（需层卡）"
+			_floor2_button.tooltip_text = "第四层 · 落英花冠：需 Lv.%d + 层卡（首杀镇风桩掉落），当前 Lv.%d" % [
+				Balance.FLOOR_4_LEVEL_REQ, GameState.level,
+			]
+		elif nxt == 3:
 			_floor2_button.text = "前往第三层（需层卡）"
 			_floor2_button.tooltip_text = "第三层 · 苍干栈道：需 Lv.%d + 层卡（首杀守林古树掉落），当前 Lv.%d" % [
 				Balance.FLOOR_3_LEVEL_REQ, GameState.level,

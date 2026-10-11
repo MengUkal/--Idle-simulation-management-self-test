@@ -51,6 +51,7 @@ func save() -> void:
 		"paragon_talents": GameState.paragon_talents,
 		"paragon_unlocked_boards": GameState.paragon_unlocked_boards,
 		"floor3_card": GameState.floor3_card,
+		"floor4_card": GameState.floor4_card,
 		# schema v5 追加（离线收益，2026-10-11）：旧档缺省 0 = 首次升级后才开始计离线
 		"last_seen": Time.get_unix_time_from_system(),
 	}
@@ -114,6 +115,7 @@ func _load() -> void:
 	if typeof(t) == TYPE_DICTIONARY:
 		GameState.talents = t
 	GameState.floor3_card = bool(data.get("floor3_card", false))
+	GameState.floor4_card = bool(data.get("floor4_card", false))
 	GameState.last_seen = float(data.get("last_seen", 0.0))
 	Mods.recompute()  # 角色/天赋就绪后重算修饰符
 	GameState.settle_offline()  # 离线收益结算（依赖完整修饰符，必须在 recompute 之后）

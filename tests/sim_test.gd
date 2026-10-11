@@ -49,6 +49,7 @@ func _init() -> void:
 	print("")
 	print("=== 六、苍干栈道（P3 第三层）数值标定 ===")
 	_floor3_sim()
+	_floor4_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -502,6 +503,42 @@ func _floor3_calibrate() -> void:
 func _floor3_sim() -> void:
 	print("-- 苍干栈道草案标定（命名/弱点=设定包拍板；HP/赏金=助手草案，待用户拍板） --")
 	_floor3_calibrate()
+
+
+func _floor4_sim() -> void:
+	print("-- 落英花冠标定（命名/弱点=设定包拍板；HP/赏金=设定包参考稿，门槛 Lv.60+层卡） --")
+	_floor4_calibrate()
+
+
+func _floor4_calibrate() -> void:
+	## 第 4/5 轮重生门槛练度 vs 落英花冠参考稿 → 击杀率（荣耀目标=千瓣祭主，机制留待棋盘批）
+	var rounds := [
+		{"tag": "第4轮门槛(Lv.60)", "atk": 17, "fruit": 95, "steps": 40},
+		{"tag": "第5轮门槛(Lv.65)", "atk": 18, "fruit": 135, "steps": 42},
+	]
+	for rd: Dictionary in rounds:
+		atk_line = int(rd["atk"])
+		fruits = int(rd["fruit"])
+		print("  -- %s：攻%d / 果实%d / 步数%d --" % [rd["tag"], atk_line, fruits, int(rd["steps"])])
+		for mon: Dictionary in Balance.MONSTERS_FLOOR4:
+			var kills := 0
+			var dmg_sum := 0
+			for t in 8:
+				var r := _simulate_battle(3, mon, int(rd["steps"]))
+				dmg_sum += int(r["damage"])
+				if r["killed"]:
+					kills += 1
+			print("    %-4s HP%-4d 击杀%d/8 均伤%d" % [mon["name"], int(mon["hp"]), kills, dmg_sum / 8])
+		var ek := 0
+		var edmg := 0
+		for t in 8:
+			var r2 := _simulate_battle(3, Balance.MONSTER_ELITE_FLOOR4, int(rd["steps"]))
+			edmg += int(r2["damage"])
+			if r2["killed"]:
+				ek += 1
+		print("    ★千瓣祭主 HP%-4d 击杀%d/8 均伤%d" % [int(Balance.MONSTER_ELITE_FLOOR4["hp"]), ek, edmg / 8])
+	atk_line = 15
+	fruits = 33
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
