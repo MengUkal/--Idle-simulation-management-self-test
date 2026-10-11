@@ -69,12 +69,15 @@ var _battle_bounty := 0        # 本局已入账赏金（战败作废用，D8）
 var _lost_by_hp := false       # 战败原因：玩家 HP 归零
 var _player_hp_bar: ProgressBar
 var _player_hp_label: Label
+var _charge_bar: ProgressBar   # 怪物蓄力条（怪物面板 HP 条下方，P-a）
+var _charge_label: Label
 
 @onready var _steps_label_ref: Label = %StepsLabel
 @onready var _stat_cleared_ref: Label = %StatCleared
 @onready var _stat_chain_ref: Label = %StatChain
 @onready var _stat_damage_ref: Label = %StatDamage
 @onready var _stat_ep_ref: Label = %StatEp
+@onready var _side_panel_ref: VBoxContainer = %SidePanel
 @onready var _hp_bar_ref: ProgressBar = %HpBar
 @onready var _hp_label_ref: Label = %HpLabel
 @onready var _enemy_name_ref: Label = %EnemyName
@@ -153,6 +156,7 @@ func _ready() -> void:
 	player_hp = float(player_hp_max)
 	_charge = int(monster.get("speed", 6))
 	_build_player_hud()
+	_build_charge_hud()
 	_refresh_board()
 	_refresh_hud()
 	if monster.get("elite", false):
@@ -178,6 +182,9 @@ func _newbie_hints() -> void:
 		await get_tree().create_timer(2.6).timeout
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	# 右栏信息间距（S 系列后内容变多，拉开统计/说明/按钮的呼吸感）
+	if _side_panel_ref != null:
+		_side_panel_ref.add_theme_constant_override("separation", 12)
 	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
 	_setup_skill()
@@ -455,6 +462,7 @@ func _try_move(a: Vector2i, b: Vector2i) -> void:
 		if _charge <= 0:
 			_monster_attack(false)
 			_charge = int(monster.get("speed", 6))
+		_update_charge_hud()
 	total_cleared += (report["cleared"] as Array).size()
 	max_chain = maxi(max_chain, int(report["chains"]))
 	# S3③ 屏幕字（拍板第十五轮）：连锁夸赞 + 凯旋音
@@ -684,21 +692,30 @@ func _award_stars(remaining := 0) -> void:
 		Sfx.play("rarity_epic")
 
 
-# ---------- 玩家生命与怪物蓄力（P-a，2026-10-11 拍板 D7~D10） ----------
+# ---------- 玩家生命与怪物蓄力（P-a，2026-10-11 拍板 D7~D10；2026-10-12 HUD 重排） ----------
+
+func _update_player_hud() -> void:
+	if _player_hp_bar == null:
+		return
+	_player_hp_bar.max_value = player_hp_max
+	_player_hp_bar.value = maxf(player_hp, 0.0)
+	_player_hp_label.text = "HP %d / %d" % [
+		ceili(maxf(player_hp, 0.0)), player_hp_max]
+
 
 func _build_player_hud() -> void:
-	## 玩家 HP 条（屏幕底部中央，横贯信息区——2026-10-12 修复定位：不依赖 board_layer.position）
+	## 玩家 HP 条（右栏顶部：剩余步数上方——玩家状态归玩家信息区，2026-10-12 重排）
 	var bg := ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.55)
-	bg.position = Vector2(960.0 - 240.0, 1080.0 - 44.0)
-	bg.size = Vector2(480, 24)
+	bg.color = Color(0, 0, 0, 0.45)
+	bg.position = Vector2(1448.0, 238.0)
+	bg.size = Vector2(404, 46)
 	add_child(bg)
 	_player_hp_bar = ProgressBar.new()
 	_player_hp_bar.max_value = player_hp_max
 	_player_hp_bar.value = player_hp
 	_player_hp_bar.show_percentage = false
-	_player_hp_bar.position = Vector2(4, 4)
-	_player_hp_bar.size = Vector2(472, 16)
+	_player_hp_bar.position = Vector2(6, 5)
+	_player_hp_bar.size = Vector2(392, 18)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Color(0.35, 0.85, 0.5)
 	_player_hp_bar.add_theme_stylebox_override("fill", fill)
@@ -711,15 +728,49 @@ func _build_player_hud() -> void:
 	bg.add_child(_player_hp_bar)
 	_player_hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_player_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_player_hp_label.add_theme_font_size_override("font_size", 13)
+	var cap := Label.new()
+	cap.text = "玩家生命"
+	cap.position = Vector2(0, -22)
+	cap.add_theme_font_size_override("font_size", 14)
+	cap.add_theme_color_override("font_color", Color(0.65, 0.9, 0.7))
+	bg.add_child(cap)
 
 
-func _update_player_hud() -> void:
-	if _player_hp_bar == null:
+func _build_charge_hud() -> void:
+	## 怪物蓄力条（怪物面板 HP 条正下方，绝对定位不挤容器）
+	var hb := _hp_bar
+	if hb == null:
 		return
-	_player_hp_bar.max_value = player_hp_max
-	_player_hp_bar.value = maxf(player_hp, 0.0)
-	_player_hp_label.text = "HP %d / %d ｜ 怪物蓄力 %d 步" % [
-		ceili(maxf(player_hp, 0.0)), player_hp_max, maxi(_charge, 0)]
+	var base := hb.get_global_rect()
+	_charge_bar = ProgressBar.new()
+	_charge_bar.max_value = maxi(int(monster.get("speed", 6)), 1)
+	_charge_bar.value = maxi(_charge, 0)
+	_charge_bar.show_percentage = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.95, 0.75, 0.3)
+	_charge_bar.add_theme_stylebox_override("fill", fill)
+	var fgbg := StyleBoxFlat.new()
+	fgbg.bg_color = Color(0.14, 0.12, 0.18)
+	_charge_bar.add_theme_stylebox_override("background", fgbg)
+	_charge_bar.position = base.position + Vector2(0, 42)
+	_charge_bar.size = Vector2(base.size.x, 12)
+	_charge_label = Label.new()
+	_charge_label.text = ""
+	_charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_charge_label.add_theme_font_size_override("font_size", 13)
+	_charge_label.add_theme_color_override("font_color", Color(0.95, 0.75, 0.3))
+	_charge_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_charge_bar.add_child(_charge_label)
+	hb.get_parent().add_child.call_deferred(_charge_bar)
+
+
+func _update_charge_hud() -> void:
+	if _charge_bar == null or not is_instance_valid(_charge_bar):
+		return
+	_charge_bar.max_value = maxi(int(monster.get("speed", 6)), 1)
+	_charge_bar.value = maxi(_charge, 0)
+	_charge_label.text = "蓄力 %d / %d" % [maxi(_charge, 0), _charge_bar.max_value]
 
 
 func _monster_attack(opened: bool) -> void:
@@ -835,6 +886,8 @@ func _refresh_hud() -> void:
 	_hp_bar.max_value = monster_hp_max
 	_hp_bar.value = maxf(monster_hp, 0.0)
 	_hp_label.text = "HP %d / %d" % [ceili(maxf(monster_hp, 0.0)), monster_hp_max]
+	_update_player_hud()
+	_update_charge_hud()
 	_update_player_hud()
 	_update_skill_up_btn()
 	_update_player_hud()

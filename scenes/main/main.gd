@@ -54,33 +54,29 @@ func _ready() -> void:
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
 	if OS.is_debug_build():
 		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
-	# 装备入口（E1.5）：贴在设置按钮左侧，代码生成避免动 tscn
-	var eq_btn := Button.new()
-	eq_btn.text = "背包"
-	eq_btn.tooltip_text = "打开背包与装备（30 格背包 / 10 槽穿戴）"
-	eq_btn.pressed.connect(func() -> void:
-		Sfx.play("ui_open")
-		add_child(EquipmentPanel.new()))
-	_settings_button.add_sibling(eq_btn)
-	eq_btn.position = _settings_button.position + Vector2(-130, 0)
-	# 属性入口（E1.5）：再往左一格
-	var attr_btn := Button.new()
-	attr_btn.text = "属性"
-	attr_btn.tooltip_text = "角色属性总览（四组修饰符 + 来源明细）"
-	attr_btn.pressed.connect(func() -> void:
-		Sfx.play("ui_open")
-		add_child(StatsPanel.new()))
-	_settings_button.add_sibling(attr_btn)
-	attr_btn.position = eq_btn.position + Vector2(-130, 0)
-	# 兽栏入口（P-b）：再往左一格
-	var kennel_btn := Button.new()
-	kennel_btn.text = "兽栏"
-	kennel_btn.tooltip_text = "树根兽栏：伙伴图鉴与看板位"
-	kennel_btn.pressed.connect(func() -> void:
-		Sfx.play("ui_open")
-		add_child(KennelPanel.new()))
-	_settings_button.add_sibling(kennel_btn)
-	kennel_btn.position = attr_btn.position + Vector2(-130, 0)
+	# 系统入口三连（E1.5/P-b）：挂主界面根节点、底部左侧空地带与「重置存档」并排
+	# （不进设置所在容器——容器布局会重排覆盖 position，压到天赋/巅峰文字）
+	var entry_defs := [
+		["兽栏", "树根兽栏：伙伴图鉴与看板位", func() -> void:
+			Sfx.play("ui_open")
+			add_child(KennelPanel.new())],
+		["属性", "角色属性总览（四组修饰符 + 来源明细）", func() -> void:
+			Sfx.play("ui_open")
+			add_child(StatsPanel.new())],
+		["背包", "打开背包与装备（30 格背包 / 10 槽穿戴）", func() -> void:
+			Sfx.play("ui_open")
+			add_child(EquipmentPanel.new())],
+	]
+	for i in entry_defs.size():
+		var def: Array = entry_defs[i]
+		var btn := Button.new()
+		btn.text = str(def[0])
+		btn.tooltip_text = str(def[1])
+		btn.position = Vector2(176.0 + 132.0 * i, 1010.0)
+		btn.custom_minimum_size = Vector2(118, 40)
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.pressed.connect(def[2])
+		add_child(btn)
 	# 新手引导 A：首次进入主界面三连（引导链清单实装）
 	if GameState.tip_once("main_first"):
 		GameState.pending_tips.append("欢迎来到世界树。吉尔会自己长——挂机收入，自动到账。")
