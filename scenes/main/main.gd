@@ -82,6 +82,15 @@ func _ready() -> void:
 		GameState.pending_tips.append("欢迎来到世界树。吉尔会自己长——挂机收入，自动到账。")
 		GameState.pending_tips.append("变强只有一件事：攒吉尔，向树献金，升级。")
 		GameState.pending_tips.append("准备好了就点「出发冒险」。消除就是攻击。")
+	# 右下角重排（2026-10-12 拍板）：设置/天赋/巅峰移至右上空区，训练列让出底部；
+	# 「重置存档」与标题「新的开始」功能重合，按钮移除（tscn 节点隐藏保留）。
+	_reset_button.visible = false
+	_reset_confirm.visible = false
+	for c: Control in [_settings_button, _talents_button, _paragon_button]:
+		c.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_settings_button.position = Vector2(1752.0, 200.0)
+	_paragon_button.position = Vector2(1408.0, 204.0)
+	_talents_button.position = Vector2(1408.0, 244.0)
 	if OS.get_cmdline_user_args().has("--capture-main"):
 		_debug_capture.call_deferred()
 
@@ -154,9 +163,6 @@ func _connect_signals() -> void:
 	_floor2_button.pressed.connect(_on_floor2_pressed)
 	_adventure_button.pressed.connect(_on_adventure_pressed)
 	_market_button.pressed.connect(_on_market_pressed)
-	_reset_button.pressed.connect(_on_reset_pressed)
-	_reset_cancel_btn.pressed.connect(_on_reset_cancelled)
-	_reset_apply_btn.pressed.connect(_on_reset_confirmed)
 	_rebirth_button.pressed.connect(_on_rebirth_pressed)
 	_rebirth_cancel_btn.pressed.connect(_on_rebirth_cancelled)
 	_rebirth_apply_btn.pressed.connect(_on_rebirth_confirmed)
@@ -239,26 +245,6 @@ func _on_adventure_pressed() -> void:
 func _on_market_pressed() -> void:
 	Sfx.play("ui_click")
 	get_tree().change_scene_to_file("res://scenes/market/market.tscn")
-
-
-func _on_reset_pressed() -> void:
-	_reset_confirm.visible = true
-
-
-func _on_reset_cancelled() -> void:
-	_reset_confirm.visible = false
-
-
-func _on_reset_confirmed() -> void:
-	_reset_confirm.visible = false
-	SaveManager.delete_save()
-	GameState.reset()
-	_refresh_all()
-	_show_toast("存档已重置，重新开始你的登树之旅")
-	# 角色系统（D5）：重置即重新开始——未创建角色时直接进创建流程
-	# （修复 2026-10-12：旧版停留在主界面，玩家以无职业状态打完战斗才被拦截）
-	if GameState.needs_character_creation():
-		get_tree().change_scene_to_file.call_deferred("res://scenes/character/character_create.tscn")
 
 
 func _on_skill_upgrade_pressed() -> void:
