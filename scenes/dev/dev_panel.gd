@@ -68,6 +68,12 @@ func _build_panel() -> void:
 	var lv_input := _add_action_row(box, "等级设为", "10", "设置", _act_set_level)
 	# 快进
 	_add_action_row(box, "快进挂机(秒)", "600", "执行", _act_skip_time)
+	# 技能强化等级
+	var slv_input := _add_action_row(box, "技能等级设为", "5", "设置", _act_set_skill_lv)
+	# 树胶
+	var glue_input := _add_action_row(box, "树胶 +", "100", "添加", _act_add_glue)
+	# 星星（触发祭品箱）
+	var star_input := _add_action_row(box, "星星 +", "9", "添加", _act_add_stars)
 
 	# 训练线直调
 	var line_row := HBoxContainer.new()
@@ -79,7 +85,7 @@ func _build_panel() -> void:
 	line_lab.add_theme_font_size_override("font_size", 16)
 	line_lab.add_theme_color_override("font_color", COL_TEXT)
 	line_row.add_child(line_lab)
-	for pair in [["atk", "攻"], ["bounty", "赏"], ["income", "收"]]:
+	for pair in [["atk", "攻"], ["bounty", "赏"], ["income", "收"], ["body", "体"]]:
 		var btn := Button.new()
 		btn.text = "%s+1" % pair[1]
 		btn.custom_minimum_size = Vector2(66, 32)
@@ -182,6 +188,29 @@ func _build_panel() -> void:
 	spawn_btn.pressed.connect(_act_spawn_special)
 	bd_row.add_child(spawn_btn)
 
+	# 伙伴/装备测试位（P-b/E1）
+	var pt_row := HBoxContainer.new()
+	pt_row.add_theme_constant_override("separation", 8)
+	box.add_child(pt_row)
+	var pt_lab := Label.new()
+	pt_lab.text = "测试发放"
+	pt_lab.custom_minimum_size = Vector2(92, 0)
+	pt_lab.add_theme_font_size_override("font_size", 16)
+	pt_lab.add_theme_color_override("font_color", COL_TEXT)
+	pt_row.add_child(pt_lab)
+	var fill_btn := Button.new()
+	fill_btn.text = "点亮本层图鉴"
+	fill_btn.custom_minimum_size = Vector2(150, 32)
+	fill_btn.add_theme_font_size_override("font_size", 15)
+	fill_btn.pressed.connect(_act_fill_pets)
+	pt_row.add_child(fill_btn)
+	var eq_btn := Button.new()
+	eq_btn.text = "发史诗+随机装备"
+	eq_btn.custom_minimum_size = Vector2(180, 32)
+	eq_btn.add_theme_font_size_override("font_size", 15)
+	eq_btn.pressed.connect(_act_grant_equip)
+	pt_row.add_child(eq_btn)
+
 	# 清档
 	var wipe := Button.new()
 	wipe.text = "清空存档（全新开局）"
@@ -257,6 +286,27 @@ func _act_skip_time(input: LineEdit) -> void:
 
 func _act_add_line(kind: String) -> void:
 	GameState.debug_add_line(kind, 1)
+
+
+func _act_set_skill_lv(input: LineEdit) -> void:
+	GameState.debug_set_skill_lv(_to_i(input.text))
+
+
+func _act_add_glue(input: LineEdit) -> void:
+	GameState.debug_set_glue(GameState.glue + _to_i(input.text))
+
+
+func _act_add_stars(input: LineEdit) -> void:
+	GameState.debug_add_stars(_to_i(input.text))
+
+
+func _act_fill_pets() -> void:
+	GameState.debug_fill_pets(GameState.floor_index)
+
+
+func _act_grant_equip() -> void:
+	GameState.debug_grant_equipment(3, GameState.floor_index)
+	GameState.debug_grant_equipment(randi() % 4, GameState.floor_index)
 	_refresh_stats()
 
 

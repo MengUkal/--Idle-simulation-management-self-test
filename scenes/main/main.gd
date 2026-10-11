@@ -248,6 +248,10 @@ func _on_reset_confirmed() -> void:
 	GameState.reset()
 	_refresh_all()
 	_show_toast("存档已重置，重新开始你的登树之旅")
+	# 角色系统（D5）：重置即重新开始——未创建角色时直接进创建流程
+	# （修复 2026-10-12：旧版停留在主界面，玩家以无职业状态打完战斗才被拦截）
+	if GameState.needs_character_creation():
+		get_tree().change_scene_to_file.call_deferred("res://scenes/character/character_create.tscn")
 
 
 func _on_line_pressed(kind: String) -> void:

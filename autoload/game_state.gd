@@ -860,3 +860,45 @@ func debug_set_rebirth(new_fruits: int, new_count: int) -> void:
 	fruits = maxi(new_fruits, 0)
 	rebirth_count = maxi(new_count, 0)
 	EventBus.income_changed.emit(income_per_sec())
+
+
+# ---- 修改器扩展（2026-10-12：装备/伙伴/技能/体魄/树胶/星辰 测试位） ----
+
+func debug_set_skill_lv(v: int) -> void:
+	## 【修改器】直接设置技能强化等级
+	skill_lv = clampi(v, 0, SKILL_LV_MAX)
+
+
+func debug_set_body_line(v: int) -> void:
+	## 【修改器】直接设置体魄训练线
+	body_line = maxi(v, 0)
+	Mods.recompute()
+
+
+func debug_set_glue(v: int) -> void:
+	## 【修改器】直接设置树胶
+	glue = maxi(v, 0)
+
+
+func debug_add_stars(n: int) -> void:
+	## 【修改器】产星（触发祭品箱由调用方处理返回值）
+	add_stars(n)
+
+
+func debug_fill_pets(floor_idx: int) -> void:
+	## 【修改器】一键点亮指定层全部怪物图鉴（史诗）
+	var pool: Array = Balance.monster_pool(floor_idx)
+	var names := []
+	for m in pool:
+		names.append(str(m["name"]))
+	names.append(str(Balance.monster_elite(floor_idx)["name"]))
+	for n in names:
+		hatch_egg(str(n), 3)
+
+
+func debug_grant_equipment(quality: int, floor_idx: int) -> void:
+	## 【修改器】直接发放一件指定品质的当前层装备
+	var it := GameEquipment.roll_item(clampi(floor_idx, 1, 5), rebirth_count, character_class, {"name": "修改器"})
+	it["quality"] = clampi(quality, 0, 3)
+	it["affixes"] = GameEquipment.roll_affixes(str(it["slot"]), it["quality"])
+	_add_to_bag(it)

@@ -159,6 +159,9 @@ func _ready() -> void:
 	_build_charge_hud()
 	_refresh_board()
 	_refresh_hud()
+	# Toast 上移：避开底部玩家 HP 条（2026-10-12 重叠修复）
+	_toast.offset_top -= 56.0
+	_toast.offset_bottom -= 56.0
 	if monster.get("elite", false):
 		Sfx.play("elite_appear")  # 精英登场：暗钟压迫感（音频会话 2026-10-11）
 		_show_toast("遭遇精英：%s！" % monster["name"])
