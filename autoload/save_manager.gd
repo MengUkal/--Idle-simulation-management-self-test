@@ -57,6 +57,8 @@ func save() -> void:
 		"leg_claimed": GameState.leg_claimed,
 		"killed_once": GameState.killed_once,
 		"glue": GameState.glue,
+		"pets": GameState.pets,
+		"pet_board": GameState.pet_board,
 		# schema v5 追加（离线收益，2026-10-11）：旧档缺省 0 = 首次升级后才开始计离线
 		"last_seen": Time.get_unix_time_from_system(),
 	}
@@ -134,6 +136,10 @@ func _load() -> void:
 	if typeof(ko_dict) == TYPE_DICTIONARY:
 		GameState.killed_once = ko_dict
 	GameState.glue = int(data.get("glue", 0))
+	var pets_dict: Dictionary = data.get("pets", {})
+	if typeof(pets_dict) == TYPE_DICTIONARY:
+		GameState.pets = pets_dict
+	GameState.pet_board = str(data.get("pet_board", ""))
 	if typeof(ko_dict) == TYPE_DICTIONARY:
 		GameState.killed_once = ko_dict
 	GameState.last_seen = float(data.get("last_seen", 0.0))

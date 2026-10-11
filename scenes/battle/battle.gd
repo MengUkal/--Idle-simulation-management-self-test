@@ -505,6 +505,13 @@ func _victory() -> void:
 	GameState.add_money(float(bounty))
 	_battle_bounty += bounty
 	GameState.set_meta("last_bounty", bounty)
+	# 伙伴蛋掉落（P-b D2：常驻 2% / 精英 15% / 层守首杀必掉；蛋品质随楼层）
+	var is_first_kill := not GameState.killed_once.has(str(monster.get("name", "")))
+	var egg: Dictionary = GameState.egg_drop(monster, monster.get("elite", false), is_first_kill)
+	if not egg.is_empty():
+		_show_toast("「%s」的蛋（%s）！树根兽栏已收录" % [
+			str(egg["monster"]), GameEquipment.QUALITY_NAMES[int(egg["quality"])]])
+		Sfx.play("essence_gain")
 	# 装备掉落（E1：传奇定向挂点 + 全战斗小概率；粗品/普通自动分解回精华）
 	var drop_text: String = GameState.battle_drop(monster, monster.get("elite", false))
 	if drop_text != "":

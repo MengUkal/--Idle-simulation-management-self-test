@@ -28,6 +28,8 @@ var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
 var killed_once: Dictionary = {}          # 击杀过的目标 {名字: true}（传奇首杀判定）
 var glue := 0                             # 树胶（洗练货币，分解粗品/普通获得，E2）
+var pets: Dictionary = {}                 # 伙伴图鉴 {怪物名: {count, quality}}（P-b）
+var pet_board := ""                       # 看板位怪物名（其被动 ×2）
 var last_seen := 0.0                      # 最近一次存档的 Unix 时间戳（0 = 从未存过，离线收益用）
 var pending_offline := {}                 # 待展示的离线收益报告（主界面弹窗消费，不落盘）
 
@@ -278,6 +280,56 @@ func unequip(slot: String) -> String:
 	equipped.erase(slot)
 	Mods.recompute()
 	return ""
+
+
+# ---------- 伙伴系统（P-b，2026-10-11 第十四轮拍板精简版） ----------
+
+## 蛋掉落判定（击杀后调用）。命中返回 {"monster", "quality"}，否则空。
+func egg_drop(monster: Dictionary, is_elite: bool, is_first_kill: bool) -> Dictionary:
+	var mname := str(monster.get("name", ""))
+	if GamePets.pet_def(mname).is_empty():
+		return {}
+	# 层守首杀必掉专属蛋；精英 15%；常驻 2%
+	var hit := false
+	if is_elite:
+		hit = is_first_kill or randf() < GamePets.EGG_DROP_ELITE
+	else:
+		hit = randf() < GamePets.EGG_DROP_COMMON
+	if not hit:
+		return {}
+	var q := GameEquipment.roll_quality(floor_index, rebirth_count)
+	return {"monster": mname, "quality": q}
+
+
+## 孵化入图鉴：新怪点亮 / 重复计数量 / 品质取最高。未注册怪拒绝。返回是否首次点亮。
+func hatch_egg(monster_name: String, quality: int) -> bool:
+	if GamePets.pet_def(monster_name).is_empty():
+		return false
+	var old: Dictionary = pets.get(monster_name, {})
+	var first := old.is_empty()
+	pets[monster_name] = {
+		"count": int(old.get("count", 0)) + 1,
+		"quality": maxi(int(old.get("quality", 0)), quality),
+	}
+	Mods.recompute()  # 新被动/升档即时生效
+	return first
+
+
+## 设看板位（须已孵化）。返回是否成功。
+func set_pet_board(monster_name: String) -> bool:
+	if not pets.has(monster_name):
+		return false
+	pet_board = monster_name
+	Mods.recompute()
+	return true
+
+
+## 伙伴被动总和（Mods 装备段后调用）：全员常驻 + 看板位 ×2
+func pet_passive_per(monster_name: String) -> float:
+	var rec: Dictionary = pets.get(monster_name, {})
+	if rec.is_empty():
+		return 0.0
+	return GamePets.passive_per(monster_name, int(rec.get("quality", 0)), str(pet_board) == monster_name)
 
 
 func needs_character_creation() -> bool:
@@ -600,6 +652,8 @@ func reset() -> void:
 	leg_claimed = []
 	killed_once = {}
 	glue = 0
+	pets = {}
+	pet_board = ""
 	last_seen = 0.0
 	pending_offline = {}
 	Mods.recompute()

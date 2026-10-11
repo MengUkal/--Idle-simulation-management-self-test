@@ -72,6 +72,15 @@ func _ready() -> void:
 		add_child(StatsPanel.new()))
 	_settings_button.add_sibling(attr_btn)
 	attr_btn.position = eq_btn.position + Vector2(-130, 0)
+	# 兽栏入口（P-b）：再往左一格
+	var kennel_btn := Button.new()
+	kennel_btn.text = "兽栏"
+	kennel_btn.tooltip_text = "树根兽栏：伙伴图鉴与看板位"
+	kennel_btn.pressed.connect(func() -> void:
+		Sfx.play("ui_open")
+		add_child(KennelPanel.new()))
+	_settings_button.add_sibling(kennel_btn)
+	kennel_btn.position = attr_btn.position + Vector2(-130, 0)
 	if OS.get_cmdline_user_args().has("--capture-main"):
 		_debug_capture.call_deferred()
 

@@ -74,6 +74,13 @@ func recompute() -> void:
 		if eq_item.is_empty():
 			continue
 		_apply_item_affixes(eq_item)
+	# ---- 伙伴来源（data/pets.gd，P-b：全员常驻被动 + 看板位 ×2）----
+	for pname in GameState.pets.keys():
+		var pet_per := GameState.pet_passive_per(str(pname))
+		if pet_per == 0.0:
+			continue
+		var pd := GamePets.pet_def(str(pname))
+		_apply_mod_unit(str(pd["key"]), str(pd["kind"]), pet_per, "伙伴")
 	for m in sources:
 		for k: String in m["mods"].keys():
 			var v := float(m["mods"][k])
