@@ -22,6 +22,8 @@ var _essence_cooldown := 0.0
 
 
 func _ready() -> void:
+	_ensure_buses()  # 代码兜底创建 Music/SFX 总线（project.godot 的 [audio] 段会被编辑器写回吞掉，此处不依赖它）
+	Settings.apply_audio()  # 总线就绪后重新应用用户音量（Settings._ready 先于本层跑过一次，当时总线缺失被跳过）
 	for i in POOL_SIZE:
 		var p := AudioStreamPlayer.new()
 		p.bus = "SFX"
@@ -117,6 +119,22 @@ func _play_amb(amb: String) -> void:
 func bgm_stop() -> void:
 	_bgm_current = ""
 	_bgm_player.stop()
+
+
+## 代码兜底：确保 Music/SFX 总线存在并发送 Master。
+## 不依赖 project.godot 的 [audio] 段——那段会被开着编辑器的会话写回时吞掉（2026-10-11 事故）。
+func _ensure_buses() -> void:
+	_ensure_bus("Music")
+	_ensure_bus("SFX")
+
+
+func _ensure_bus(bus_name: String) -> void:
+	if AudioServer.get_bus_index(bus_name) != -1:
+		return
+	var idx := AudioServer.bus_count
+	AudioServer.add_bus(idx)
+	AudioServer.set_bus_name(idx, bus_name)
+	AudioServer.set_bus_send(idx, "Master")
 	_play_amb("")
 
 
