@@ -924,6 +924,108 @@ def make_skill_icons():
     return out
 
 
+# ---------- 棋盘机制 tile（花瓣封印 / 香雾障目，固定 84px 对齐棋盘格） ----------
+
+def make_board_fx_tiles():
+    """千瓣祭主机制 tile：花瓣封印（障碍）+ 香雾障目（半透明遮目）。
+    输出 assets/art/tiles/obstacle_flower.png / smoke_fog.png（battle.gd 按固定路径引用，
+    覆盖工程会话 gen_board_tex.py 的占位方块——重跑工程工具会覆盖回占位，二选一维护）。"""
+    T = 84  # 棋盘 TILE 尺寸
+    made = []
+
+    # 花瓣封印：不透明障碍 tile（深底 + 灰粉花瓣 + 金色封印环）
+    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([2, 2, T - 2, T - 2], radius=14, fill=(0x2A, 0x24, 0x38, 255),
+                        outline=(0x4a, 0x40, 0x60, 255), width=3)
+    cx, cy = T * 0.5, T * 0.52
+    petal = (0xC9, 0x8A, 0xB8, 255)
+    for a in range(0, 360, 72):
+        rad = math.radians(a - 90)
+        px, py = cx + math.cos(rad) * T * 0.24, cy + math.sin(rad) * T * 0.24
+        d.ellipse([px - T * 0.13, py - T * 0.13, px + T * 0.13, py + T * 0.13], fill=petal)
+    d.ellipse([cx - T * 0.12, cy - T * 0.12, cx + T * 0.12, cy + T * 0.12],
+              fill=(0xF2, 0xC9, 0x4C, 255), outline=(0x8a, 0x5a, 0x2b, 255), width=3)
+    d.ellipse([cx - T * 0.05, cy - T * 0.05, cx + T * 0.05, cy + T * 0.05],
+              fill=(0x8a, 0x5a, 0x2b, 255))
+    p1 = os.path.normpath(os.path.join(HERE, "..", "assets", "art", "tiles", "obstacle_flower.png"))
+    img.save(p1)
+    made.append(p1)
+
+    # 香雾障目：半透明雾团铺满（盖住底下棋子花样，隐约透色）
+    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    fog_layers = [((0x9A, 0x96, 0xA8, 150), 0.34), ((0xB0, 0xAC, 0xBE, 130), 0.26),
+                  ((0xC8, 0xC4, 0xD4, 110), 0.20)]
+    import random as _rnd
+    rng = _rnd.Random(7)  # 固定种子：每次生成一致
+    for col, rr in fog_layers:
+        for _ in range(7):
+            cx = rng.uniform(T * 0.15, T * 0.85)
+            cy = rng.uniform(T * 0.15, T * 0.85)
+            r = rng.uniform(T * rr * 0.5, T * rr)
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=col)
+    d.rectangle([0, 0, T - 1, T - 1], outline=(0xB8, 0xB4, 0xC8, 120), width=2)
+    p2 = os.path.normpath(os.path.join(HERE, "..", "assets", "art", "tiles", "smoke_fog.png"))
+    img.save(p2)
+    made.append(p2)
+    return made
+
+
+# ---------- 层卡视觉（道具卡面，150×210，暂无 UI 挂点、先备资产） ----------
+
+def make_floor_cards():
+    """层卡卡面：苍干栈道 / 落英花冠。输出 assets/art/cards/card_floor{3,4}.png"""
+    out_dir = os.path.normpath(os.path.join(HERE, "..", "assets", "art", "cards"))
+    os.makedirs(out_dir, exist_ok=True)
+    W, H = 150, 210
+    made = []
+    specs = [
+        ("card_floor3", "苍干栈道", "第三层", (0x58, 0xB4, 0x6B, 255), (0x9a, 0x8a, 0x5a, 255),
+         "plank"),
+        ("card_floor4", "落英花冠", "第四层", (0xC9, 0x8A, 0xB8, 255), (0x8A, 0x5F, 0xBF, 255),
+         "petal"),
+    ]
+    try:
+        name_font = ImageFont.truetype(r"C:\Windows\Fonts\msyh.ttc", 20)
+        sub_font = ImageFont.truetype(r"C:\Windows\Fonts\msyh.ttc", 13)
+    except OSError:
+        name_font = sub_font = None
+    for path_name, cn_name, floor_name, theme, ring, motif in specs:
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # 卡框
+        d.rounded_rectangle([4, 4, W - 4, H - 4], radius=14, fill=(0x24, 0x1D, 0x33, 255),
+                            outline=ring, width=4)
+        d.rounded_rectangle([10, 10, W - 10, H - 10], radius=10,
+                            outline=darken(ring, 0.7), width=2)
+        # 主题微缩场景（几何示意：栈道木板 / 飘落花瓣）
+        if motif == "plank":
+            for k in range(4):
+                y = 52 + k * 22
+                d.rounded_rectangle([24, y, W - 24, y + 12], radius=4,
+                                    fill=(0x8a, 0x5a, 0x2b, 255))
+            d.ellipse([W * 0.62, 42, W * 0.62 + 26, 68], fill=(0xF2, 0xC9, 0x4C, 255))
+        else:
+            for px, py, pr in [(44, 66, 10), (84, 52, 12), (108, 80, 9), (64, 96, 11),
+                               (100, 112, 8), (36, 116, 8)]:
+                d.ellipse([px - pr, py - pr, px + pr, py + pr],
+                          fill=light_up(theme, 1.1))
+            d.line([W * 0.5, 40, W * 0.5, H - 46], fill=light_up(theme, 1.25), width=3)
+        # 名称条
+        d.rounded_rectangle([14, H - 52, W - 14, H - 18], radius=8,
+                            fill=(0x19, 0x13, 0x22, 230))
+        if name_font:
+            d.text((W / 2, H - 35), cn_name, font=name_font, fill=(242, 201, 76),
+                   anchor="mm")
+            d.text((W / 2, H - 62), floor_name, font=sub_font,
+                   fill=(144, 134, 118), anchor="mm")
+        p = os.path.join(out_dir, path_name + ".png")
+        img.save(p)
+        made.append(p)
+    return made
+
+
 # ---------- 主流程 ----------
 
 def main():
@@ -985,6 +1087,10 @@ def main():
 
     # 巅峰板块纹章
     made += make_board_emblems()
+
+    # 棋盘机制 tile + 层卡
+    made += make_board_fx_tiles()
+    made += make_floor_cards()
 
     # 职业主动技能图标
     skills = make_skill_icons()
