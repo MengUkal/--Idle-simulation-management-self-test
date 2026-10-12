@@ -27,8 +27,12 @@ func _init() -> void:
 	# 献金公式：10 * 1.15^(lv-1)
 	check("Lv.1→2 献金 = 10", Balance.upgrade_cost(1), 10.0)
 	check("Lv.10→11 献金 = 10×1.15^9", Balance.upgrade_cost(10), 10.0 * pow(1.15, 9.0))
-	# 层数门槛
-	check("二层门槛 = Lv.10", Balance.FLOOR_2_LEVEL_REQ, 10)
+	# 层数门槛（2026-10-12 重设计：全局等差15: 25/40/55/70/85）
+	check("二层门槛 = Lv.25", Balance.FLOOR_2_LEVEL_REQ, 25)
+	check("三层门槛 = Lv.40", Balance.FLOOR_3_LEVEL_REQ, 40)
+	check("四层门槛 = Lv.55", Balance.FLOOR_4_LEVEL_REQ, 55)
+	check("五层门槛 = Lv.70", Balance.FLOOR_5_LEVEL_REQ, 70)
+	check("六层门槛 = Lv.85", Balance.FLOOR_6_LEVEL_REQ, 85)
 	# 冒险步数公式：10 + level×0.5 取整（Lv.1=10、Lv.10=15、Lv.30=25）
 	check("Lv.1 步数 = 10", Balance.battle_steps(1), 10)
 	check("Lv.10 步数 = 15", Balance.battle_steps(10), 15)

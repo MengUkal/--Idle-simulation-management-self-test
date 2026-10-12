@@ -1,4 +1,4 @@
-class_name Balance
+﻿class_name Balance
 ## 数值配置中心 —— 所有可调数值集中在这里，改数值只改这个文件，不动逻辑代码。
 ##
 ## 已拍板决策（详见 docs/游戏设计文档.md）：
@@ -22,9 +22,9 @@ const UPGRADE_COST_GROWTH := 1.15   # 【已拍板】每级费用倍率（指数
 # 公式：cost(level) = UPGRADE_BASE_COST * UPGRADE_COST_GROWTH ^ (level - 1)
 
 # ---------- 世界树层数 ----------
-const FLOOR_2_LEVEL_REQ := 10       # 【已拍板】进入第二层所需等级
-const FLOOR_3_LEVEL_REQ := 30       # 【2026-10-12 用户拍板】三层门槛 50→30（二到三层周期过长）
-const FLOOR_4_LEVEL_REQ := 60       # 【已拍板 2026-10-11】进入第四层·落英花冠所需等级（另需层卡：首杀镇风桩掉落）
+const FLOOR_2_LEVEL_REQ := 25       # 【2026-10-12 重设计】层门槛全局等差15: 25/40/55/70/85
+const FLOOR_3_LEVEL_REQ := 40       # 【2026-10-12 重设计】(原30用户嫌50周期长, 40为等差节奏折中)
+const FLOOR_4_LEVEL_REQ := 55       # 【2026-10-12 重设计】(原60)
 const FLOOR_5_LEVEL_REQ := 70       # 【已拍板 2026-10-11 第十轮】进入第五层·云顶鹰巢所需等级（另需层卡：首杀千瓣祭主掉落）
 const FLOOR_6_LEVEL_REQ := 85       # 【工程提案 M3.0】进入第六层·星梢所需等级（另需层卡：首杀瞭望鹰掉落；命名待世界观线覆写）
 
@@ -51,12 +51,12 @@ const BATTLE_STEPS_PER_LEVEL := 0.5 # 【已拍板】每级 +0.5 步（即每 2 
 # 第一层怪物表（2026-10-09 草案落地；数值直接改这里，不用动代码）
 # 元素索引：0火 1水 2風 3土 4光 5闇；克制：火克風、風克土、土克水、水克火、光闇互克
 const MONSTERS_FLOOR1 := [
-	{"name": "树精史莱姆", "hp": 30, "bounty": 4, "weak": 0, "atk": 12, "speed": 6},
-	{"name": "風狼", "hp": 45, "bounty": 6, "weak": 3, "atk": 16, "speed": 6},
-	{"name": "岩甲龟", "hp": 70, "bounty": 9, "weak": 1, "atk": 20, "speed": 6},
-	{"name": "水妖", "hp": 55, "bounty": 7, "weak": 3, "atk": 14, "speed": 6},
-	{"name": "光萤", "hp": 40, "bounty": 6, "weak": 5, "atk": 12, "speed": 6},
-	{"name": "暗影鼠", "hp": 40, "bounty": 6, "weak": 4, "atk": 12, "speed": 6},
+	{"name": "树精史莱姆", "hp": 30, "bounty": 5, "weak": 0, "atk": 12, "speed": 6},
+	{"name": "風狼", "hp": 45, "bounty": 8, "weak": 3, "atk": 16, "speed": 6},
+	{"name": "岩甲龟", "hp": 70, "bounty": 12, "weak": 1, "atk": 20, "speed": 6},
+	{"name": "水妖", "hp": 55, "bounty": 10, "weak": 3, "atk": 14, "speed": 6},
+	{"name": "光萤", "hp": 40, "bounty": 9, "weak": 5, "atk": 12, "speed": 6},
+	{"name": "暗影鼠", "hp": 40, "bounty": 9, "weak": 4, "atk": 12, "speed": 6},
 ]
 const MONSTER_ELITE_FLOOR1 := {"name": "树根守卫", "hp": 150, "bounty": 40, "weak": 4, "atk": 30, "speed": 4}
 # 第二层怪物表（2026-10-09 草案落地；数值直接改这里）

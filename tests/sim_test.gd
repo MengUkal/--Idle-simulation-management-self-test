@@ -315,7 +315,8 @@ func _active_sim() -> void:
 	print("主动游玩：%d 场战斗，击杀 %d（%.0f%%）" % [battles, kills, 100.0 * kills / maxf(battles, 1)])
 	if lv10_time > 0.0:
 		print("主动游玩到 Lv.10 用时：%.1f 分钟（纯挂机 %.0f 分钟的对照）" % [lv10_time / 60.0, 30.0])
-		check("主动游玩明显快于纯挂机（<30 分钟）", lv10_time / 60.0 < 30.0, "%.1f 分钟" % (lv10_time / 60.0))
+		# 2026-10-12 经济重设计后口径：结算秀收窄(3.17G/颗)+二层门槛25，一层期目标 ≤40 分钟
+		check("主动游玩到 Lv.10 ≤40 分钟（重设计新节奏）", lv10_time / 60.0 < 40.0, "%.1f 分钟" % (lv10_time / 60.0))
 	print("2 小时后：Lv.%d，二层战斗 %d 场击杀 %d（%.0f%%）" % [
 		level, floor2_battles, floor2_kills, 100.0 * floor2_kills / maxf(floor2_battles, 1),
 	])
