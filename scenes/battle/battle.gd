@@ -156,7 +156,8 @@ func _ready() -> void:
 	board = Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
-	_board_origin = board_layer.position  # 震屏锚点（_ready 时布局已定）
+	# 震屏锚点不在 _ready 取：BoardLayer 由 CenterContainer 布局（居中），_ready 时布局未发生
+	# position 仍为 (0,0)——此时记录会锚到左上角（棋盘偏移 bug 的真根因），改为首次震屏时捕获
 	steps_left = Balance.battle_steps(GameState.level) + Mods.add("steps")
 	_roll_monster()
 	# 终局：彩虹桥守门者战（2026-10-12 拍板）——覆盖常规怪物，无难度缩放，无掉落
@@ -193,6 +194,7 @@ func _ready() -> void:
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5", "bgm_floor6"][clampi(GameState.floor_index, 1, 6) - 1])
 	_setup_skill()
 	_build_skill_bar()
+	_capture_board_origin.call_deferred()  # 震屏/横幅锚点（布局后捕获）
 	if OS.get_cmdline_user_args().has("--capture-debug"):
 		_debug_capture.call_deferred()
 
@@ -1225,9 +1227,24 @@ func _anim_settle() -> void:
 ## 连锁 ≥2 时棋盘轻微震屏（可在设置关闭）
 ## 2026-10-12 修复：原实现每次取"当前 position"当震屏中心且不杀旧 tween——高频连锁时
 ## 新旧 tween 交错、原点漂移累积，棋盘会停在任意偏移处（守卫战高发）。改为锚定初始原点。
+## 震屏/横幅锚点捕获（容器布局完成后的居中位；只捕获一次）
+func _capture_board_origin() -> void:
+	await get_tree().process_frame
+	if _board_origin == Vector2.ZERO:
+		_board_origin = board_layer.position
+
+
+## 连锁 ≥2 时棋盘轻微震屏（可在设置关闭）
+## 2026-10-12 修复：原实现每次取"当前 position"当震屏中心且不杀旧 tween——高频连锁时
+## 新旧 tween 交错、原点漂移累积，棋盘会停在任意偏移处（守卫战高发）。改为锚定初始原点。
 func _shake_board() -> void:
 	if not Settings.get_value("fx_screen_shake"):
 		return
+	# 首次震屏时从布局结果捕获锚点（容器已排序，position=居中位）
+	if _board_origin == Vector2.ZERO:
+		_board_origin = board_layer.position
+	if _board_origin == Vector2.ZERO:
+		return  # 布局尚未就绪：跳过本次震屏（宁可不动，不摇错）
 	if _shake_tween and _shake_tween.is_valid():
 		_shake_tween.kill()
 	board_layer.position = _board_origin  # 复位防漂移
