@@ -42,6 +42,7 @@ var _drag_pos := Vector2.ZERO
 var _drag_used := false
 var _board_origin := Vector2.ZERO    # 棋盘初始位置（震屏锚点，防漂移）
 var _shake_tween: Tween
+var _anim_tweens: Array[Tween] = []  # 棋子动画登记（防泄漏：新动画开始前快进归位上一轮）
 
 var board_layer: Control
 var _steps_label: Label
@@ -1065,10 +1066,26 @@ func _cell_pos(cell: Vector2i) -> Vector2:
 
 
 ## 有效交换：两钮互换位置并停留在新格位（调用方随后对调 tiles 引用，按钮从此跟随块走）
+## 动画泄漏保护（2026-10-12）：快进所有在途棋子动画到结束（position 落到逻辑格位）。
+## 修复"方块卡在半空"：上一轮动画被打断时其收尾归位代码不再执行。
+func _kill_tile_anims() -> void:
+	for tw in _anim_tweens:
+		if tw != null and tw.is_valid() and tw.is_running():
+			tw.custom_step(10.0)  # 快进：finished 发出，await 协程恢复，位置落到目标
+	_anim_tweens.clear()
+
+
+func _reg_anim(tw: Tween) -> Tween:
+	_anim_tweens = _anim_tweens.filter(func(t): return t != null and t.is_valid())
+	_anim_tweens.append(tw)
+	return tw
+
+
 func _anim_swap_move(a: Vector2i, b: Vector2i) -> void:
+	_kill_tile_anims()
 	var ba: Button = tiles[a.y][a.x]
 	var bb: Button = tiles[b.y][b.x]
-	var tw := create_tween().set_parallel(true)
+	var tw := _reg_anim(create_tween().set_parallel(true))
 	tw.tween_property(ba, "position", _cell_pos(b), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw.tween_property(bb, "position", _cell_pos(a), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tw.finished
@@ -1076,16 +1093,17 @@ func _anim_swap_move(a: Vector2i, b: Vector2i) -> void:
 
 ## 无效交换：走到一半弹回
 func _anim_invalid_swap(a: Vector2i, b: Vector2i) -> void:
+	_kill_tile_anims()
 	var ba: Button = tiles[a.y][a.x]
 	var bb: Button = tiles[b.y][b.x]
 	var mid := (_cell_pos(a) + _cell_pos(b)) * 0.5
 	var pa := _cell_pos(a)
 	var pb := _cell_pos(b)
-	var tw1 := create_tween().set_parallel(true)
+	var tw1 := _reg_anim(create_tween().set_parallel(true))
 	tw1.tween_property(ba, "position", mid, 0.07)
 	tw1.tween_property(bb, "position", mid, 0.07)
 	await tw1.finished
-	var tw2 := create_tween().set_parallel(true)
+	var tw2 := _reg_anim(create_tween().set_parallel(true))
 	tw2.tween_property(ba, "position", pa, 0.09)
 	tw2.tween_property(bb, "position", pb, 0.09)
 	await tw2.finished
@@ -1185,7 +1203,8 @@ func _apply_motion_targets(report: Dictionary) -> void:
 
 ## 所有偏位的按钮滑回棋盘格（下落/补牌的收尾）；时长随下落距离缩放，避免远距离瞬移感
 func _anim_settle() -> void:
-	var tw := create_tween().set_parallel(true)
+	_kill_tile_anims()
+	var tw := _reg_anim(create_tween().set_parallel(true))
 	var moved := false
 	for r in Balance.BOARD_SIZE:
 		for c in Balance.BOARD_SIZE:
