@@ -661,6 +661,11 @@ func do_rebirth() -> int:
 	money = Balance.START_MONEY
 	level = Balance.START_LEVEL
 	floor_index = 1
+	# 难度重生保护（2026-10-12 复查①）：重生后等级低于当前难度一层门槛 → 自动降回难1
+	# （否则难2 重生后 Lv.1 打 HP×8 的怪会被卡死在死循环）
+	if difficulty > 1 and level < Balance.diff_floor_req(0, difficulty):
+		difficulty = 1
+		pending_tips.append("重生后练度不足，已自动回到难度 1 重新积累（难度入口保留）")
 	essence = 0
 	atk_line = 0
 	bounty_line = 0

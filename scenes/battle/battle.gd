@@ -664,7 +664,8 @@ func _showcase_and_finish() -> void:
 		Sfx.play("special_spawn", 1.0 + 0.1 * i)
 		_refresh_board()
 		board.skill_smash([cell])  # 自动引爆（走重力+连锁）
-		GameState.add_money(Balance.showcase_reward_per(GameState.floor_index))  # 赏金雨随层缩放（原 25G 固定失控）
+		GameState.add_money(Balance.showcase_reward_per(GameState.floor_index)
+			* Balance.diff_bounty_mult(GameState.difficulty))  # 赏金雨随层+难度缩放（复查②：难2+ 不再发难1 的钱）
 		session_ep += 6
 		GameState.add_essence(6)
 		_refresh_hud()
