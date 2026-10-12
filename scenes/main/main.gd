@@ -66,7 +66,14 @@ func _ready() -> void:
 		["背包", "打开背包与装备（30 格背包 / 10 槽穿戴）", func() -> void:
 			Sfx.play("ui_open")
 			add_child(EquipmentPanel.new())],
+		["彩虹桥", "终局挑战：彩虹桥的守门者在等你（击败难5星望者后解锁）", func() -> void:
+			Sfx.play("floor_switch")
+			GameState.final_battle_pending = true
+			get_tree().change_scene_to_file("res://scenes/battle/battle.tscn")],
 	]
+	for i in entry_defs.size():
+		if str(entry_defs[i][0]) == "彩虹桥":
+			pass
 	for i in entry_defs.size():
 		var def: Array = entry_defs[i]
 		var btn := Button.new()
@@ -75,6 +82,7 @@ func _ready() -> void:
 		btn.position = Vector2(176.0 + 132.0 * i, 1010.0)
 		btn.custom_minimum_size = Vector2(118, 40)
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.visible = GameState.final_bridge_unlocked if str(def[0]) == "彩虹桥" else true
 		btn.pressed.connect(def[2])
 		add_child(btn)
 	# 难度切换按钮（暗黑4式难1~5，2026-10-12 拍板）：循环 1~已解锁上限，切难度回一层爬升

@@ -29,6 +29,9 @@ var floor5_card := false                  # 云顶鹰巢层卡（首杀千瓣祭
 var floor6_card := false                  # 星梢层卡（首杀瞭望鹰掉落，M3.0 工程提案）
 var difficulty := 1                       # 当前难度（暗黑4式难1~5，2026-10-12 拍板）
 var max_difficulty := 1                   # 已解锁的最高难度（击杀当前难度六层层守 +1）
+var final_bridge_unlocked := false        # 彩虹桥入口（击杀难5星望者解锁）
+var game_cleared := false                 # 通关（击杀终局守门者·回答）
+var final_battle_pending := false         # 会话内标记：下一场战斗为彩虹桥终局战（不存档）
 var bag: Array = []                       # 装备背包（≤30 件实例，E1）
 var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
@@ -173,6 +176,14 @@ func unlock_next_difficulty() -> bool:
 	if difficulty >= Balance.DIFF_MAX or max_difficulty > difficulty:
 		return false
 	max_difficulty = difficulty + 1
+	return true
+
+
+func unlock_final_bridge() -> bool:
+	## 击杀难5星望者 → 彩虹桥入口解锁（终局，2026-10-12 拍板）
+	if final_bridge_unlocked:
+		return false
+	final_bridge_unlocked = true
 	return true
 
 
@@ -800,6 +811,9 @@ func reset() -> void:
 	floor6_card = false
 	difficulty = 1
 	max_difficulty = 1
+	final_bridge_unlocked = false
+	game_cleared = false
+	final_battle_pending = false
 	bag = []
 	equipped = {}
 	leg_claimed = []

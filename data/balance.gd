@@ -113,6 +113,9 @@ const MONSTERS_FLOOR6 := [
 	{"name": "夜幕织者", "hp": 3150, "bounty": 465, "weak": 5, "atk": 341, "speed": 5},
 ]
 const MONSTER_ELITE_FLOOR6 := {"name": "星望者", "hp": 5220, "bounty": 800, "weak": 4, "atk": 377, "speed": 3}
+# 终局·彩虹桥守门者（2026-10-12 拍板）：强度 = 能杀难5星望者的玩家 ×1.3；无弱点；通关即 v1.0 终局
+# （难5 星望者 HP≈21.4M/atk≈96.5k；守门者 ×1.3 = 27.9M/125k）
+const MONSTER_FINAL := {"name": "终局守门者·回答", "hp": 27900000, "bounty": 0, "weak": -1, "atk": 125000, "speed": 3}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
 # ---------- 玩家 HP（P-a，2026-10-11 拍板 D7~D10：伙伴与生命系统规划 §2） ----------
 const PLAYER_HP_BASE := 100         # 基础生命

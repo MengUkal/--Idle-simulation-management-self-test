@@ -36,6 +36,12 @@ const KITS := {
 		"charge": {"tag": "凌空蓄力", "at": 0.5, "steps": 3, "mult": 2.0},
 		"resolve": {"tag": "根性"},
 	},
+	# 终局守门者·回答（彩虹桥，2026-10-12 拍板）：先制打击+高速蓄力+根性——星望者一直在等的，就是它。
+	"终局守门者·回答": {
+		"opener": {"tag": "先制·回答"},
+		"charge": {"tag": "虹光蓄力", "at": 0.4, "steps": 3, "mult": 2.2},
+		"resolve": {"tag": "根性"},
+	},
 }
 
 var def: Dictionary

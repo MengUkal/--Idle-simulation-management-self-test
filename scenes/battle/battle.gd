@@ -155,6 +155,10 @@ func _ready() -> void:
 	board.ensure_playable()
 	steps_left = Balance.battle_steps(GameState.level) + Mods.add("steps")
 	_roll_monster()
+	# 终局：彩虹桥守门者战（2026-10-12 拍板）——覆盖常规怪物，无难度缩放，无掉落
+	if GameState.final_battle_pending:
+		monster = Balance.MONSTER_FINAL.duplicate()
+		monster["elite"] = true
 	player_hp_max = GameState.player_max_hp()
 	player_hp = float(player_hp_max)
 	_charge = int(monster.get("speed", 6))
@@ -614,9 +618,18 @@ func _victory() -> void:
 			_show_toast("瞭望鹰振翅高鸣，爪下落着一枚「星梢层卡」")
 	# 难度解锁（暗黑4式）：击杀当前难度六层层守 → 难度 +1
 	if monster.get("elite", false) and str(monster.get("name", "")) == "星望者":
+		if GameState.difficulty >= Balance.DIFF_MAX:
+			if GameState.unlock_final_bridge():
+				Sfx.play("ancient_pillar")
+				_show_toast("星望者让开了位置——云海之上，一道红热的桥正在亮起。主界面出现「彩虹桥」入口")
 		if GameState.unlock_next_difficulty():
 			Sfx.play("floor_unlock")
 			_show_toast("星望者陨落——更深的冬夜在树巅苏醒。难度 %d 已解锁（主界面切换）！" % GameState.max_difficulty)
+	# 终局：击杀彩虹桥守门者 = 通关
+	if str(monster.get("name", "")) == Balance.MONSTER_FINAL["name"]:
+		GameState.game_cleared = true
+		GameState.final_battle_pending = false
+		SaveManager.save()
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	_battle_bounty += bounty
@@ -970,6 +983,13 @@ func _show_result(victory: bool, lost_hp := false) -> void:
 	Sfx.play("battle_win" if victory else "battle_retreat")
 	var time_text := "%d:%02d" % [int(elapsed / 60.0), int(elapsed) % 60]
 	if victory:
+		if str(monster.get("name", "")) == Balance.MONSTER_FINAL["name"]:
+			# 终局通关结算（2026-10-12 拍板：打完彩虹桥即算通关）
+			_result_title.text = "—— 通  关 ——"
+			_result_stats.text = "守门者俯首，红热的桥温柔了。\n你走过彩虹桥，身后的每一层都在星光里呼吸。\n\n世界树的回答只有一句：「你来了。」\n\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d ｜ 用时 %s\n\n—— 这不是结束。难度、收集、巅峰，树还在长。——" % [
+				total_damage, total_cleared, max_chain, time_text]
+			_result_panel.visible = true
+			return
 		_result_title.text = "战斗胜利！"
 		var bounty := int(GameState.get_meta("last_bounty", 0))
 		_result_stats.text = "获得赏金 %d %s\n总输出 %d ｜ 消除 %d 块 ｜ 最大连锁 %d\n精华 +%d ｜ 用时 %s" % [
