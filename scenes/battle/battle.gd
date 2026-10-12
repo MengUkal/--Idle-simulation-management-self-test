@@ -186,7 +186,7 @@ func _ready() -> void:
 	if _side_panel_ref != null:
 		_side_panel_ref.add_theme_constant_override("separation", 12)
 	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
-	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
+	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5", "bgm_floor6"][clampi(GameState.floor_index, 1, 6) - 1])
 	_setup_skill()
 	_build_skill_bar()
 	if OS.get_cmdline_user_args().has("--capture-debug"):

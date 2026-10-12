@@ -88,6 +88,11 @@ func _ready() -> void:
 	# 难度切换按钮（暗黑4式难1~5，2026-10-12 拍板）：循环 1~已解锁上限，切难度回一层爬升
 	var diff_btn := Button.new()
 	diff_btn.text = "难度 %d" % GameState.difficulty
+	diff_btn.custom_minimum_size = Vector2(118, 40)
+	diff_btn.focus_mode = Control.FOCUS_NONE
+	diff_btn.pressed.connect(_on_difficulty_pressed)
+	add_child(diff_btn)
+	_diff_button = diff_btn
 	diff_btn.tooltip_text = "切换难度（通关上一难度六层解锁下一难度；切难度回到该难度一层）"
 	diff_btn.position = Vector2(176.0 + 132.0 * entry_defs.size(), 1010.0)
 	diff_btn.custom_minimum_size = Vector2(118, 40)
