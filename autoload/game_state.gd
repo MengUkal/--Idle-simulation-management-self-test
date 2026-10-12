@@ -208,10 +208,17 @@ func decompose(idx: int) -> Dictionary:
 	if idx < 0 or idx >= bag.size():
 		return {"ok": false}
 	var item: Dictionary = bag[idx]
-	if str(item.get("legendary", "")) != "":
-		return {"ok": false, "reason": "传奇不可分解"}
 	var q := int(item.get("quality", 0))
 	var out := {"ok": true, "glue": 0, "essence": 0, "name": str(item.get("name", ""))}
+	# 传奇（祖品）分解（2026-10-12 用户实测反馈：不可分解导致背包堆积无法变现）
+	# 定价：祖品专属 + 稀有度最高 → 大额精华 200（约 25 场四层收益），且必得树胶 50
+	if str(item.get("legendary", "")) != "":
+		glue += 50
+		add_essence(200)
+		out["glue"] = 50
+		out["essence"] = 200
+		bag.remove_at(idx)
+		return out
 	if q <= 1:
 		var g: int = DECOMPOSE_GLUE[q]
 		glue += g

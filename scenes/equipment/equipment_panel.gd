@@ -133,6 +133,8 @@ func _build_ui() -> void:
 	dec_all.pressed.connect(func() -> void:
 		var n: int = GameState.decompose_all_common()
 		Sfx.play("trade_sell" if n > 0 else "money_not_enough", 1.0, -4.0)
+		if n > 0:
+			_panel_toast("一键分解 %d 件（树胶已入账）" % n)
 		_sel_bag = -1
 		_refresh())
 	dec_row.add_child(dec_all)
@@ -368,8 +370,35 @@ func _on_decompose_pressed() -> void:
 	var r: Dictionary = GameState.decompose(_sel_bag)
 	if not bool(r.get("ok", false)):
 		Sfx.play("money_not_enough", 1.0, -6.0)
+		_panel_toast("无法分解")
+	elif int(r.get("glue", 0)) > 0 and int(r.get("essence", 0)) > 0:
+		Sfx.play("decompose_glue")
+		_panel_toast("祖品分解：树胶 +%d ｜ 精华 +%d" % [int(r["glue"]), int(r["essence"])])
 	elif int(r.get("glue", 0)) > 0:
-		Sfx.play("decompose_glue")  # 树胶账单音；精华路径由 essence_changed 监听自动响 essence_gain（音频会话 2026-10-11）
+		Sfx.play("decompose_glue")
+		_panel_toast("分解获得 树胶 +%d" % int(r["glue"]))
+	else:
+		Sfx.play("essence_gain")
+		_panel_toast("分解获得 精华 +%d" % int(r["essence"]))
 	_sel_bag = -1
 	_wash_sel = -1
 	_refresh()
+
+
+## 面板内浮字反馈（顶部居中，2.2s 渐隐）——分解/洗练结果的可见反馈
+func _panel_toast(text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	l.add_theme_constant_override("outline_size", 8)
+	l.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	l.position.y = -34.0
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	var tw := create_tween()
+	tw.tween_interval(1.8)
+	tw.tween_property(l, "modulate:a", 0.0, 0.45)
+	tw.tween_callback(l.queue_free)
