@@ -136,39 +136,67 @@ func can_go_to_floor(index: int) -> bool:
 
 
 func unlock_floor3_card() -> bool:
-	## 首杀守林古树掉落「苍干栈道层卡」；已持有返回 false
-	if floor3_card:
-		return false
-	floor3_card = true
-	EventBus.floor3_card_gained.emit()
-	return true
+	## 首杀守林古树 → 解锁三层 + 「苍干栈道层卡」实体入包（2026-10-12 实体化：所见即所得）
+	var fresh := not floor3_card
+	if fresh:
+		floor3_card = true
+		EventBus.floor3_card_gained.emit()
+	_grant_card_item("card_floor3", "苍干栈道层卡")
+	return fresh
 
 
 func unlock_floor4_card() -> bool:
-	## 首杀镇风桩掉落「落英花冠层卡」；已持有返回 false
-	if floor4_card:
-		return false
-	floor4_card = true
-	EventBus.floor4_card_gained.emit()
-	return true
+	## 首杀镇风桩 → 解锁四层 + 「落英花冠层卡」实体入包
+	var fresh := not floor4_card
+	if fresh:
+		floor4_card = true
+		EventBus.floor4_card_gained.emit()
+	_grant_card_item("card_floor4", "落英花冠层卡")
+	return fresh
 
 
 func unlock_floor5_card() -> bool:
-	## 首杀千瓣祭主掉落「云顶鹰巢层卡」；已持有返回 false
-	if floor5_card:
-		return false
-	floor5_card = true
-	EventBus.floor5_card_gained.emit()
-	return true
+	## 首杀千瓣祭主 → 解锁五层 + 「云顶鹰巢层卡」实体入包
+	var fresh := not floor5_card
+	if fresh:
+		floor5_card = true
+		EventBus.floor5_card_gained.emit()
+	_grant_card_item("card_floor5", "云顶鹰巢层卡")
+	return fresh
 
 
 func unlock_floor6_card() -> bool:
-	## 首杀瞭望鹰掉落「星梢层卡」（M3.0 工程提案）；已持有返回 false
+	## 首杀瞭望鹰 → 解锁六层 + 「星梢层卡」实体入包（M3.0 工程提案）
+	var fresh := not floor6_card
+	if fresh:
+		floor6_card = true
+		EventBus.floor6_card_gained.emit()
+	_grant_card_item("card_floor6", "星梢层卡")
+	return fresh
+
+
+## 层卡实体（特殊道具：不可分解/不可穿戴，永久凭证的可见形态）
+func _grant_card_item(card_id: String, card_name: String) -> void:
+	for it in bag:
+		if str(it.get("id", "")) == card_id:
+			return  # 已持有（老档补发防重复）
+	if bag.size() >= BAG_CAPACITY:
+		pending_tips.append("背包已满，「%s」以凭证形式永久生效（未占格子）" % card_name)
+		return
+	bag.append({"id": card_id, "name": card_name, "slot": "card", "type": "card",
+		"tier": 0, "weight": "", "quality": 3, "ancient": false, "affixes": [], "legendary": ""})
+
+
+## 存档补发：老档已解锁但背包无实体卡的，补齐（一次性自然收敛）
+func ensure_cards() -> void:
+	if floor3_card:
+		_grant_card_item("card_floor3", "苍干栈道层卡")
+	if floor4_card:
+		_grant_card_item("card_floor4", "落英花冠层卡")
+	if floor5_card:
+		_grant_card_item("card_floor5", "云顶鹰巢层卡")
 	if floor6_card:
-		return false
-	floor6_card = true
-	EventBus.floor6_card_gained.emit()
-	return true
+		_grant_card_item("card_floor6", "星梢层卡")
 
 
 func unlock_next_difficulty() -> bool:
@@ -208,6 +236,8 @@ func decompose(idx: int) -> Dictionary:
 	if idx < 0 or idx >= bag.size():
 		return {"ok": false}
 	var item: Dictionary = bag[idx]
+	if str(item.get("slot", "")) == "card":
+		return {"ok": false, "reason": "层卡是永久凭证，无法分解"}
 	var q := int(item.get("quality", 0))
 	var out := {"ok": true, "glue": 0, "essence": 0, "name": str(item.get("name", ""))}
 	# 传奇（祖品）分解（2026-10-12 用户实测反馈：不可分解导致背包堆积无法变现）

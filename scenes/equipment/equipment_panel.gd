@@ -250,7 +250,9 @@ func _show_detail(item: Dictionary, worn: bool) -> void:
 		lines.append("[color=#8a93ad]点击「卸下」放回背包[/color]")
 	else:
 		var affixes_n := (item.get("affixes", []) as Array).size()
-		if not GameEquipment.can_wear(GameState.character_class, item):
+		if str(item.get("slot", "")) == "card":
+			lines.append("[color=#8a93ad]层卡凭证：永久生效 · 无法分解 · 无需穿戴[/color]")
+		elif not GameEquipment.can_wear(GameState.character_class, item):
 			lines.append("[color=#ff8080]与当前职业不符，无法穿戴[/color]")
 		if affixes_n > 0:
 			lines.append("[color=#8a93ad]点下方词条选中后可洗练（树胶账单制 ×2）｜ 分解换树胶/精华[/color]")
@@ -278,6 +280,8 @@ func _icon_for(item: Dictionary) -> Texture2D:
 		"ring_a", "ring_b", "ring":
 			key = "ring_%s" % QUALITY_FILE[q]
 		_:
+			if slot == "card":
+				return load("res://assets/art/equipment/card_%s.png" % str(item.get("id", "")))
 			var weight := str(item.get("weight", item.get("type", "cloth")))
 			var base: String = {"helm": "helm", "body": "chest", "shoulder": "shoulders", "legs": "legs", "boots": "boots"}.get(slot, "chest")
 			key = "%s_%s_%s" % [base, weight, QUALITY_FILE[q]]
@@ -303,6 +307,11 @@ func _on_equip_slot(slot: String) -> void:
 
 func _on_wear_pressed() -> void:
 	if _sel_bag < 0:
+		return
+	var witem: Dictionary = GameState.bag[_sel_bag]
+	if str(witem.get("slot", "")) == "card":
+		Sfx.play("money_not_enough", 1.0, -6.0)
+		_panel_toast("层卡是永久凭证，无需穿戴（生效中）")
 		return
 	Sfx.play("ui_click")
 	var err: String = GameState.equip_from_bag(_sel_bag)

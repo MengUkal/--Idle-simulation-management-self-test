@@ -168,6 +168,7 @@ func _load() -> void:
 		GameState.killed_once = ko_dict
 	GameState.last_seen = float(data.get("last_seen", 0.0))
 	Mods.recompute()  # 角色/天赋就绪后重算修饰符
+	GameState.ensure_cards()  # 老档层卡实体补发（已解锁但背包无卡 -> 塞入，2026-10-12）
 	GameState.settle_offline()  # 离线收益结算（依赖完整修饰符，必须在 recompute 之后）
 
 

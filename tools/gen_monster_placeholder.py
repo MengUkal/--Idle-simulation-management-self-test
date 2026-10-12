@@ -82,7 +82,34 @@ def main():
             continue
         gen(slug, bg, pat, _e)
         made += 1
-    print("占位立绘生成 %d 枚，跳过已存在 %d 枚 -> %s" % (made, skipped, os.path.abspath(OUT_DIR)))
+    # 层卡卡面（金边深紫 + 中央大星 + 层号横条）
+    cards = {"card_floor3": "III", "card_floor4": "IV", "card_floor5": "V", "card_floor6": "VI"}
+    for cid, num in cards.items():
+        path = os.path.join(OUT_DIR, "%s.png" % cid)
+        if os.path.exists(path):
+            skipped += 1
+            continue
+        rows = []
+        for y in range(64):
+            row = []
+            for x in range(64):
+                edge = x < 4 or x >= 60 or y < 4 or y >= 60
+                inner_border = (x in (6, 7, 56, 57) or y in (6, 7, 56, 57)) and 6 <= x < 58 and 6 <= y < 58
+                dx, dy = abs(x - 32), abs(y - 32)
+                star = (dx + dy <= 12) or (x in range(30, 34) and 20 <= y < 45) or (y in range(30, 34) and 20 <= x < 45)
+                band = 44 <= y < 52 and 10 <= x < 54
+                if edge or inner_border:
+                    row.extend((212, 175, 90))
+                elif band:
+                    row.extend((30, 26, 48))
+                elif star:
+                    row.extend((245, 225, 150))
+                else:
+                    row.extend((32, 28, 52))
+            rows.append(row)
+        write_png(path, rows)
+        made += 1
+    print("占位立绘/卡面生成 %d 枚，跳过已存在 %d 枚 -> %s" % (made, skipped, os.path.abspath(OUT_DIR)))
 
 
 if __name__ == "__main__":
