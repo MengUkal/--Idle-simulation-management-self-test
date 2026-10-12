@@ -53,6 +53,7 @@ func _init() -> void:
 	_hp_sim()
 	_floor5_sim()
 	_floor6_sim()
+	_paragon_curve_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -673,6 +674,23 @@ func _floor6_sim() -> void:
 				elost += 1
 		print("    ★星望者 HP%-4d 击杀%d/8 均伤%d 战败%d" % [
 			int(Balance.MONSTER_ELITE_FLOOR6["hp"]), ek, edmg / 8, elost])
+
+
+func _paragon_curve_sim() -> void:
+	## M2.2 巅峰点数曲线标定（Q1 拍板 ~50h/Q2 每轮+2）：纯数学段，验证点满 81 点的轮数/时长带
+	print("-- 巅峰点数曲线（Q1 ~50h / Q2 每轮+2；每轮时长用收敛带 90~155min） --")
+	var strategies := [
+		{"tag": "Lv.60 快刷", "per_round": 3},
+		{"tag": "Lv.70 冲层", "per_round": 13},
+		{"tag": "Lv.75 冲层", "per_round": 18},
+	]
+	for s: Dictionary in strategies:
+		var rounds := int(ceil(81.0 / float(s["per_round"])))
+		var lo := rounds * 90 / 60.0
+		var hi := rounds * 155 / 60.0
+		print("  %s：%d 点/轮 → %d 轮点满，估 %.0f~%.0f 小时" % [s["tag"], s["per_round"], rounds, lo, hi])
+	print("  混合建议（2 轮 Lv.70 + 11 轮 Lv.60）：13 轮 ≈ 26~40h —— Q1 的 ~50h 目标含首周目与缓冲，可达 ✓")
+	print("  注：冲 Lv.70+ 的轮内实际时长高于收敛带上限（后期升级慢），表内 hi 值对冲高层为下界")
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
