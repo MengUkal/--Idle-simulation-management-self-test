@@ -619,6 +619,9 @@ func do_rebirth() -> int:
 	var gained := pending_fruits()
 	fruits += gained
 	rebirth_count += 1
+	# 巅峰点奖励（Q2 拍板 2026-10-12）：每轮重生 +2 点（Lv.60 后每级另有 +1，跨重生保留）
+	if level >= GameTalents.PARAGON_LEVEL:
+		paragon_points += 2
 	money = Balance.START_MONEY
 	level = Balance.START_LEVEL
 	floor_index = 1

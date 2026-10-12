@@ -616,6 +616,7 @@ func _victory() -> void:
 		# 稀有度揭示音（音频会话 2026-10-11）：太古光柱 > 传奇仪式 > 史诗轻钟 > 普通系极轻金币
 		if drop_text.contains("太古"):
 			Sfx.play("ancient_pillar")
+			_pillar_flash.call_deferred()  # E2.2 太古光柱视觉（2026-10-12）
 		elif drop_text.contains("传奇"):
 			Sfx.play("rarity_legend")
 		elif drop_text.contains("史诗"):
@@ -986,6 +987,32 @@ func _show_toast(text: String) -> void:
 func _hide_toast() -> void:
 	_toast.visible = false
 	_toast.modulate.a = 1.0
+
+
+## E2.2 太古光柱：金白光柱从天而降渐隐（2026-10-12；美术管线粒子光效就位前先代码实现）
+func _pillar_flash() -> void:
+	var vp := get_viewport_rect().size
+	var pillar := ColorRect.new()
+	pillar.color = Color(1.0, 0.95, 0.72, 0.0)
+	pillar.position = Vector2(vp.x / 2.0 - 110.0, 0.0)
+	pillar.size = Vector2(220.0, vp.y)
+	pillar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(pillar)
+	var glow := ColorRect.new()
+	glow.color = Color(1.0, 0.9, 0.6, 0.0)
+	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(glow)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(pillar, "color:a", 0.9, 0.16)
+	tw.tween_property(glow, "color:a", 0.28, 0.16)
+	tw.chain().tween_interval(0.45)
+	tw.chain().tween_property(pillar, "color:a", 0.0, 1.1)
+	tw.parallel().tween_property(glow, "color:a", 0.0, 1.1)
+	tw.chain().tween_callback(func() -> void:
+		pillar.queue_free()
+		glow.queue_free())
 
 
 # ---------- 动画 ----------
