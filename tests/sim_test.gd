@@ -54,6 +54,7 @@ func _init() -> void:
 	_floor5_sim()
 	_floor6_sim()
 	_paragon_curve_sim()
+	_difficulty_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -691,6 +692,24 @@ func _paragon_curve_sim() -> void:
 		print("  %s：%d 点/轮 → %d 轮点满，估 %.0f~%.0f 小时" % [s["tag"], s["per_round"], rounds, lo, hi])
 	print("  混合建议（2 轮 Lv.70 + 11 轮 Lv.60）：13 轮 ≈ 26~40h —— Q1 的 ~50h 目标含首周目与缓冲，可达 ✓")
 	print("  注：冲 Lv.70+ 的轮内实际时长高于收敛带上限（后期升级慢），表内 hi 值对冲高层为下界")
+
+
+func _difficulty_sim() -> void:
+	## 难度层级标定（暗黑4式，2026-10-12 拍板）：难2 = HP×8/atk×4/赏金×6，满巅峰近似练度带宽
+	print("-- 难度标定（难2 一层：HP×8/atk×4；满巅峰近似 = Lv.110/攻40/HP4000） --")
+	for mon0: Dictionary in Balance.MONSTERS_FLOOR1:
+		var mon := mon0.duplicate()
+		mon["hp"] = int(ceil(float(mon["hp"]) * Balance.diff_hp_mult(2)))
+		mon["atk"] = int(ceil(float(mon["atk"]) * Balance.diff_atk_mult(2)))
+		var kills := 0
+		var dmg := 0
+		for t in 8:
+			var r := _simulate_battle(4, mon, 60, 1.0, 0.0, 4000.0)
+			dmg += int(r["damage"])
+			if bool(r["killed"]):
+				kills += 1
+		print("    难2·%-5s HP%-5d atk%-3d 击杀%d/8 均伤%d" % [
+			mon["name"], int(mon["hp"]), int(mon["atk"]), kills, dmg / 8])
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------

@@ -27,6 +27,8 @@ var floor3_card := false                  # 苍干栈道层卡（首杀守林古
 var floor4_card := false                  # 落英花冠层卡（首杀镇风桩掉落，P4）
 var floor5_card := false                  # 云顶鹰巢层卡（首杀千瓣祭主掉落，P5）
 var floor6_card := false                  # 星梢层卡（首杀瞭望鹰掉落，M3.0 工程提案）
+var difficulty := 1                       # 当前难度（暗黑4式难1~5，2026-10-12 拍板）
+var max_difficulty := 1                   # 已解锁的最高难度（击杀当前难度六层层守 +1）
 var bag: Array = []                       # 装备背包（≤30 件实例，E1）
 var equipped: Dictionary = {}             # 穿戴栏（slot → 实例，E1）
 var leg_claimed: Array = []               # 已获得的传奇 id（首杀挂点一次性）
@@ -114,18 +116,20 @@ func paragon_refund(node_id: String) -> bool:
 func can_go_to_floor(index: int) -> bool:
 	## 层间往返的目标层是否可去：一层自由；二层 Lv.10；三层 Lv.50 + 层卡
 	match index:
+		1:
+			return level >= Balance.DIFF_LEVEL_REQ_STEP * (difficulty - 1)
 		6:
-			return level >= Balance.FLOOR_6_LEVEL_REQ and floor6_card
+			return level >= Balance.diff_floor_req(Balance.FLOOR_6_LEVEL_REQ, difficulty) and floor6_card
 		5:
-			return level >= Balance.FLOOR_5_LEVEL_REQ and floor5_card
+			return level >= Balance.diff_floor_req(Balance.FLOOR_5_LEVEL_REQ, difficulty) and floor5_card
 		4:
-			return level >= Balance.FLOOR_4_LEVEL_REQ and floor4_card
+			return level >= Balance.diff_floor_req(Balance.FLOOR_4_LEVEL_REQ, difficulty) and floor4_card
 		3:
-			return level >= Balance.FLOOR_3_LEVEL_REQ and floor3_card
+			return level >= Balance.diff_floor_req(Balance.FLOOR_3_LEVEL_REQ, difficulty) and floor3_card
 		2:
-			return level >= Balance.FLOOR_2_LEVEL_REQ
+			return level >= Balance.diff_floor_req(Balance.FLOOR_2_LEVEL_REQ, difficulty)
 		_:
-			return index == 1
+			return false
 
 
 func unlock_floor3_card() -> bool:
@@ -162,6 +166,21 @@ func unlock_floor6_card() -> bool:
 	floor6_card = true
 	EventBus.floor6_card_gained.emit()
 	return true
+
+
+func unlock_next_difficulty() -> bool:
+	## 击杀当前难度六层层守 → 解锁难度 +1（暗黑4式，2026-10-12 拍板）
+	if difficulty >= Balance.DIFF_MAX or max_difficulty > difficulty:
+		return false
+	max_difficulty = difficulty + 1
+	return true
+
+
+func cycle_difficulty() -> void:
+	## 难度循环切换（主界面按钮）：在 1~已解锁上限间循环
+	difficulty = 1 if difficulty >= max_difficulty else difficulty + 1
+	floor_index = 1  # 切难度回到该难度的一层重新爬升
+	EventBus.floor_changed.emit(floor_index)
 
 
 # ---------- 装备（E1，2026-10-11 22 项拍板 + 内容包 v2） ----------
@@ -774,6 +793,8 @@ func reset() -> void:
 	floor4_card = false
 	floor5_card = false
 	floor6_card = false
+	difficulty = 1
+	max_difficulty = 1
 	bag = []
 	equipped = {}
 	leg_claimed = []

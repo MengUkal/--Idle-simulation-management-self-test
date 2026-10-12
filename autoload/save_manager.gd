@@ -54,6 +54,8 @@ func save() -> void:
 		"floor4_card": GameState.floor4_card,
 		"floor5_card": GameState.floor5_card,
 		"floor6_card": GameState.floor6_card,
+		"difficulty": GameState.difficulty,
+		"max_difficulty": GameState.max_difficulty,
 		"bag": GameState.bag,
 		"equipped": GameState.equipped,
 		"leg_claimed": GameState.leg_claimed,
@@ -132,6 +134,8 @@ func _load() -> void:
 	GameState.floor4_card = bool(data.get("floor4_card", false))
 	GameState.floor5_card = bool(data.get("floor5_card", false))
 	GameState.floor6_card = bool(data.get("floor6_card", false))
+	GameState.difficulty = clampi(int(data.get("difficulty", 1)), 1, 5)
+	GameState.max_difficulty = clampi(int(data.get("max_difficulty", 1)), GameState.difficulty, 5)
 	var bag_arr: Array = data.get("bag", [])
 	if typeof(bag_arr) == TYPE_ARRAY:
 		GameState.bag = bag_arr

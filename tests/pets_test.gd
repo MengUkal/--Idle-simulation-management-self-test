@@ -56,10 +56,13 @@ func _run() -> void:
 	var egg: Dictionary = GameState.egg_drop({"name": "風羽隼"}, true, true)
 	check("T1 精英首杀必掉蛋", not egg.is_empty() and str(egg["monster"]) == "風羽隼")
 	var got_common := 0
+	seed(20261012)  # 确定性：F6/难度等改动会偏移全局 RNG 序列，掉率统计前固定种子
 	for i in 100:
 		if not GameState.egg_drop({"name": "树精史莱姆"}, false, false).is_empty():
 			got_common += 1
-	check("T1 常驻掉率 ~2%（100 次掉 %d）", got_common > 0 and got_common < 15)
+	seed(20261012)  # 恢复后续测试的既定序列起点
+	print("  [dbg] 常驻掉率实测 %d/100" % got_common)
+	check("T1 常驻掉率 ~2%（100 次掉 %d）" % got_common, got_common > 0 and got_common < 15)
 	GameState.reset()
 	GameState.create_character("warrior", "human")
 	check("T1 未注册怪不掉蛋", GameState.egg_drop({"name": "不存在的怪"}, true, true).is_empty())

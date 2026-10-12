@@ -27,6 +27,13 @@ const FLOOR_3_LEVEL_REQ := 50       # 【已拍板 2026-10-11】进入第三层�
 const FLOOR_4_LEVEL_REQ := 60       # 【已拍板 2026-10-11】进入第四层·落英花冠所需等级（另需层卡：首杀镇风桩掉落）
 const FLOOR_5_LEVEL_REQ := 70       # 【已拍板 2026-10-11 第十轮】进入第五层·云顶鹰巢所需等级（另需层卡：首杀千瓣祭主掉落）
 const FLOOR_6_LEVEL_REQ := 85       # 【工程提案 M3.0】进入第六层·星梢所需等级（另需层卡：首杀瞭望鹰掉落；命名待世界观线覆写）
+
+# ---------- 难度层级（2026-10-12 拍板：暗黑4式难1~难5，通关难N六层解锁难N+1一层） ----------
+const DIFF_MAX := 5
+const DIFF_HP_BASE := 8.0       # 难度 d 怪物 HP = 基表 × 8^(d-1)（提案系数，sim 可调）
+const DIFF_ATK_BASE := 4.0      # atk × 4^(d-1)
+const DIFF_BOUNTY_BASE := 6.0   # 赏金 × 6^(d-1)
+const DIFF_LEVEL_REQ_STEP := 30 # 难 d 的层等级门槛 = 原门槛 + 30×(d-1)（难2一层需 Lv.30+）
 const FLOOR_NAMES := {
 	1: "第一层 · 树根之街",
 	2: "第二层 · 翠枝回廊",
@@ -176,6 +183,24 @@ static func showcase_reward_per(floor_index: int) -> float:
 	for m in pool:
 		sum += float(m["bounty"])
 	return sum / pool.size() * 0.5
+
+
+static func diff_hp_mult(d: int) -> float:
+	## 难度 d 怪物 HP 系数（指数增长，提案系数 sim 可调）
+	return pow(DIFF_HP_BASE, float(clampi(d, 1, DIFF_MAX) - 1))
+
+
+static func diff_atk_mult(d: int) -> float:
+	return pow(DIFF_ATK_BASE, float(clampi(d, 1, DIFF_MAX) - 1))
+
+
+static func diff_bounty_mult(d: int) -> float:
+	return pow(DIFF_BOUNTY_BASE, float(clampi(d, 1, DIFF_MAX) - 1))
+
+
+static func diff_floor_req(base_req: int, d: int) -> int:
+	## 难度 d 下进入某层的等级门槛（一层基表无门槛，难2 起需 Lv.30 逐难度递增）
+	return base_req + DIFF_LEVEL_REQ_STEP * (clampi(d, 1, DIFF_MAX) - 1)
 
 # ---------- 交易所（M3，2026-10-09 拍板） ----------
 const MARKET_UNLOCK_LEVEL := 15    # 【已拍板】Lv.15 解锁

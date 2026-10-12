@@ -77,6 +77,16 @@ func _ready() -> void:
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.pressed.connect(def[2])
 		add_child(btn)
+	# 难度切换按钮（暗黑4式难1~5，2026-10-12 拍板）：循环 1~已解锁上限，切难度回一层爬升
+	var diff_btn := Button.new()
+	diff_btn.text = "难度 %d" % GameState.difficulty
+	diff_btn.tooltip_text = "切换难度（通关上一难度六层解锁下一难度；切难度回到该难度一层）"
+	diff_btn.position = Vector2(176.0 + 132.0 * entry_defs.size(), 1010.0)
+	diff_btn.custom_minimum_size = Vector2(118, 40)
+	diff_btn.focus_mode = Control.FOCUS_NONE
+	diff_btn.pressed.connect(_on_difficulty_pressed)
+	add_child(diff_btn)
+	_diff_button = diff_btn
 	# 新手引导 A：首次进入主界面三连（引导链清单实装）
 	if GameState.tip_once("main_first"):
 		GameState.pending_tips.append("欢迎来到世界树。吉尔会自己长——挂机收入，自动到账。")
@@ -96,6 +106,16 @@ func _ready() -> void:
 
 
 var _tip_timer := 0.0
+var _diff_button: Button
+
+
+func _on_difficulty_pressed() -> void:
+	## 难度循环切换（暗黑4式）：切回该难度一层重新爬升
+	Sfx.play("floor_switch")
+	GameState.cycle_difficulty()
+	_diff_button.text = "难度 %d" % GameState.difficulty
+	_refresh_all()
+	_show_toast("已切换到难度 %d（等级门槛提升，怪物与赏金指数增长）" % GameState.difficulty)
 
 
 func _notification(what: int) -> void:
@@ -203,7 +223,7 @@ func _on_money_not_enough(_needed: float) -> void:
 
 
 func _on_floor_changed(new_floor: int) -> void:
-	_floor_name_label.text = Balance.FLOOR_NAMES.get(new_floor, "未知层")
+	_floor_name_label.text = ("难%d · " % GameState.difficulty if GameState.difficulty > 1 else "") + str(Balance.FLOOR_NAMES.get(new_floor, "未知层"))
 	_refresh_buttons()
 	# 场景背景按层切换（tools/gen_asset.py --scene 产物；缺失时保持上一张/空）
 	var bg_path := "res://assets/art/bg/bg_floor%d.png" % new_floor

@@ -281,13 +281,18 @@ func _debug_capture() -> void:
 
 
 func _roll_monster() -> void:
-	## 怪物池按当前所在层切换（在哪层冒险，遇哪层的怪）
+	## 怪物池按当前所在层切换（在哪层冒险，遇哪层的怪）；难度 d 按指数系数缩放
 	if randf() < Balance.ELITE_CHANCE:
 		monster = Balance.monster_elite(GameState.floor_index).duplicate()
 		monster["elite"] = true
 	else:
 		var pool: Array = Balance.monster_pool(GameState.floor_index)
 		monster = pool[randi() % pool.size()].duplicate()
+	var d := GameState.difficulty
+	if d > 1:
+		monster["hp"] = int(ceil(float(monster["hp"]) * Balance.diff_hp_mult(d)))
+		monster["atk"] = int(ceil(float(monster["atk"]) * Balance.diff_atk_mult(d)))
+		monster["bounty"] = int(ceil(float(monster["bounty"]) * Balance.diff_bounty_mult(d)))
 	monster_hp_max = int(monster["hp"])
 	monster_hp = float(monster_hp_max)
 	# 敌人头像：按怪物名加载像素风头像（tools/gen_asset.py 产物；缺失时留空）
@@ -607,6 +612,11 @@ func _victory() -> void:
 		if GameState.unlock_floor6_card():
 			Sfx.play("floor_unlock")
 			_show_toast("瞭望鹰振翅高鸣，爪下落着一枚「星梢层卡」")
+	# 难度解锁（暗黑4式）：击杀当前难度六层层守 → 难度 +1
+	if monster.get("elite", false) and str(monster.get("name", "")) == "星望者":
+		if GameState.unlock_next_difficulty():
+			Sfx.play("floor_unlock")
+			_show_toast("星望者陨落——更深的冬夜在树巅苏醒。难度 %d 已解锁（主界面切换）！" % GameState.max_difficulty)
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	_battle_bounty += bounty
