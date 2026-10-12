@@ -622,6 +622,7 @@ func do_rebirth() -> int:
 	# 巅峰点奖励（Q2 拍板 2026-10-12）：每轮重生 +2 点（Lv.60 后每级另有 +1，跨重生保留）
 	if level >= GameTalents.PARAGON_LEVEL:
 		paragon_points += 2
+		pending_tips.append("巅峰点 +2（重生奖励，累计 %d 点待投入）" % paragon_points)
 	money = Balance.START_MONEY
 	level = Balance.START_LEVEL
 	floor_index = 1
