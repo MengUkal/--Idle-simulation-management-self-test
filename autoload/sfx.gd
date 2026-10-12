@@ -85,9 +85,15 @@ func bgm(name: String) -> void:
 		return
 	var stream := _load_stream(BGM_DIR + name + ".ogg")
 	if stream == null:
+		stream = _load_stream(BGM_DIR + name + ".wav")  # WAV 回退（程序化 BGM，2026-10-12）
+	if stream == null:
 		return
 	if stream is AudioStreamOggVorbis:
 		stream.loop = true
+	elif stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = stream.data.size() / 2  # 16bit 单声道：样本数 = 字节数/2
 	_bgm_current = name
 	_bgm_player.stream = stream
 	_bgm_player.play()
