@@ -92,7 +92,7 @@ func _run(main: Control) -> void:
 	GameState.add_money(100000.0)  # 预算充足：行情价格随机波动（0.2~5 倍基准），不因高价偶发买不起
 	GameState.debug_add_line("atk", 5)
 	GameState.debug_add_line("income", 3)
-	check("T3 行情价格就绪", Market.prices.size() == 3)
+	check("T3 行情价格就绪（6 标的）", Market.prices.size() == 6)
 	var bought := GameState.buy_stock(0, 10)
 	check("T3 买入火晶石 10 股", bought)
 	var holdings_before: Array = GameState.holdings.duplicate()

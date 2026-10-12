@@ -391,29 +391,36 @@ func _refresh_buttons() -> void:
 		_floor2_button.tooltip_text = "前往%s" % nxt_name
 	else:
 		_floor2_button.disabled = true
+		var req6 := Balance.diff_floor_req(Balance.FLOOR_6_LEVEL_REQ, GameState.difficulty)
+		var req5 := Balance.diff_floor_req(Balance.FLOOR_5_LEVEL_REQ, GameState.difficulty)
+		var req4 := Balance.diff_floor_req(Balance.FLOOR_4_LEVEL_REQ, GameState.difficulty)
+		var req3 := Balance.diff_floor_req(Balance.FLOOR_3_LEVEL_REQ, GameState.difficulty)
+		var req2 := Balance.diff_floor_req(Balance.FLOOR_2_LEVEL_REQ, GameState.difficulty)
+		var diff_tag := ("难%d · " % GameState.difficulty) if GameState.difficulty > 1 else ""
 		if nxt == 6:
 			_floor2_button.text = "前往第六层（需层卡）"
-			_floor2_button.tooltip_text = "第六层 · 星梢：需 Lv.%d + 层卡（首杀瞭望鹰掉落），当前 Lv.%d" % [
-				Balance.FLOOR_6_LEVEL_REQ, GameState.level,
+			_floor2_button.tooltip_text = "%s第六层 · 星梢：需 Lv.%d + 层卡（首杀瞭望鹰掉落），当前 Lv.%d" % [
+				diff_tag, req6, GameState.level,
 			]
 		elif nxt == 5:
 			_floor2_button.text = "前往第五层（需层卡）"
-			_floor2_button.tooltip_text = "第五层 · 云顶鹰巢：需 Lv.%d + 层卡（首杀千瓣祭主掉落），当前 Lv.%d" % [
-				Balance.FLOOR_5_LEVEL_REQ, GameState.level,
+			_floor2_button.tooltip_text = "%s第五层 · 云顶鹰巢：需 Lv.%d + 层卡（首杀千瓣祭主掉落），当前 Lv.%d" % [
+				diff_tag, req5, GameState.level,
 			]
 		elif nxt == 4:
 			_floor2_button.text = "前往第四层（需层卡）"
-			_floor2_button.tooltip_text = "第四层 · 落英花冠：需 Lv.%d + 层卡（首杀镇风桩掉落），当前 Lv.%d" % [
-				Balance.FLOOR_4_LEVEL_REQ, GameState.level,
+			_floor2_button.tooltip_text = "%s第四层 · 落英花冠：需 Lv.%d + 层卡（首杀镇风桩掉落），当前 Lv.%d" % [
+				diff_tag, req4, GameState.level,
 			]
 		elif nxt == 3:
 			_floor2_button.text = "前往第三层（需层卡）"
-			_floor2_button.tooltip_text = "第三层 · 苍干栈道：需 Lv.%d + 层卡（首杀守林古树掉落），当前 Lv.%d" % [
-				Balance.FLOOR_3_LEVEL_REQ, GameState.level,
+			_floor2_button.tooltip_text = "%s第三层 · 苍干栈道：需 Lv.%d + 层卡（首杀守林古树掉落），当前 Lv.%d" % [
+				diff_tag, req3, GameState.level,
 			]
 		else:
-			_floor2_button.text = "前往第二层（需 Lv.%d）" % Balance.FLOOR_2_LEVEL_REQ
-			_floor2_button.tooltip_text = "第二层 · 翠枝回廊：当前 Lv.%d" % GameState.level
+			_floor2_button.text = "前往第二层（需 Lv.%d）" % req2
+			_floor2_button.tooltip_text = "%s第二层 · 翠枝回廊：需 Lv.%d，当前 Lv.%d" % [
+				diff_tag, req2, GameState.level]
 	var market_unlocked := GameState.level >= Balance.MARKET_UNLOCK_LEVEL
 	_market_button.disabled = not market_unlocked
 	_market_button.text = "交易所" if market_unlocked else "交易所（需 Lv.%d）" % Balance.MARKET_UNLOCK_LEVEL
