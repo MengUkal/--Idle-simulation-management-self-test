@@ -52,8 +52,7 @@ func _ready() -> void:
 		add_child(OfflinePanel.new())
 	# BGM 按层五选一（bgm_floor5 已由音频会话产出，2026-10-12）
 	Sfx.bgm(["bgm_floor1", "bgm_floor2", "bgm_floor3", "bgm_floor4", "bgm_floor5"][clampi(GameState.floor_index, 1, 5) - 1])
-	if OS.is_debug_build():
-		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	add_child(DevPanel.new())  # 开发修改器（F1 开关）——2026-10-12 拍板：成品也保留（玩家懒得打可直接作弊）
 	# 系统入口三连（E1.5/P-b）：挂主界面根节点、底部左侧空地带与「重置存档」并排
 	# （不进设置所在容器——容器布局会重排覆盖 position，压到天赋/巅峰文字）
 	var entry_defs := [
