@@ -26,12 +26,14 @@ const FLOOR_2_LEVEL_REQ := 10       # 【已拍板】进入第二层所需等级
 const FLOOR_3_LEVEL_REQ := 50       # 【已拍板 2026-10-11】进入第三层·苍干栈道所需等级（另需层卡：首杀古树掉落）
 const FLOOR_4_LEVEL_REQ := 60       # 【已拍板 2026-10-11】进入第四层·落英花冠所需等级（另需层卡：首杀镇风桩掉落）
 const FLOOR_5_LEVEL_REQ := 70       # 【已拍板 2026-10-11 第十轮】进入第五层·云顶鹰巢所需等级（另需层卡：首杀千瓣祭主掉落）
+const FLOOR_6_LEVEL_REQ := 85       # 【工程提案 M3.0】进入第六层·星梢所需等级（另需层卡：首杀瞭望鹰掉落；命名待世界观线覆写）
 const FLOOR_NAMES := {
 	1: "第一层 · 树根之街",
 	2: "第二层 · 翠枝回廊",
 	3: "第三层 · 苍干栈道",
 	4: "第四层 · 落英花冠",
 	5: "第五层 · 云顶鹰巢",
+	6: "第六层 · 星梢",
 }
 
 # ---------- 消消乐冒险（M2） ----------
@@ -93,6 +95,17 @@ const MONSTERS_FLOOR5 := [
 	{"name": "雾里鱼", "hp": 2150, "bounty": 320, "weak": 4, "atk": 235, "speed": 5},
 ]
 const MONSTER_ELITE_FLOOR5 := {"name": "瞭望鹰", "hp": 3600, "bounty": 550, "weak": 5, "atk": 260, "speed": 3}
+# 第六层·星梢怪物表（M3.0 工程提案 2026-10-12：命名/主题待世界观线覆写；数值 = 五层实际倍率 ×1.45 外推）
+# 生态：星光系与霜系混合；树的最高处，星空接触面，"看得见彩虹桥的地方"
+const MONSTERS_FLOOR6 := [
+	{"name": "星尘蛾", "hp": 1890, "bounty": 250, "weak": 4, "atk": 232, "speed": 5},
+	{"name": "月苔鹿", "hp": 2130, "bounty": 285, "weak": 3, "atk": 254, "speed": 5},
+	{"name": "霜羽鸮", "hp": 2380, "bounty": 320, "weak": 0, "atk": 276, "speed": 5},
+	{"name": "流星蜉", "hp": 2630, "bounty": 365, "weak": 2, "atk": 298, "speed": 5},
+	{"name": "银露鲸", "hp": 2890, "bounty": 420, "weak": 1, "atk": 322, "speed": 5},
+	{"name": "夜幕织者", "hp": 3150, "bounty": 465, "weak": 5, "atk": 341, "speed": 5},
+]
+const MONSTER_ELITE_FLOOR6 := {"name": "星望者", "hp": 5220, "bounty": 800, "weak": 4, "atk": 377, "speed": 3}
 const ELITE_CHANCE := 0.1           # [占位] 精英出现率
 # ---------- 玩家 HP（P-a，2026-10-11 拍板 D7~D10：伙伴与生命系统规划 §2） ----------
 const PLAYER_HP_BASE := 100         # 基础生命
@@ -123,6 +136,8 @@ static func damage_multiplier(element: int, monster: Dictionary) -> float:
 
 static func monster_pool(floor_index: int) -> Array:
 	## 各层常驻怪物池：在哪层冒险，遇哪层的怪
+	if floor_index >= 6:
+		return MONSTERS_FLOOR6
 	if floor_index >= 5:
 		return MONSTERS_FLOOR5
 	if floor_index >= 4:
@@ -133,6 +148,8 @@ static func monster_pool(floor_index: int) -> Array:
 
 
 static func monster_elite(floor_index: int) -> Dictionary:
+	if floor_index >= 6:
+		return MONSTER_ELITE_FLOOR6
 	if floor_index >= 5:
 		return MONSTER_ELITE_FLOOR5
 	if floor_index >= 4:

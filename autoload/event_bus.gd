@@ -15,3 +15,4 @@ signal rebirth_performed(gained: int, total: int, count: int)  # 重生完成（
 signal floor3_card_gained()                   # 首杀古树掉落苍干栈道层卡（P3）
 signal floor4_card_gained()                   # 首杀镇风桩掉落落英花冠层卡（P4）
 signal floor5_card_gained()                   # 首杀千瓣祭主掉落云顶鹰巢层卡（P5）
+signal floor6_card_gained()                   # 首杀瞭望鹰掉落星梢层卡（M3.0）

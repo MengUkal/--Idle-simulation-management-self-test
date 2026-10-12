@@ -227,8 +227,8 @@ func _on_upgrade_pressed() -> void:
 
 
 func _on_floor2_pressed() -> void:
-	## 层间往返：循环 1→2→3→4→5→1（三层 Lv.50+卡；四层 Lv.60+卡；五层 Lv.70+卡）
-	var nxt := GameState.floor_index % 5 + 1
+	## 层间往返：循环 1→2→3→4→5→6→1（三层 Lv.50+卡；四层 Lv.60+卡；五层 Lv.70+卡；六层 Lv.85+卡）
+	var nxt := GameState.floor_index % 6 + 1
 	if GameState.can_go_to_floor(nxt):
 		Sfx.play("floor_switch")
 		GameState.go_to_floor(nxt)
@@ -353,9 +353,9 @@ func _refresh_buttons() -> void:
 		Balance.format_number(cost),
 		Balance.CURRENCY_SHORT,
 	]
-	# 层间按钮：循环 1→2→3→4→5→1；不可去时置灰，完整条件放悬停提示（按钮文字保持一行内）
+	# 层间按钮：循环 1→2→3→4→5→6→1；不可去时置灰，完整条件放悬停提示（按钮文字保持一行内）
 	var cur := GameState.floor_index
-	var nxt := cur % 5 + 1
+	var nxt := cur % 6 + 1
 	var nxt_name: String = Balance.FLOOR_NAMES.get(nxt, "未知层")
 	if GameState.can_go_to_floor(nxt):
 		_floor2_button.disabled = false
@@ -363,7 +363,12 @@ func _refresh_buttons() -> void:
 		_floor2_button.tooltip_text = "前往%s" % nxt_name
 	else:
 		_floor2_button.disabled = true
-		if nxt == 5:
+		if nxt == 6:
+			_floor2_button.text = "前往第六层（需层卡）"
+			_floor2_button.tooltip_text = "第六层 · 星梢：需 Lv.%d + 层卡（首杀瞭望鹰掉落），当前 Lv.%d" % [
+				Balance.FLOOR_6_LEVEL_REQ, GameState.level,
+			]
+		elif nxt == 5:
 			_floor2_button.text = "前往第五层（需层卡）"
 			_floor2_button.tooltip_text = "第五层 · 云顶鹰巢：需 Lv.%d + 层卡（首杀千瓣祭主掉落），当前 Lv.%d" % [
 				Balance.FLOOR_5_LEVEL_REQ, GameState.level,

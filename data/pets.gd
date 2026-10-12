@@ -50,6 +50,14 @@ const PETS := {
 	"雷蜓": {"key": "battle_damage", "kind": "mult", "per": 0.02},
 	"雾里鱼": {"key": "ep", "kind": "mult", "per": 0.02},
 	"瞭望鹰": {"key": "fruit", "kind": "mult", "per": 0.03},
+	# 六层·星梢（M3.0 工程提案）
+	"星尘蛾": {"key": "chain_bonus", "kind": "add", "per": 0.004},
+	"月苔鹿": {"key": "max_hp", "kind": "mult", "per": 0.035},
+	"霜羽鸮": {"key": "bounty", "kind": "mult", "per": 0.03},
+	"流星蜉": {"key": "ep", "kind": "mult", "per": 0.025},
+	"银露鲸": {"key": "regen", "kind": "add", "per": 2},
+	"夜幕织者": {"key": "battle_damage", "kind": "mult", "per": 0.025},
+	"星望者": {"key": "fruit", "kind": "mult", "per": 0.04},
 }
 
 

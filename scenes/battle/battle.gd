@@ -107,6 +107,10 @@ const MONSTER_SLUG := {
 	"云雀妖": "cloudlark", "云绵羊": "cloudsheep", "风筝妖": "kitefiend",
 	"露珠精": "dewspirit", "雷蜓": "thunderdragonfly", "雾里鱼": "mistfish",
 	"瞭望鹰": "watchereagle",
+	# 第六层·星梢（slug 预留：M3.0 工程提案，命名待世界观线覆写）
+	"星尘蛾": "stardustmoth", "月苔鹿": "moosedeer", "霜羽鸮": "frostowl",
+	"流星蜉": "meteorfly", "银露鲸": "silverwhale", "夜幕织者": "nightweaver",
+	"星望者": "stargazer",
 }
 
 
@@ -598,6 +602,11 @@ func _victory() -> void:
 		if GameState.unlock_floor5_card():
 			Sfx.play("floor_unlock")
 			_show_toast("千瓣祭主凋落，花心藏着一枚「云顶鹰巢层卡」")
+	# 层卡：首杀瞭望鹰掉落「星梢层卡」（M3.0，六层解锁凭证）
+	if str(monster.get("name", "")) == "瞭望鹰" and monster.get("elite", false):
+		if GameState.unlock_floor6_card():
+			Sfx.play("floor_unlock")
+			_show_toast("瞭望鹰振翅高鸣，爪下落着一枚「星梢层卡」")
 	var bounty := int(ceil(int(monster["bounty"]) * Balance.train_multiplier(GameState.bounty_line) * Mods.mult("bounty")))
 	GameState.add_money(float(bounty))
 	_battle_bounty += bounty

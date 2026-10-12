@@ -39,7 +39,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	# T0 表完整性：28 只全注册、键全部合法
-	check("T0 伙伴 35 只（四层28+五层7）", GamePets.PETS.size() == 35)
+	check("T0 伙伴 42 只（五层35+六层7）", GamePets.PETS.size() == 42)
 	var keys_ok := true
 	for pname in GamePets.PETS.keys():
 		var d: Dictionary = GamePets.PETS[pname]

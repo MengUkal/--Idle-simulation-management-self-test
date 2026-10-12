@@ -52,6 +52,7 @@ func _init() -> void:
 	_floor4_sim()
 	_hp_sim()
 	_floor5_sim()
+	_floor6_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -638,6 +639,40 @@ func _floor5_sim() -> void:
 			int(Balance.MONSTER_ELITE_FLOOR5["hp"]), ek, edmg / 8, elost])
 	atk_line = 15
 	fruits = 33
+
+
+func _floor6_sim() -> void:
+	## 星梢标定（M3.0 工程提案）：第 7/8 轮门槛练度 → 击杀率（含玩家 HP 战败镜像）
+	print("-- 星梢标定（M3.0 工程提案：命名待世界观线覆写；门槛 Lv.85+层卡） --")
+	var rounds := [
+		{"tag": "第7轮门槛(Lv.85)", "atk": 21, "fruit": 225, "steps": 52, "hp": 1800},
+		{"tag": "第8轮门槛(Lv.90)", "atk": 22, "fruit": 270, "steps": 55, "hp": 1900},
+	]
+	for rd: Dictionary in rounds:
+		atk_line = int(rd["atk"])
+		fruits = int(rd["fruit"])
+		print("  -- %s：攻%d / 果实%d / 步数%d --" % [rd["tag"], atk_line, fruits, int(rd["steps"])])
+		for mon: Dictionary in Balance.MONSTERS_FLOOR6:
+			var kills := 0
+			var dmg_sum := 0
+			for t in 8:
+				var r := _simulate_battle(4, mon, int(rd["steps"]), 1.0, 0.0, float(rd["hp"]))
+				dmg_sum += int(r["damage"])
+				if bool(r["killed"]):
+					kills += 1
+			print("    %-4s HP%-4d 击杀%d/8 均伤%d" % [mon["name"], int(mon["hp"]), kills, dmg_sum / 8])
+		var ek := 0
+		var edmg := 0
+		var elost := 0
+		for t in 8:
+			var r2 := _simulate_battle(4, Balance.MONSTER_ELITE_FLOOR6, int(rd["steps"]), 1.0, 0.0, float(rd["hp"]))
+			edmg += int(r2["damage"])
+			if bool(r2["killed"]):
+				ek += 1
+			if bool(r2.get("defeated", false)):
+				elost += 1
+		print("    ★星望者 HP%-4d 击杀%d/8 均伤%d 战败%d" % [
+			int(Balance.MONSTER_ELITE_FLOOR6["hp"]), ek, edmg / 8, elost])
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
