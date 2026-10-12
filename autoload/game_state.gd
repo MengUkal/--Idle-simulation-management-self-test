@@ -87,6 +87,10 @@ func paragon_buy(node_id: String) -> bool:
 				paragon_unlocked_boards.append(next_board)
 	Mods.recompute()
 	EventBus.level_changed.emit(level)
+	# 彩虹桥钩子（M4，2026-10-12）：p3 点满 → 世界树之巅的预告（远期内容存目）
+	if paragon_invested("p3") >= 27 and not tips_seen.has("rainbow_hook"):
+		tips_seen["rainbow_hook"] = true
+		pending_tips.append("……云海之上，一道彩虹色的桥在星光里若隐若现。树说：还不到时候。（彩虹桥 · 远期）")
 	return true
 
 
