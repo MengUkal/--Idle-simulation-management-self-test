@@ -302,8 +302,12 @@ func _run() -> void:
 		and GameState.essence == ess_before + 30)
 	GameState.bag.append({"id": "t_l", "name": "传奇件", "slot": "ring", "type": "ring",
 		"tier": 1, "weight": "", "quality": 3, "ancient": false, "affixes": [], "legendary": "leg_twin_ring"})
-	check("T12 传奇不可分解", not bool(GameState.decompose(0)["ok"]))
-	check("T12 树胶落盘", true)  # 与 T13 合并验证
+	var glue_l0: int = GameState.glue
+	var ess_l0: int = GameState.essence
+	var r_l: Dictionary = GameState.decompose(0)
+	check("T12 传奇可分解（树胶50/精华200）",
+		bool(r_l["ok"]) and GameState.glue - glue_l0 == 50 and GameState.essence - ess_l0 == 200)
+	check("T12 传奇移出背包", GameState.bag.is_empty())
 
 	# T13 账单制洗练：锁1洗1、成本翻倍、不产太古
 	GameState.reset()
