@@ -125,11 +125,18 @@ func _board_section(bid: String) -> VBoxContainer:
 		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		head_box.add_child(emblem)
+	var invested := GameState.paragon_invested(bid)
+	var maxed := invested >= 27
 	var head := Label.new()
-	head.text = "—— %s —— %s" % [board.get("name", bid), "已开放" if unlocked else "需前一板块传奇解锁"]
+	if not unlocked:
+		head.text = "—— %s —— 需前一板块传奇解锁" % board.get("name", bid)
+	elif maxed:
+		head.text = "—— %s —— ★ 已点满（27 / 27）" % board.get("name", bid)
+	else:
+		head.text = "—— %s —— 已开放（%d / 27）" % [board.get("name", bid), invested]
 	head.add_theme_font_size_override("font_size", 22)
 	head.add_theme_color_override("font_color",
-		Color(1, 0.843, 0.369) if unlocked else Color(0.55, 0.5, 0.45))
+		Color(0.55, 0.9, 0.65) if maxed else (Color(1, 0.843, 0.369) if unlocked else Color(0.55, 0.5, 0.45)))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head_box.add_child(head)
 	sec.add_child(head_box)
@@ -195,8 +202,15 @@ func _node_row(n: Dictionary, board: Dictionary) -> HBoxContainer:
 	buy.custom_minimum_size = Vector2(170, 36)
 	buy.disabled = rank >= max_r or GameState.paragon_points < 1
 	buy.pressed.connect(func() -> void:
+		var was_legend := n.has("key") or str(n.get("kind", "")) == "legendary"
+		var next_before := GameState.paragon_board_unlocked("p3")
 		GameState.paragon_buy(n["id"])
 		Sfx.play("paragon_node")  # 专属点亮音（2026-10-11 转正，替代复用 level_up）
+		if was_legend:
+			_pillar_flash()  # M2.1 传奇三选一点亮演出
+			_flash_banner("传奇点亮！")
+		if not next_before and GameState.paragon_board_unlocked("p3"):
+			_flash_banner("枝务厅编制 · 已开放")
 		_rebuild())
 	row.add_child(buy)
 	var refund := Button.new()
@@ -208,3 +222,48 @@ func _node_row(n: Dictionary, board: Dictionary) -> HBoxContainer:
 		_rebuild())
 	row.add_child(refund)
 	return row
+
+
+## M2.1 传奇点亮演出：金白光柱+全屏辉光渐隐（与战斗太古光柱同款）
+func _pillar_flash() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var pillar := ColorRect.new()
+	pillar.color = Color(1.0, 0.95, 0.72, 0.0)
+	pillar.position = Vector2(vp.x / 2.0 - 110.0, 0.0)
+	pillar.size = Vector2(220.0, vp.y)
+	pillar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(pillar)
+	var glow := ColorRect.new()
+	glow.color = Color(1.0, 0.9, 0.6, 0.0)
+	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(glow)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(pillar, "color:a", 0.9, 0.16)
+	tw.tween_property(glow, "color:a", 0.28, 0.16)
+	tw.chain().tween_interval(0.45)
+	tw.chain().tween_property(pillar, "color:a", 0.0, 1.1)
+	tw.parallel().tween_property(glow, "color:a", 0.0, 1.1)
+	tw.chain().tween_callback(func() -> void:
+		pillar.queue_free()
+		glow.queue_free())
+
+
+## M2.1 面板横幅提示（顶部居中，2.4s 渐隐）
+func _flash_banner(text: String) -> void:
+	var banner := Label.new()
+	banner.text = text
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.add_theme_font_size_override("font_size", 26)
+	banner.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
+	banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	banner.add_theme_constant_override("outline_size", 8)
+	banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	banner.position.y = 60.0
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(banner)
+	var tw := create_tween()
+	tw.tween_interval(2.0)
+	tw.tween_property(banner, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(banner.queue_free)
