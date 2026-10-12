@@ -105,8 +105,8 @@ const MONSTER_SLUG := {
 	"千瓣祭主": "petalpriest",
 	# 第五层·云顶鹰巢（slug 预留）
 	"云雀妖": "cloudlark", "云绵羊": "cloudsheep", "风筝妖": "kitefiend",
-	"露珠精": "dewspirit", "雷蜓": "thunderdragonfly", "雾里鱼": "mistfish",
-	"瞭望鹰": "watchereagle",
+	"露珠精": "dewspirit", "雷蜓": "thunderdragonfly", "雾里鱼": "fogfish",
+	"瞭望鹰": "watcheagle",
 	# 第六层·星梢（slug 预留：M3.0 工程提案，命名待世界观线覆写）
 	"星尘蛾": "stardustmoth", "月苔鹿": "moosedeer", "霜羽鸮": "frostowl",
 	"流星蜉": "meteorfly", "银露鲸": "silverwhale", "夜幕织者": "nightweaver",
@@ -149,7 +149,7 @@ func _ready() -> void:
 	_connect_button_signals()
 	# 场景背景按层切换（美术管线产物；缺失时留空走暗色底）
 	var bg_path := "res://assets/art/bg/bg_floor%d.png" % GameState.floor_index
-	_bg_art.texture = load(bg_path) if ResourceLoader.exists(bg_path) else null
+	_bg_art.texture = load(bg_path) if ResourceLoader.exists(bg_path) else (load("res://assets/art/bg/bg_floor5.png") if GameState.floor_index >= 5 else null)
 	board = Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()

@@ -21,7 +21,7 @@ func check(case_name: String, actual: Variant, expected: Variant) -> void:
 func _init() -> void:
 	var m = load("res://autoload/market.gd").new()
 	m.reset_market()
-	check("初始 3 个标的价格", m.prices.size(), 3)
+	check("初始 6 个标的价格", m.prices.size(), 6)
 	check("预生成历史 K 线 40 根", m.history[0].size(), 40)
 	# 手续费数学（1% 买卖均收）
 	var cost: Dictionary = Balance.trade_cost(100.0, 10)
