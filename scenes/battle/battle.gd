@@ -185,8 +185,7 @@ func _ready() -> void:
 		_newbie_hints.call_deferred()
 
 
-	if OS.is_debug_build():
-		add_child(DevPanel.new())  # 开发修改器（F1 开关），release 导出自动不存在
+	add_child(DevPanel.new())  # 开发修改器（F1 开关）——2026-10-12 拍板：成品也保留（玩家懒得打可直接作弊）
 	# 右栏信息间距（S 系列后内容变多，拉开统计/说明/按钮的呼吸感）
 	if _side_panel_ref != null:
 		_side_panel_ref.add_theme_constant_override("separation", 12)
