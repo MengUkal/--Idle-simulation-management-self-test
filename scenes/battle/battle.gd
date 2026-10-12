@@ -40,6 +40,8 @@ var _skill_btn: Button
 var _drag_cell := Vector2i(-1, -1)   # 滑动交换：按住的格位（手机版，2026-10-12 拍板）
 var _drag_pos := Vector2.ZERO
 var _drag_used := false
+var _board_origin := Vector2.ZERO    # 棋盘初始位置（震屏锚点，防漂移）
+var _shake_tween: Tween
 
 var board_layer: Control
 var _steps_label: Label
@@ -153,6 +155,7 @@ func _ready() -> void:
 	board = Match3Board.new(Balance.BOARD_SIZE, Balance.ELEMENT_KINDS)
 	board.setup()
 	board.ensure_playable()
+	_board_origin = board_layer.position  # 震屏锚点（_ready 时布局已定）
 	steps_left = Balance.battle_steps(GameState.level) + Mods.add("steps")
 	_roll_monster()
 	# 终局：彩虹桥守门者战（2026-10-12 拍板）——覆盖常规怪物，无难度缩放，无掉落
@@ -1201,15 +1204,20 @@ func _anim_settle() -> void:
 
 
 ## 连锁 ≥2 时棋盘轻微震屏（可在设置关闭）
+## 2026-10-12 修复：原实现每次取"当前 position"当震屏中心且不杀旧 tween——高频连锁时
+## 新旧 tween 交错、原点漂移累积，棋盘会停在任意偏移处（守卫战高发）。改为锚定初始原点。
 func _shake_board() -> void:
 	if not Settings.get_value("fx_screen_shake"):
 		return
-	var origin := board_layer.position
+	if _shake_tween and _shake_tween.is_valid():
+		_shake_tween.kill()
+	board_layer.position = _board_origin  # 复位防漂移
 	var tw := create_tween()
+	_shake_tween = tw
 	for i in 3:
-		tw.tween_property(board_layer, "position", origin + Vector2(7, 0), 0.045)
-		tw.tween_property(board_layer, "position", origin - Vector2(7, 0), 0.045)
-	tw.tween_property(board_layer, "position", origin, 0.045)
+		tw.tween_property(board_layer, "position", _board_origin + Vector2(7, 0), 0.045)
+		tw.tween_property(board_layer, "position", _board_origin - Vector2(7, 0), 0.045)
+	tw.tween_property(board_layer, "position", _board_origin, 0.045)
 
 
 # ---------- 反馈特效（S3，2026-10-10） ----------
