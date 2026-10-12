@@ -975,7 +975,7 @@ def make_board_fx_tiles():
 # ---------- 层卡视觉（道具卡面，150×210，暂无 UI 挂点、先备资产） ----------
 
 def make_floor_cards():
-    """层卡卡面：苍干栈道 / 落英花冠。输出 assets/art/cards/card_floor{3,4}.png"""
+    """层卡卡面：苍干栈道 / 落英花冠 / 云顶鹰巢 / 星梢。输出 assets/art/cards/card_floor{3..6}.png"""
     out_dir = os.path.normpath(os.path.join(HERE, "..", "assets", "art", "cards"))
     os.makedirs(out_dir, exist_ok=True)
     W, H = 150, 210
@@ -985,6 +985,10 @@ def make_floor_cards():
          "plank"),
         ("card_floor4", "落英花冠", "第四层", (0xC9, 0x8A, 0xB8, 255), (0x8A, 0x5F, 0xBF, 255),
          "petal"),
+        ("card_floor5", "云顶鹰巢", "第五层", (0x7A, 0xC7, 0xE0, 255), (0x4A, 0x6A, 0x8A, 255),
+         "cloud"),
+        ("card_floor6", "星梢", "第六层", (0x8A, 0x7A, 0xC9, 255), (0x2A, 0x1D, 0x4A, 255),
+         "star"),
     ]
     try:
         name_font = ImageFont.truetype(r"C:\Windows\Fonts\msyh.ttc", 20)
@@ -999,19 +1003,32 @@ def make_floor_cards():
                             outline=ring, width=4)
         d.rounded_rectangle([10, 10, W - 10, H - 10], radius=10,
                             outline=darken(ring, 0.7), width=2)
-        # 主题微缩场景（几何示意：栈道木板 / 飘落花瓣）
+        # 主题微缩场景（几何示意：栈道木板 / 飘落花瓣 / 云峰鹰影 / 星梢星座）
         if motif == "plank":
             for k in range(4):
                 y = 52 + k * 22
                 d.rounded_rectangle([24, y, W - 24, y + 12], radius=4,
                                     fill=(0x8a, 0x5a, 0x2b, 255))
             d.ellipse([W * 0.62, 42, W * 0.62 + 26, 68], fill=(0xF2, 0xC9, 0x4C, 255))
-        else:
+        elif motif == "petal":
             for px, py, pr in [(44, 66, 10), (84, 52, 12), (108, 80, 9), (64, 96, 11),
                                (100, 112, 8), (36, 116, 8)]:
                 d.ellipse([px - pr, py - pr, px + pr, py + pr],
                           fill=light_up(theme, 1.1))
             d.line([W * 0.5, 40, W * 0.5, H - 46], fill=light_up(theme, 1.25), width=3)
+        elif motif == "cloud":
+            for ccx, ccy, ccr in [(52, 78, 22), (92, 66, 26), (118, 92, 18)]:
+                d.ellipse([ccx - ccr, ccy - ccr, ccx + ccr, ccy + ccr],
+                          fill=(0xE8, 0xF0, 0xF8, 255))
+            d.polygon([(W * 0.5, 58), (W * 0.42, 78), (W * 0.58, 78)],
+                      fill=(0xC9, 0x8A, 0x3A, 255))
+            d.ellipse([W * 0.44, 50, W * 0.56, 62], fill=(0x4A, 0x6A, 0x8A, 255))
+        else:  # star
+            for sx, sy, ss in [(46, 60, 7), (104, 52, 8), (76, 92, 6), (116, 100, 5),
+                               (30, 100, 5), (88, 66, 4)]:
+                d.polygon([(sx, sy - ss), (sx + ss * 0.35, sy), (sx, sy + ss), (sx - ss * 0.35, sy)],
+                          fill=(0xF2, 0xE6, 0xC8, 255))
+            d.line([W * 0.30, 46, W * 0.70, 100], fill=(0x8A, 0x7A, 0xC9, 255), width=2)
         # 名称条
         d.rounded_rectangle([14, H - 52, W - 14, H - 18], radius=8,
                             fill=(0x19, 0x13, 0x22, 230))
