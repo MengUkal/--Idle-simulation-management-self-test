@@ -55,6 +55,7 @@ func _init() -> void:
 	_floor6_sim()
 	_paragon_curve_sim()
 	_difficulty_sim()
+	_max_loadout_sim()
 	print("")
 	print("=== 七、全 build 总叠加验证（职业+种族+天赋满） ===")
 	_full_build_sim()
@@ -710,6 +711,28 @@ func _difficulty_sim() -> void:
 				kills += 1
 		print("    难2·%-5s HP%-5d atk%-3d 击杀%d/8 均伤%d" % [
 			mon["name"], int(mon["hp"]), int(mon["atk"]), kills, dmg / 8])
+
+
+func _max_loadout_sim() -> void:
+	## P5 尾巴·满配战（2026-10-12）：满练度（攻50/果实400/步数70）vs 五六层 Boss 击杀带宽
+	print("-- 满配战标定（P5 尾巴：攻50/步数70 近似满配乘区） --")
+	var targets := [
+		{"tag": "难1·星望者(五层守)", "mon": Balance.MONSTER_ELITE_FLOOR5},
+		{"tag": "难1·星望者(六层守)", "mon": Balance.MONSTER_ELITE_FLOOR6},
+	]
+	atk_line = 50
+	fruits = 400
+	for t: Dictionary in targets:
+		var kills := 0
+		var dmg := 0
+		for i in 8:
+			var r := _simulate_battle(4, t["mon"], 70, 1.0, 0.0, 3000.0)
+			dmg += int(r["damage"])
+			if bool(r["killed"]):
+				kills += 1
+		print("  %s HP%d 击杀%d/8 均伤%d" % [t["tag"], int(t["mon"]["hp"]), kills, dmg / 8])
+	atk_line = 15
+	fruits = 33
 
 
 # ---------- 七、全 build 总叠加验证（角色系统三期后） ----------
