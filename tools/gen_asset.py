@@ -93,6 +93,14 @@ MONSTERS = {
     "雷蜓":       ("thunderdragonfly", "dragonfly with lightning-patterned wings, long thin body, small electric sparks"),
     "雾里鱼":     ("fogfish",    "fish swimming inside a small fog cloud, fish body with fins, mist trail"),
     "瞭望鹰":     ("watcheagle", "majestic giant eagle perched on a cloud peak, piercing eyes, spread wings, imposing"),
+    # 第六层 · 星梢（星夜系，工程会话命名；slug 对齐 gen_monster_pixel.py）
+    "星望者":     ("stargazer",    "small round-bodied stargazer creature with a glowing star hovering above, pointing up, starry cloak"),
+    "星尘蛾":     ("stardustmoth", "starry moth with stardust-patterned wings, round fuzzy body, glowing speckles"),
+    "月苔鹿":     ("moosedeer",    "small deer with mossy back and crescent-moon shaped antlers, gentle eyes"),
+    "霜羽鸮":     ("frostowl",     "white frost owl with icy feather patterns, big round eyes, perched"),
+    "流星蜉":     ("meteorfly",    "tiny mayfly with a glowing meteor light trail, delicate wings, comet spark"),
+    "银露鲸":     ("silverwhale",  "small silver whale floating in the air with a dew-drop spray trail"),
+    "夜幕织者":   ("nightweaver",  "weaver creature with dark silk threads forming a night curtain, many slender arms"),
 }
 
 # 表情变体：在怪物描述后追加的形态词（输出到 monsters/variants/）
